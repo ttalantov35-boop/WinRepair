@@ -163,6 +163,21 @@ int main() {
         CHECK(ManifestLookup(man, "missing.exe").empty());
     }
 
+    // --- console code page detection (pnputil writes CP1251 into the pipe, cmd tools write CP866)
+    {   // same bytes, three decodings: right one (1251), real mojibake from the log (1251 read as 866) and 866-as-1251
+        std::u16string good = u"\u0421\u043B\u0443\u0436\u0435\u0431\u043D\u0430\u044F \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0430 PnP (\u041C\u0430\u0439\u043A\u0440\u043E\u0441\u043E\u0444\u0442)";
+        std::u16string moji = u"\u2564\u044B\u0443\u0446\u0445\u0441\u044D\u0440\u00A0 \u044F\u0401\u044E\u0443\u0401\u0440\u044C\u044C\u0440 PnP (\u2560\u0440\u0449\u044A\u0401\u044E\u0451\u044E\u0407\u0404)";
+        std::u16string rev  = u"\u2018\u00AB\u0433\u00A6\u0490\u040E\u00AD\u00A0 \u00AF\u0440\u043E\u0433\u0440\u00A0\u00AC\u00AC\u00A0 PnP (\u0402\u0453\u201A\u0409\u040A)";
+        CHECK(cyrillicScore(good) > cyrillicScore(moji) + 5);
+        CHECK(cyrillicScore(good) > cyrillicScore(rev) + 15);
+        CHECK(cyrillicScore(u"English only text") == 0);
+    }
+    { size_t m = 0; CHECK(utf8Valid("\xD0\xA1\xD0\xBB\xD1\x83\xD0\xB6", 8, &m) && m == 4); }
+    CHECK(!utf8Valid("\xD1\xEB\xF3\xE6\xE5\xE1\xED\xE0", 8));                                                  // raw CP1251 is not UTF-8
+    CHECK(utf8CompletePrefix("ab\xD0", 3) == 2);
+    CHECK(utf8CompletePrefix("ab\xD0\xA1", 4) == 4);
+    CHECK(utf8CompletePrefix("a\xE2\x82", 3) == 1);
+
     printf(fails ? "FAILED: %d\n" : "ALL TESTS PASSED\n", fails);
     return fails ? 1 : 0;
 }

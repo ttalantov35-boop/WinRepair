@@ -6,21 +6,46 @@ namespace wr {
 namespace {
 
 struct Decoder {
-    bool decided = false, utf16 = false;
-    std::string odd;
+    // Mode is chosen on the first chunk(s) that contain enough non-ASCII bytes and then stays fixed for the process.
+    enum Mode { Undecided, Oem, Ansi, Utf8, Utf16 } mode = Undecided;
+    std::string odd;     // carried-over bytes (odd UTF-16 byte / split UTF-8 sequence)
+    static std::wstring Conv(UINT cp, const char* p, size_t n) {
+        int wl = MultiByteToWideChar(cp, 0, p, (int)n, nullptr, 0);
+        if (wl <= 0) return std::wstring(n, L'?');
+        std::wstring w((size_t)wl, L'\0');
+        MultiByteToWideChar(cp, 0, p, (int)n, &w[0], wl);
+        return w;
+    }
+    static int Score(const std::wstring& w) { return cyrillicScore(std::u16string(w.begin(), w.end())); }
     std::string feed(const char* p, size_t n) {
-        if (!decided) { utf16 = looksLikeUtf16le((const uint8_t*)p, n); decided = true; }
-        if (utf16) {
+        if (mode == Undecided && looksLikeUtf16le((const uint8_t*)p, n)) mode = Utf16;
+        if (mode == Utf16) {
             std::string d = odd + std::string(p, n);
             odd.clear();
             if (d.size() & 1) { odd = d.substr(d.size() - 1); d.pop_back(); }
             return utf16leToUtf8((const uint8_t*)d.data(), d.size());
         }
-        int wl = MultiByteToWideChar(CP_OEMCP, 0, p, (int)n, nullptr, 0);
-        if (wl <= 0) return std::string(p, n);
-        std::wstring w((size_t)wl, L'\0');
-        MultiByteToWideChar(CP_OEMCP, 0, p, (int)n, &w[0], wl);
-        return U(w);
+        std::string d = odd + std::string(p, n);
+        odd.clear();
+        size_t high = countHighBytes(d.data(), d.size());
+        if (mode == Undecided && high > 0) {
+            size_t multi = 0;
+            bool russian = (GetOEMCP() == 866 || GetACP() == 1251);
+            if (utf8Valid(d.data(), d.size(), &multi) && multi >= 3) { if (high >= 6) mode = Utf8; }
+            else if (russian) {
+                // OEM (866) vs ANSI (1251): pick the decoding that looks like Russian text.
+                std::wstring o = Conv(CP_OEMCP, d.data(), d.size()), a = Conv(CP_ACP, d.data(), d.size());
+                int so = Score(o), sa = Score(a);
+                if (high >= 8) mode = (sa > so) ? Ansi : Oem;
+                return U(sa > so ? a : o);
+            } else if (high >= 8) mode = Oem;
+        }
+        if (mode == Utf8) {
+            size_t ok = utf8CompletePrefix(d.data(), d.size());
+            odd = d.substr(ok);
+            return d.substr(0, ok);
+        }
+        return U(Conv(mode == Ansi ? CP_ACP : CP_OEMCP, d.data(), d.size()));
     }
 };
 

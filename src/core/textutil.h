@@ -98,6 +98,54 @@ inline bool looksLikeUtf16le(const uint8_t* p, size_t n) {
     return oddZero >= 2 && evenZero * 4 <= oddZero;
 }
 
+// ---- console output code page detection -------------------------------------------------
+// Child tools write in different encodings when piped: cmd tools in the OEM page (866), pnputil/others in ANSI (1251), some in UTF-8.
+// Number of high-byte characters in a buffer.
+inline size_t countHighBytes(const char* p, size_t n) { size_t c = 0; for (size_t i = 0; i < n; ++i) if ((unsigned char)p[i] >= 0x80) ++c; return c; }
+
+// Strict UTF-8 check; *multi receives the number of multi-byte sequences. A truncated sequence at the very end is tolerated (chunk boundary).
+inline bool utf8Valid(const char* p, size_t n, size_t* multi = nullptr) {
+    size_t m = 0, i = 0;
+    while (i < n) {
+        unsigned char c = (unsigned char)p[i];
+        size_t len = c < 0x80 ? 1 : (c >= 0xC2 && c <= 0xDF) ? 2 : (c >= 0xE0 && c <= 0xEF) ? 3 : (c >= 0xF0 && c <= 0xF4) ? 4 : 0;
+        if (!len) return false;
+        if (i + len > n) { if (multi) *multi = m; return true; }   // truncated tail
+        for (size_t k = 1; k < len; ++k) if (((unsigned char)p[i + k] & 0xC0) != 0x80) return false;
+        if (len > 1) ++m;
+        i += len;
+    }
+    if (multi) *multi = m;
+    return true;
+}
+
+// Length of the complete UTF-8 prefix (so a sequence split across two reads is carried over to the next one).
+inline size_t utf8CompletePrefix(const char* p, size_t n) {
+    for (size_t back = 1; back <= 3 && back <= n; ++back) {
+        unsigned char c = (unsigned char)p[n - back];
+        if ((c & 0xC0) == 0x80) continue;                       // continuation byte, keep looking for the lead
+        size_t len = c >= 0xF0 ? 4 : c >= 0xE0 ? 3 : c >= 0xC0 ? 2 : 1;
+        return len > back ? n - back : n;
+    }
+    return n;
+}
+
+// Relative plausibility of decoded text as Russian (compare two decodings of the same bytes; absolute values mean little): lowercase/uppercase Cyrillic letters add, box-drawing and rare Cyrillic-block / Latin-1 symbols subtract.
+// Text of 1251 decoded as 866 gives lots of box-drawing characters; 866 decoded as 1251 gives rare letters and symbols.
+inline int cyrillicScore(const std::u16string& s) {
+    int sc = 0;
+    for (char16_t c : s) {
+        if ((c >= 0x0430 && c <= 0x044F) || c == 0x0451) sc += 2;                       // а-я, ё
+        else if ((c >= 0x0410 && c <= 0x042F) || c == 0x0401) sc += 1;                  // А-Я, Ё
+        else if (c >= 0x2500 && c <= 0x259F) sc -= 4;                                   // box drawing / blocks
+        else if ((c >= 0x0400 && c <= 0x040F) || (c >= 0x0452 && c <= 0x045F) || (c >= 0x0490 && c <= 0x04FF)) sc -= 3;   // Ђ Ѓ ђ ђ ...
+        else if (c >= 0x00A0 && c <= 0x00FF) sc -= 2;                                   // Latin-1 symbols
+        else if (c >= 0x2200 && c <= 0x22FF) sc -= 3;                                   // math symbols (866 0xF9/0xFB: bullet operator, root)
+        else if (c >= 0x2018 && c <= 0x203A) sc -= 1;                                   // typographic punctuation (appears in mis-decoded 1251)
+    }
+    return sc;
+}
+
 // Lower-case for ASCII + basic Cyrillic; maps yo->ye so keywords compare reliably.
 inline std::string toLowerUtf8(const std::string& s) {
     std::string o;
