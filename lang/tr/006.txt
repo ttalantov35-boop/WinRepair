@@ -1,0 +1,188 @@
+1251|Path to an INF or a folder with the driver to add to the offline Windows
+1252|Disabling is not supported for RunOnce — use "Delete".
+1253|Full component store scan (slow), no changes.
+1254|Offline Windows registry — choose the Windows path, edit hives
+1255|BCD / Boot — choose the store, entries, boot modes, bcdboot
+1256|DISM /Image:<volume> /Cleanup-Image /RestoreHealth /Source:<source>
+1257|System Restore/Reset/Repair Install/Clean Install — manual order
+1258|System partition / ESP (letter, must be assigned), e.g. S:
+1259|DELETE the key with all nested keys and values:\nHKLM\\{}
+1260|Critical system events ({} d.): {}, no characteristic signs
+1261|INF files found: {}. Use "Load a driver into WinPE (drvload)".
+1262|They show whether the environment itself has a network, not the target Windows.
+1263|No network adapters found (no driver or wpeinit was not run).
+1264|=== INTEGRITY REPAIR: DISM /RestoreHealth -> SFC /scannow ===
+1265|winmgmt /verifyrepository, /salvagerepository if inconsistent.
+1266|{}(often left by malware: no Task Manager/regedit/cmd)
+1267|"Windows RE + WinRepair" already exists. Delete it to recreate.
+1268|MODIFIES the system: checks and replaces corrupted system files.
+1269|Could not open automatically (no Explorer/browser). Path: {}
+1270|Disables DLL injection into all processes (AppInit_DLLs, 64 and 32-bit).
+1271|Reboot the computer NOW?\nUnsaved data will be lost.
+1272|Check /Source: the edition/build must match the installed one.
+1273|Reset the network stack (Winsock/TCP-IP) or check the adapter driver
+1274|The system is booted in Legacy BIOS mode — Secure Boot does not apply.
+1275|Windows Update: folders renamed — {} (Windows will recreate them).
+1276|{} was not found in this environment (many GUI programs are absent in WinPE).
+1277|{}— a common cause of the "Undoing changes" loop and boot hangs.
+1278|Recovery password / password (typed hidden, not written to the journal)
+1279|If in doubt: JEDEC test (XMP/DOCP/EXPO off), several passes.
+1280|The check step works in kind=triage playbooks ("What happened?" wizard).
+1281|reagentc is unavailable or returned an error — the WinRE state is undetermined.
+1282|Icon and thumbnail cache: files deleted — {} (recreated at sign-in).
+1283|Less than 15 GB: indexing, updates and the page file run slowly.
+1284|Preflight: running on battery (<30%). Plug in the power before repairing.
+1285|Windows will boot in safe mode until the parameter is reset.
+1286|Data (DWORD/QWORD — number or 0x…; MULTI_SZ — one per line; BINARY — hex)
+1287|Devices without a driver (code 28) and storage controllers (Intel VMD/RST)
+1288|There is neither a WinRE entry in BCD nor a Winre.wim file — cannot enter WinRE.
+1289|Hide system services and drivers (like "Hide all Microsoft services")
+1290|{}\nBackups of hives and registry keys are saved before the changes. Continue?
+1291|A service volume was mounted temporarily as {}: (it will be unmounted on exit)
+1292|The BSOD code is a category, not a diagnosis. Use "Dump analysis" to find the cause.
+1293|Pending operations processed. Boot Windows and check the integrity.
+1294|Delete the entry "Windows RE + WinRepair" and the Recovery\\WinRepairRE folder on {}
+1295|Disk not visible or 0x7B: load a storage driver and add it to Windows
+1296|Analysis: the "Dump analysis" button (quick header parse + cdb !analyze -v).
+1297|srclient.dll / SRSetRestorePointW unavailable (System Protection is not installed).
+1298|MODIFIES the system: repairs components (needs access to WU or /Source).
+1299|Renames the update cache folders (online — stopping/starting services).
+1300|A Windows restore point will be created (a modifying action).\n\nContinue?
+1301|No BCD stores found (neither on drive letters nor on hidden service volumes).
+1302|DANGEROUS: resets the security policy/ACLs to defaults. Works on a running OS.
+1303|<sp><sp>cdb returned no BUGCHECK_CODE (no symbols/network or a corrupted dump). Log: {}
+1304|Command #{}\r\nCategory: {}\r\nType: {}\r\nLevel: {}\r\n\r\n{}\r\n{}\r\nWill run:\r\n{}
+1305|Mounting the image failed (the wimmount driver is needed; WinPE usually has it).
+1306|No offline targets. Connect a disk with Windows and click "Refresh" in the main window.
+1307|For the current (online) Windows use msconfig/Autoruns; offline mode only here.
+1308|No offline systems. First unlock the volume/load a driver and refresh the list.
+1309|DANGEROUS: writes the boot sector of the system partition. Available in WinRE/WinPE.
+1310|Devices without an installed driver (problem code 28) and storage controllers:
+1311|The program is running WITHOUT administrator rights — most functions will be unavailable.
+1312|Reads the System Restore settings of the target OS (including offline) and the list of shadow copies.
+1313|<p class='note'>A synthetic score for the customer. Does not replace an engineer's judgment.</p>
+1314|To fix: the "Fix integrity (DISM + SFC)" button — a modifying action.
+1315|The playbook is for an offline system (WinPE/WinRE or another disk), but a running OS is selected.
+1316|No storage controller driver (Intel VMD/RST, NVMe, RAID) or the controller is disabled in the BIOS.
+1317|Parameter "EFI partition": a letter is expected, e.g. S: (the partition must be mounted)
+1318|Next boot mode (like "Boot" in msconfig and the F8 menu) for the selected entry:
+1319|Black screen or no desktop after sign-in: reset shell hijacks and policies
+1320|DISM finished with code 0x{}. SFC is not started. 0x800F081F → incompatible /Source.
+1321|netsh winsock reset, int ip reset, winhttp reset proxy, flushdns. A reboot is needed.
+1322|regsvr32 /s for a set of DLLs (scripting, MSXML, Windows Update, browser components).
+1323|Some steps returned an error (for /deletevalue of a missing parameter this is normal).
+1324|{} unlocked. Click "Refresh" in the main window to find Windows on this volume.
+1325|If malware deleted the Minimal/Network keys, safe mode does not work — creates them.
+1326|WinPE detected: select the installed Windows in the "Target OS" list (offline mode).
+1327|Preflight: a reboot is pending in the system — DISM/SFC results may be inaccurate.
+1328|Some of the fixes are DANGEROUS. Make sure you have a disk backup.\n\nConfirm again.
+1329|BitLocker status of all volumes. Unlock — in the "BitLocker and storage drivers" window.
+1330|A restore point is available only for a running (online) Windows, not in WinPE/offline.
+1331|Quick check of the store corruption flag. For an offline target /Image:<volume> is used automatically.
+1332|The entry "Windows RE + WinRepair" has not been created. First click "WinRE + WinRepair: create".
+1333|Protection will be suspended for 1 reboot (handy before editing BIOS/BCD/boot loader).
+1334|Sources: disk/Ntfs/stornvme/storahci. Possible drive, cable or power problems.
+1335|Problems: {}, notes: {}. Handle the findings from the top first (sorted by importance).
+1336|"Undoing changes, do not turn off your computer" loop: cancel pending update operations
+1337|step at line {}: only probe, check, cmdcheck, message are allowed in a kind=triage playbook
+1338|{}\n\nDELETE the entry (the value/file will be deleted; the value is written to the change journal).
+1339|{}\n\nThis CHANGES the target Windows (needed e.g. for 0x7B after a SATA/VMD mode change).
+1340|A custom symptom: checks disks, autoruns, free space, events and disabled services.
+1341|WARNING: the command describes the CURRENT environment (e.g. WinPE), not the selected target Windows.
+1342|Folder to search for storage driver INF files (SCSIAdapter/HDC: Intel RST/VMD, AHCI, NVMe, RAID)
+1343|Pending/uncorrectable sectors or NVMe MediaErrors. Do not run chkdsk /r until the data is backed up.
+1344|{}\n\nThe change will be written to the target Windows hive (a hive backup has already been saved). Continue?
+1345|Deletes ProxyServer/ProxyOverride/AutoConfigURL and turns ProxyEnable off (system and profiles).
+1346|This is a running system: its hives are held by the kernel. Use regedit for it (button on the right).
+1347|Windows 7+ restore points are shadow copies: shows whether there is anything to restore.
+1348|No offline systems found. In WinPE connect a disk with Windows and refresh the list in the main window.
+1349|DISM /RevertPendingActions + renaming pending.xml. Fixes the hang on "Undoing changes".
+1350|A MODIFYING action will be performed:\nDISM /RestoreHealth, then sfc /scannow on the selected OS.\n\n
+1351|All disabled autorun entries and services will be ENABLED (including those disabled manually earlier).
+1352|Disabling is not supported for this entry type. Use "Edit" or the registry editor.
+1353|No target OS selected. Select the installed Windows in the "Target OS" list (the "Refresh" button).
+1354|DANGEROUS: writes the master boot record (MBR). MBR/BIOS only. Available in WinRE/WinPE.
+1355|BitLocker check is impossible (WinRE has it). If volumes do not open — boot into WinRE.
+1356|This entry cannot be deleted from the list (service/driver — disable it; Task Scheduler — view only).
+1357|System Volume Information is unreadable or empty (run as SYSTEM/administrator).
+1358|If there were blue screens but no dumps — dump writing is off or there was no space/page file.
+1359|MODIFIES the file system. On a busy volume answer Y: check at reboot/volume dismount.
+1360|Determines whether WinRE of the target OS is configured and where the image is (including a hidden recovery partition).
+1361|netsh winsock reset, netsh int ip reset, WinHTTP proxy reset, DNS cache flush. A reboot is needed.
+1362|vssadmin.exe is not in this environment — the shadow copy list is unavailable (rstrui /offline will show the points itself).
+1363|For a running OS, cancelling pending operations is not available from this program (use WinRE/WinPE).
+1364|Only prints the volume list (the script is in a temporary file). Use it before operations with volume letters.
+1365|DANGEROUS/LONG: bad sector scan. On a dying disk it may speed up the failure — back up the data first.
+1366|For the current Windows use Autoruns/msconfig; offline analysis is available for a system on another disk.
+1367|The specified folder has no System32\\config\\SYSTEM. Specify the Windows folder of an offline system (e.g. D:\\Windows).
+1368|Select a symptom and a target OS, then "Diagnose". The checks only read data and change nothing.
+1369|Shows the Hardware ID of devices without a driver: that is how to find the right driver when a disk is "not visible" in WinPE.
+1370|Repair finished (sfc=0). Repeat the integrity check and review the Setup/System logs.
+1371|Select an OS in the list. If the disk or system is not in the list — see the findings about BitLocker and storage drivers.
+1372|Problems: {}, notes: {}. Select a finding in the wizard window and click "Run the recommended action".
+1373|Volumes: {}, locked: {}. Unlocking is needed if the Windows on the disk is not in the "Target OS" list.
+1374|No restore points: rolling back via rstrui is impossible. Consider RegBack/DISM/repair install.
+1375|Reads UEFI variables and checks for the 2023 certificates (the old ones expired in 2026). Works in WinPE too.
+1376|Deletes Debugger for taskmgr, regedit, cmd, msconfig, explorer, etc. (launch hijack; including sethc/utilman).
+1377|DANGEROUS: rebuilds BCD; the program answers Y to the "add to the boot list" prompt. Available in WinRE/WinPE.
+1378|Hint: the WinRE image can be taken from the install.wim of the installation media (Windows\\System32\\Recovery\\Winre.wim).
+1379|Where to save journals, reports and backups (the program's Data folder). In WinPE/WinRE the RAM disk is lost on reboot!
+1380|DANGEROUS: cancels pending update operations (fixes "Undoing changes" at boot). Offline target only.
+1381|{} was not found in this environment. (bootrec is available only in WinRE/WinPE; in a regular Windows use bcdboot/bcdedit.)
+1382|Rolls back an offline system from restore points (works in WinRE; in WinPE rstrui and the recovery components are needed).
+1383|If important services (WU, BITS, Crypt, WMI, RPC, Defender, Firewall…) are disabled — restores the default start type.
+1384|Removes blocks on Task Manager, regedit, cmd, Run, Control Panel, Defender, etc. (HKLM and profiles).
+1385|This function works only inside WinRE. Open "WinRE: enter the recovery environment…" to boot into WinRE.
+1386|Entries: {}, shown: {}, flagged: {}.  Disabling is reversible (StartupApproved / Start=4 with a backup value).
+1387|Could not create a restore point (status {}). Possible causes: protection is off, the 24 h limit, low space.
+1388|DANGEROUS: recreates the boot files on the EFI partition. The EFI partition must have a letter (mountvol S: /S or diskpart assign).
+1389|Identify the EFI partition letter (FAT32, ~100–500 MB). If there is no letter: in diskpart select the volume and run assign letter=S.
+1390|→ Entering WinRE "on the next boot" is done ONCE (BCD bootsequence), then the system boots as usual.\r\n
+1391|The "BitLocker and storage drivers" window will open. Find the INF (search button), load it via drvload and close the window.
+1392|\nEvery step that changes the system will be confirmed separately. Run only playbooks from trusted sources. Start?
+1393|→ The WinRE entry is missing but the image was found: the "Create/restore WinRE entry" button or entering WinRE will create it.\r\n
+1394|reagentc /boottore failed — WinRE is probably disabled. Use "Create/restore WinRE entry" or reagentc /enable.
+1395|The operation may take tens of minutes. A restore point and a data backup are recommended before the repair.\n\nContinue?
+1396|Repair playbooks: {}. *.wrp files are taken from the Playbooks folder next to the program and from {}.\r\nThe format is described in docs\\PLAYBOOKS.md.
+1397|{}\n\nThe disk hidden behind the controller should appear (then the target OS list will refresh). The target disk's system is not modified.
+1398|Restores the classes and open commands, removes user overrides (after an infection "nothing launches").
+1399|Replaces SYSTEM/SOFTWARE/SAM/SECURITY/DEFAULT with copies from config\\RegBack (the current ones are saved). Works if RegBack is not empty.
+1400|MODIFIES an offline image. Source: path to a folder with files or wim:D:\\sources\\install.wim:1 (edition and build must match).
+1401|Pending operations will be cancelled. The update will not be applied, but the system should boot again. Do you have a backup of important data?
+1402|Driver loaded (drvload) and Windows is visible in the "Target OS" list of the main window? Click "Yes" to add the driver to Windows.
+1403|Could not unlock volume {} (code {}). Check the key and the volume letter. manage-bde is not in every WinPE (the BitLocker component is needed).
+1404|A DANGEROUS operation: boot or data may be lost.\n\nDo you have a backup and do you understand the consequences?\nConfirm again.
+1405|HINT: find the driver by Hardware ID (VEN_xxxx&DEV_xxxx) and load it via drvload; then click "Refresh" in the main window.
+1406|Done. Reboot the computer. If Windows has booted — pause updates for a few days and run an integrity check.
+1407|manage-bde may not accept a password through a pipe (it reads it from the console) — a recovery password (48 digits) or a .bek key file is more reliable.
+1408|manage-bde.exe was not found in this environment (the BitLocker component is needed in WinPE/WinRE). Use WinRE or a WinPE image with BitLocker support.
+1409|For service work: check boot media/WinPE/WinRE signed only by the old PCA 2011 on devices with an updated db/dbx.
+1410|You are in WinRE with WinRepair.\n\nYes — exit WinRepair and open the standard WinRE menu.\nNo — reboot the computer.\nCancel — stay in WinRepair.
+1411|Enter a path like D:\\Windows or pick one from the list, then "Load hives". A copy of every hive is saved to Data\\Backups before loading.
+1412|Read-only. Select the BCD store of the target system ("Find BCD" button); with no selection — the store of the current environment (in WinPE this is NOT the target OS).
+1413|For Intel VMD/RST and RAID controllers. Steps: find devices without a driver, load the driver into WinPE (drvload), make sure Windows is visible,
+1414|Review the autoruns: disable entries flagged "SUSPICIOUS" and "FILE NOT FOUND". After rebooting, scan the computer with an antivirus.
+1415|run the task \\Microsoft\\Windows\\PI\\Secure-Boot-Update and reboot the computer twice; if needed, update the vendor BIOS/UEFI.
+1416|Close WinRepair and open the standard WinRE menu (Choose an option)?\n\nAfter leaving the menu you can come back via "Command Prompt" → WinRepair.exe.
+1417|Tick the fixes you need. Before every registry change a copy of the key/hive is created (Data\\Backups), all actions are written to the journal.
+1418|Restores Shell=explorer.exe and the default Userinit, removes Taskman/AppSetup/GinaDLL (a typical malware hijack — black screen after sign-in).
+1419|What to do: in a running Windows install the latest cumulative updates; then (per Microsoft's documentation) set AvailableUpdates=0x5944,
+1420|{} {}\n\nA native Win32 application (C++17), with no dependency on .NET, PowerShell or the VC++ Runtime.\n\nEnvironment: {}, {}{}\nAdministrator: {}\nJournals and reports: {}
+1421|Some of the selected fixes are DANGEROUS (pending operations / replacing registry hives).\nMake sure you have a disk copy or image.\n\nConfirm again.
+1422|→ No image: WinRE could not be started even normally. The image can be extracted from the install.wim of the installation media (Windows\\System32\\Recovery\\Winre.wim).\r\n
+1423|cdb.exe was not found (put the Debugging Tools into Tools\\ next to the program or install WinDbg/Windows SDK). Only a quick dump header parse is performed.
+1424|Offline mode: the BCD store is on the ESP/system partition, not on the Windows volume. Check manually: bcdedit /store <ESP>\\EFI\\Microsoft\\Boot\\BCD /enum all
+1425|Resets Winlogon Shell/Userinit, IFEO hijacks, AppInit_DLLs, blocking policies and .exe associations. Backups of hives and registry keys are saved before the edits.
+1426|HINT: an Intel VMD/RST controller was detected (by device ID). To make the NVMe disks visible, load the Intel RST/VMD driver: "Load a driver into WinPE (drvload)".
+1427|No obvious problems found for this symptom. Next: "Full diagnostics", extended mode (DISM ScanHealth, chkdsk /scan), a memory test, checking cables/power.
+1428|CONCLUSION: the 2023 certificates are not fully installed. Windows Production PCA 2011 (Windows boot loader signing) expired on 19.10.2026, KEK CA 2011 and UEFI CA 2011 — in June 2026.
+1429|Checks pending operations, cancels them via DISM /RevertPendingActions and renames pending.xml. Free access to the volume with Windows is needed (BitLocker unlocked).
+1430|Boot structure check, diskpart volume list, then bcdboot {WIN} /s <ESP> /f UEFI. The ESP must have a letter — assign it (mountvol S: /S or diskpart assign) before running.
+1431|→ "Windows RE + WinRepair" is a copy of your winre.wim with the program added: it starts first, and after it exits the standard WinRE menu opens. The original WinRE is not changed.\r\n
+1432|CLEAN BOOT: all third-party services/drivers (outside Windows\\System32) with auto-start and all autorun entries (Run, Startup folder) will be disabled.\nDisabling is reversible with the "Restore disabled items" button.
+1433|{}Recovery\\WinRepairRE\\WinRE_WR.wim\n • the image is mounted by DISM, WinRepair.exe and winpeshl.ini are added (WinRepair → standard WinRE menu), commit\n • a separate BCD entry is created (the original WinRE is not changed)\n\nAbout {} is needed
+1434|Every change: confirmation → automatic BCD backup → execution with an entry in the journal and Data\\Logs\\changes_*.log. An ESP without a drive letter is mounted temporarily and unmounted on exit. For UEFI Windows 11 safe modes work with "Secure Boot" enabled — the nointegritychecks/testsigning parameter may be blocked by Secure Boot.
+1435|icacls /save — MANUAL ACL backup (the program runs nothing).\r\nSave (as administrator, in a console, file on ANOTHER drive):\r\n    icacls "C:\\Users" /save "D:\\acl_Users.txt" /t /c\r\nRestore (specify the PARENT folder):\r\n    icacls "C:\\" /restore "D:\\acl_Users.txt"\r\nSave the ACLs before any takeown/icacls /grant /reset on system and user folders.\r\nOptions: /t — recursive, /c — continue on errors.\r\n
+1436|Uninstalling an update — MANUAL PROCEDURE ONLY.\r\n1. First a restore point and a backup.\r\n2. Running OS: Settings → Windows Update → Update history → "Uninstall updates" (or wusa /uninstall /kb:XXXXXXX).\r\n3. OS does not boot: WinRE → Advanced options → "Uninstall updates" (quality/feature).\r\n4. From WinPE (offline): DISM /Image:<volume>:\\ /Get-Packages — find the package; DISM /Image:<volume>:\\ /Remove-Package /PackageName:<name>.\r\n   Servicing stack (SSU) packages must not be removed; remove only the LCU/specific KB.\r\n5. After removal, pause the update installation (Settings → Pause) and check the integrity.\r\n
+1437|Recovery — MANUAL ORDER (from least to most destructive):\r\n1. Back up the data (from WinPE copy the profiles to external media).\r\n2. System Restore (rstrui.exe / WinRE → System Restore).\r\n3. Startup Repair; uninstall the problematic update/driver.\r\n4. DISM /RestoreHealth + sfc /scannow, check the disk and BCD.\r\n5. "Reset this PC" keeping files.\r\n6. Repair Install: setup.exe from an ISO of the same edition/language, "Keep files and apps".\r\n7. Clean Install — the last resort: the disk will be wiped, prepare licenses/software/drivers in advance.\r\nThe program does not perform any of these actions automatically.\r\n
+1438|Driver Verifier — MANUAL PROCEDURE ONLY (the program runs nothing).\r\n1. Create a restore point and a data backup. Make sure you can access Safe Mode/WinRE.\r\n2. Enable dumps: System Properties → Startup and Recovery → "Small memory dump".\r\n3. Run verifier.exe as administrator → "Create custom settings" → "Select individual settings" (Special pool, Force IRQL checking,\r\n   Pool tracking, Deadlock detection) → "Select driver names from a list" → tick ONLY the suspect third-party drivers.\r\n   Never enable verification for all drivers on a production machine.\r\n4. Reboot and work as usual until the crash. Typical code: DRIVER_VERIFIER_DETECTED_VIOLATION (0xC4) / 0xC9.\r\n5. Analyze the dump with the "Dump analysis" button (the module in the stack is the culprit).\r\n6. MUST disable afterwards: verifier /reset, then reboot. If the system does not boot — Safe Mode → verifier /reset.\r\n

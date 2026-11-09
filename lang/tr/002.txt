@@ -1,0 +1,258 @@
+261|errors(W)={}<sp>
+262|unlocked
+263|(Default)
+264|=== Memory ===
+265|HTML report: {}
+266|INF not found.
+267|WinRE is configured
+268|nslookup <name>
+269|tracert <host>
+270|{}\n\nRun it?
+271|{}\nCommand: {}
+272|{}\nCurrent: {}
+273|{} (method: {}
+274|{} is not loaded
+275|{} is unreachable.
+276|Disks: done.
+277|Command catalog
+279|UNAVAILABLE: {}
+280|New value
+281|Reboot…
+282|Warning
+283|Conversion
+284|Offline registry…
+285|Free on {}
+286|See the module name
+287|System snapshot
+288|Partition style
+289|Delete key
+290|Device: {}
+291|FILE NOT FOUND
+292|BCD store:
+293|Target OS: {}
+294|What happened?
+295|fixes {}
+296|offline (WinPE)
+297|free {} GB
+298|<sp><sp>RegBack is empty.
+299|3/9 Integrity
+300|: SSD wear {}%
+302|[NO DRIVER]<sp>
+303|[launch GUI] {}
+304|[instructions] {}
+305|chkdsk <volume> /f
+306|pathping <host>
+307|{}\n\nContinue?
+308|{}\nValue: {}
+309|{}\r\n\r\nPlan:\r\n{}
+310|{}; level: {}
+311|Unload hives
+312|Diagnose
+313|Drivers and BSOD
+314|Load hives
+315|Boot (BCD)…
+316|Command / image
+317|Command #{}: {}
+318|Copy path
+319|hosts backup: {}
+320|Refresh status
+321|Memory report
+322|Memory: done.
+323|Unlock…
+324|Key: HKLM\\{}
+325|Analyze dumps
+326|Reset proxy
+327|Image created: {}
+328|Delete entry…
+329|Clean boot
+330|power-on={} h<sp>
+331|online and offline
+332|of the current system
+333|<sp>and reboot.
+334|(not in the catalog)
+335|<temporary file>
+336|=== Drivers ===
+337|=== Playbook: {}
+338|Verifier selectively
+339|[controller]<sp><sp><sp><sp>
+340|{} unlocked
+341|{}) are not disabled
+342|Select an entry.
+343|Dump: {}  {}  {}
+344|Hive loaded: {}
+345|MODIFIES the system
+346|Edit command
+347|IP configuration.
+348|Copying: {}%
+349|Backup not created
+350|Window opened: «{}
+351|Open log file
+352|Renamed {}
+353|Apply mode…
+354|SATA mode + BCD
+355|Recommendation: {}
+356|Scan volumes
+357|Events in detail
+358|State of services.
+359|Folder deleted: {}
+360|Delete value
+361|Log file: {}
+362|File is too small
+363|SATA mode is often changed
+364|Clean boot…
+365|modifies the system
+366|partition {}, {} MB
+367|protection status
+368|\n\nFixes: {}
+369|BitLocker: volume {}
+370|PowerShell replacement
+371|TPM 1.2 detected
+372|TPM 2.0 detected
+373|WinRepair — report
+374|{}\n\nStore: {}
+375|{}\nTarget OS: {}
+376|{} in store {}
+377|{}» for entry {}
+378|{}» runs:\n{}
+379|Select a command.
+380|No dumps found.
+381|Drivers and services
+382|System log: {}
+383|Lock volume
+384|Cancel requested…
+385|Edit value
+386|Edit command…
+387|Copy entry
+388|Motherboard
+389|Drive/cable
+390|Recently installed drivers
+391|"About Windows" window.
+392|Clears the DNS cache.
+393|Boot check
+394|Firmware + memory
+395|Command result
+396|Make entry {}
+397|Connections and PIDs.
+398|Save journal…
+399|List of processes.
+400|Firmware type (/f)
+401|Volume (e.g. C:)
+402|DELETE entry {}
+403|Key file (.bek)
+404|BCD store: {}
+405|What happened? —<sp>
+406|offline OS (WinPE)
+407|────── START: {}
+408|\n\nENABLE the entry.
+409|<sp><sp>exit code: {}
+410|/f only with a backup
+411|ProxyEnable=0 in {}
+412|Run (HKLM, 32-bit)
+413|SMBIOS unavailable.
+414|chkdsk <volume> /f /r
+415|chkdsk <volume> /scan
+416|tbs.dll unavailable
+417|{} MB {} {} MHz {}
+418|{} cannot be resolved.
+419|{}. Run the step?
+420|{}: indicator found
+421|{}Display name
+422|BCD restore
+423|Exit WinRepair
+424|Dump + integrity
+425|No crash dumps
+426|Disk {}: wear {}%
+427|Event log: {}
+428|Lock volume…
+429|Name of the new key
+430|Copy entry…
+431|Repair wizard
+432|Native: iphlpapi.
+433|Policy DisableSR
+434|winre.wim check
+435|Different speeds: {}
+436|Boot mode «{}
+437|Blue screen (BSOD)
+438|Create key «{}
+439|Set {} = {}
+440|File not found: {}
+441|skipped (offline)
+442|running Windows
+443|<sp><sp><sp><sp><sp>Recommended: {}
+444|SMART + disk log
+445|WinRE is disabled in the OS
+446|{}\nLocation: {}
+447|{}: unavailable — {}
+448|Hardware hypotheses
+449|Possible vulnerability
+450|Resume protection…
+451|Run playbook…
+452|Journal saved: {}
+453|Command changed {}
+454|Windows tools
+455|Repair tools
+456|Key services ({}
+457|Backup before editing
+458|Backup saved:\n{}
+459|boot.sdi not found.
+460|Select safe ones
+461|Check the parameters
+462|BCD backup copy
+463|Network diagnostics
+464|Network: no notes
+465|Playbook unavailable
+466|Delete parameter {}
+467|Target OS (offline)
+468|Registry export: {}
+469|disabled/unknown
+470|DISM Add-Driver into {}
+471|Winre.wim not found.
+472|regedit (current OS)
+473|{}; report folder: {}
+474|Restore disabled…
+475|Restore disabled items
+476|Possible corruption
+477|Select a target OS.
+478|Hives loaded: {}
+479|XP restore point folder: {}
+480|Command catalog (55)…
+481|Hive not loaded: {}
+482|No default gateway.
+483|No Services key
+484|No network / internet
+485|Open autoruns
+486|Memory + temperatures
+487|Reload list
+488|Analyze a dump (cdb)
+489|Spare below threshold.<sp>
+490|Reset all modes…
+491|Network: no notes.
+492|BugCheck events: {}
+493|Symptom playbook: {}
+494|Delete value «{}
+495|catalog command #{}
+496|there is not a single [step]
+497|lock status
+498|\r\n\r\nPARSE ERRORS:\r\n
+499|<sp>and running Windows
+500|--- Step {}/{}: {} ---
+501|=== Dump analysis ===
+502|=== What happened? —<sp>
+503|BSOD: events and dumps
+504|ESP: partition {}, {} MB
+505|Windows GUI program
+506|LoadAppInit_DLLs=0 in<sp>
+507|Preflight failed.
+508|SSD / storage driver
+509|TCP {}:{} is unreachable.
+510|bcdboot: rebuild…
+511|chkdsk <volume> /spotfix
+512|{}\n\nBCD store: {}
+513|{}  [current, online]
+514|{}: indicator not found
+515|{}: read {} bytes
+516|{}: registry unavailable
+517|{}; where to start: {}
+518|All entries — to the journal
+519|Hive unloaded: HKLM\\{}
+520|Run selected…

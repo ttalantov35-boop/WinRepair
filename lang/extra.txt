@@ -1,0 +1,17 @@
+# Hand-added dictionary entries (`Russian ==> English`); appended to lang/en.txt by tools/i18n_merge.py
+Целостность:  ==> Integrity: 
+; подпись:  ==> ; signature: 
+действительна ==> valid
+НАРУШЕНА ==> BROKEN
+не удалось проверить ==> could not be verified
+; сам exe — совпадает ==> ; the exe itself — matches
+; сам exe — НЕ совпадает ==> ; the exe itself — DOES NOT match
+WinRepair — целостность ==> WinRepair — integrity
+Файл изменён относительно MANIFEST.sha256: {} ==> File differs from MANIFEST.sha256: {}
+MANIFEST.sha256 не найден (проверка файлов пропущена) ==> MANIFEST.sha256 not found (file check skipped)
+проверено файлов: {}, изменённых программ: {}, изменённых данных: {}, отсутствующих: {} ==> files checked: {}, modified programs: {}, modified data: {}, missing: {}
+Обнаружено нарушение целостности программы (см. журнал).\nФайлы могли быть изменены или повреждены. Используйте программу только если доверяете источнику. ==> Program integrity violation detected (see the log).\nFiles may have been modified or corrupted. Use the program only if you trust its source.
+Сценариев ремонта: {}. Сценарии встроены в программу; дополнительные *.wrp читаются из Playbooks рядом с программой (и на уровень выше) и из {} — они заменяют встроенные с тем же id.\r\nФормат описан в docs\\PLAYBOOKS.md. ==> Repair playbooks: {}. Playbooks are built into the program; extra *.wrp files are read from Playbooks next to the program (and one level up) and from {} — they override built-in ones with the same id.\r\nFormat: docs\\PLAYBOOKS.md.
+[встроенный #{}] ==> [built-in #{}]
+[встроен в программу] ==> [built into the program]
+Сценарии (playbooks): всего {} (встроенных файлов {}, с диска: {}; ошибок разбора {}) ==> Playbooks: {} total (built-in files {}, from disk: {}; parse errors {})

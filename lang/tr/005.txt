@@ -1,0 +1,208 @@
+1041|Could not set the one-time boot.
+1042|Disk/file system errors in {} d.: {}
+1043|List of volumes, their GUIDs and mount points.
+1044|User overrides deleted {}
+1045|=== Integrity check (no changes) ===
+1046|SetupAPI: could not enumerate devices.
+1047|SystemRestorePointCreationFrequency (minutes)
+1048|[playbook]: id allows letters, digits, - and _
+1049|rstrui.exe — System Restore from restore points
+1050|Autoruns: {} entries, none suspicious
+1051|Component store analysis, no changes.
+1052|Temporary files: deleted {}, freed {}.
+1053|Select a BCD store (the "Find BCD" button).
+1054|REPLACE the BCD store with the contents of the file?\n\n{}
+1055|MODIFIES: TCP/IP reset (reboot required).
+1056|The selected volume has no System32\\config\\SYSTEM
+1057|The SYSTEM/SOFTWARE registry hives fail to load
+1058|Unexpected shutdowns (Kernel-Power 41): {}
+1059|Extended mode (ScanHealth, chkdsk /scan)
+1060|The playbook works only inside WinPE/WinRE.
+1061|Volume {}: [{}] {}, {} of {} free, dirty={}
+1062|CBS.log: SFC could not repair files — {}
+1063|GPT disk, but the computer is booted in Legacy BIOS
+1064|No graphical boot splash (quietboot)
+1065|There were unexpected shutdowns (Kernel-Power 41)
+1066|BCD has no Windows boot loader entry (winload)
+1067|The mounted image has no Windows\\System32.
+1068|Internal error: no results context.
+1069|Dumps: {}, the header of the latest one is not recognized
+1070|Dumps: {}; latest from {}. P1=0x{} P2=0x{}.
+1071|MODIFIES: Winsock reset (reboot required).
+1072|Source (/Source: folder or wim:file:index)
+1073|Shows instructions. Nothing is run.
+1074|Integrity check (DISM/SFC, no changes)
+1075|Reset ALL special boot modes of entry {}
+1076|The volume will be locked and dismounted from the system.
+1077|Restore point: ignore the 24 h limit
+1078|Uninstalling an update — manual procedure only
+1079|check (default: autocheck autochk *)
+1080|<sp><sp>RegBack has copies — restore is possible.
+1081|BCD: one-time boot (bootsequence) -> {}
+1082|Secure Boot: 2023 certificates (KEK / db / dbx)
+1083|{}\n\nThe current store will be saved as a backup.
+1084|{} ({}): {} MB {}, {} MHz (running at {}), {} {}
+1085|Safe mode with networking drivers
+1086|Safe mode with command prompt support
+1087|Enable low-resolution video mode (VGA)
+1088|Disk access: BitLocker and storage drivers
+1089|Different part numbers: the pair may be unstable.
+1090|Icon/thumbnail cache reset: files deleted {}
+1091|Service {} was disabled (Start=4) -> Start={}
+1092|Reliability counters are unavailable for this bus.<sp>
+1093|Shadow copies (restore points) on {}: {}
+1094|Driver test-signing mode (testsigning)
+1095|=== BSOD: BugCheck events and dumps ({} d.) ===
+1096|BitLocker and storage drivers (disk not visible)…
+1097|Winre.wim not found — nothing to build the image from.
+1098|Enter WinRE + WinRepair (next boot)…
+1099|The "1 restore point per 24 hours" limit was lifted temporarily.
+1100|MODIFIES: cleans up superseded WinSxS components.
+1101|Repair wizard (SmartFix / Windows Repair)…
+1102|Could not create the RAM disk options object.
+1103|Temporary files cleanup: {} files deleted, {}
+1104|Parameter "Host / name": empty or too long
+1105|Create a WinRE boot entry (RAM disk) from:\n{}
+1106|Driver list; update/roll back the GPU driver
+1107|Restore points: protection status and list
+1108|No devices with a missing driver found.
+1109|The hosts file was reset to defaults: {}
+1110|\nThe WinRE entry is missing and will be created from:\n{}
+1111|WinRepair Toolkit — Windows diagnostics and repair
+1112|CONCLUSION: the 2023 certificates are present in KEK and db.
+1113|Could not copy WinRepair.exe into the image: {}
+1114|No confirmation received — the playbook is stopped.
+1115|Check: integrity, memory, disks, drivers.
+1116|Skipped: applies to an offline OS (WinPE) only.
+1117|Directory Services Restore Mode (DSREPAIR)
+1118|WinRE recovery environment status of the current OS.
+1119|Saves a backup and writes the default hosts file.
+1120|Remove program launch hijacks (IFEO Debugger)
+1121|Steps completed successfully: {}, with an error/code≠0: {}
+1122|diskpart → list volume — identify the letters first
+1123|UEFI boot from MBR is possible only in CSM mode.
+1124|No entries found. Check the selected store.
+1125|One error-free run does NOT prove the hardware is healthy.
+1126|Online NTFS scan without taking the volume offline.
+1127|Disable mandatory driver signature enforcement
+1128|Shows the tail of the CBS log and lines with errors.
+1129|Skipped: applies to a running Windows only.
+1130|Reset the network stack (Winsock/TCP-IP/DNS/WinHTTP)
+1131|Trace + loss statistics (up to ~5–10 minutes).
+1132|MDMP format (user-mode dump), not a kernel dump
+1133|Often a consequence of "optimizers" or malware.
+1134|This feature is available only in a running Windows.
+1135|DISM /Cleanup-Image /RevertPendingActions (offline)
+1136|WinRE: status, ReAgent.xml, Winre.wim location
+1137|A reboot is required to apply the network reset.
+1138|MODIFIES: rebuilds the performance counters.
+1139|Fix .exe/.bat/.cmd/.com/.reg/.lnk associations
+1140|"What happened?" wizard (diagnostics by symptom)…
+1141|Many third-party auto-start services/drivers: {}
+1142|Do not start automatic repair after boot failures
+1143|Disable early-launch anti-malware (ELAM)
+1144|Parameter "Volume": a drive letter is expected, e.g. C:
+1145|Shows the tail of the DISM log and lines with errors.
+1146|Check BCD and the disk controller mode (SATA/VMD)
+1147|System file check only, without repair.
+1148|<sp><sp><sp>category: {}; where to start: {}; note: {}
+1149|shutdown /r /o /t 0 — advanced options (WinRE)
+1150|Offline autoruns and services (Autoruns + msconfig)…
+1151|Changing the command is not supported for this type.
+1152|Suspected virus / lockouts / settings tampering
+1153|Shows the sequence of actions. Nothing is run.
+1154|Check the disks (SMART), then memory and temperatures
+1155|Reset Winlogon, IFEO, AppInit, policies and associations
+1156|Copy the data and replace the disk; check SMART
+1157|Environment: {}, {}{}  |  Administrator: {}  |  Version {}
+1158|DISM /RestoreHealth with a source (install.wim) + sfc
+1159|Done: on the NEXT boot the computer will enter {}
+1160|Command #{} finished with code {} — see the output above.
+1161|Reboot into the Windows Recovery Environment (WinRE)
+1162|Volume {}: dirty bit is set — chkdsk is recommended.
+1163|line {}: "key = value" is expected inside a section
+1164|BCD store (file; empty = the current environment's store)
+1165|chkdsk /scan skipped (enable "Extended mode").
+1166|{} of free space. The operation will take a few minutes.
+1167|Cancel pending update operations (pending.xml)
+1168|Show advanced options on the next boot
+1169|Check memory (SMBIOS/diagnostics), then drivers
+1170|Summary of the OS and hardware (may take up to a minute).
+1171|Playbooks: loaded {}, parse errors {}
+1172|=== FULL DIAGNOSTICS (9 modules + score + HTML) ===
+1173|Preflight: {} has {} GB free, at least {} GB is needed.
+1174|SystemRestore\\DisableSR (1 = system protection is off)
+1175|WinRE: enter the recovery environment, WinRE + WinRepair…
+1176|db : Windows UEFI CA 2023 (Windows boot loader signing)
+1177|{} ({}): {}, {} Mbit/s, MAC {}, IP {}, gateway {}, DNS {}
+1178|MODIFIES: quick fix of the problems found by /scan.
+1179|Command catalog — every action requires confirmation
+1180|Native: wevtapi (System.evtx file for an offline target).
+1181|Deletes IconCache.db, iconcache_*.db, thumbcache_*.db.
+1182|Install a driver into an offline Windows (DISM /Add-Driver)
+1183|NOT FOUND (neither on the OS volume nor on the recovery partition)
+1184|Could not read the partition table of the system disk.
+1185|Rebuild the UEFI boot loader (bcdboot) for an offline Windows
+1186|No recommended action (informational finding).
+1187|The playbook finished with a stop/failures: ok={}, failures={}.
+1188|SMART delta {}: errors {}, wear {}% since the last run
+1189|SafeBoot: keys restored — {} (0 = everything is fine).
+1190|{}». Finish your work in it and confirm the next step.
+1191|Without a driver: {}; storage controllers with a driver: {}
+1192|WMI repair is available only in a running Windows.
+1193|Autorun entries pointing to a missing file: {}
+1194|Power supply, overheating, crash BSODs or the power button.
+1195|Analyze the dump (header + cdb !analyze) and find the module
+1196|Reset Windows Update (SoftwareDistribution, catroot2)
+1197|Network checks refer to the current environment (WinPE/WinRE)
+1198|System disk: Disk {}, partition style {}, firmware: {}
+1199|BCD entries deleted: {}. The original WinRE was not touched.
+1200|File: {} (tail read, lines: {}, suspicious: {})
+1201|Replacement: DISM /Get-Drivers /all (/Image: for an offline target).
+1202|MODIFIES: immediate reboot into the recovery menu.
+1203|Cancel pending operations (DISM /RevertPendingActions)
+1204|Path to the .bek key file (only for the "Key file" method)
+1205|Volume list (diskpart list volume, catalog command #55)
+1206|No physical disks detected (no storage driver?).
+1207|SFC finished with code {}. Repeat the integrity check.
+1208|Offline Windows autoruns and services (Autoruns + msconfig)
+1209|Command #{} [{}]\n\n{}\n\nTarget OS: {}\nType: {}\nLevel: {}\n\n
+1210|Intel VMD/RST without a driver detected — NVMe disks are not visible
+1211|System files are corrupted; a repair source is needed.
+1212|The playbook is for a running Windows, but an offline system is selected.
+1213|WinRE: enter the recovery environment and integrate with WinRepair
+1214|SafeBoot keys are missing — safe mode will not work
+1215|Partition with Windows (device and osdevice), e.g. partition=D:
+1216|Only flagged entries (suspicious / file not found)
+1217|Only searches for installed Windows. Available in WinRE/WinPE.
+1218|Some entry parameters were not set — check the journal.
+1219|Instructions will be shown. Nothing is run.\n\nShow them?
+1220|Select a Windows Boot Loader entry (not the boot manager).
+1221|Re-registering components — for a running Windows only.
+1223|GUI wizard for rolling back from the restore points of a running Windows.
+1224|There is no HTML report yet — run "Full diagnostics" first.
+1225|SMBIOS unavailable — RAM module data could not be obtained.
+1226|Windows does not boot (loop, black screen, "recovery")
+1227|db : Microsoft Windows Production PCA 2011 (expired 19.10.2026)
+1228|Without unlocking, Windows on it is neither visible nor repairable.
+1229|A WinRE copy with the WinRepair program will be created:\n • copy of {}
+1230|boot.sdi not found (neither next to Winre.wim nor in Windows\\Boot).
+1231|No network in a running Windows: reset Winsock, TCP/IP and DNS
+1232|Cancel the scheduled one-time entry (delete bootsequence)?
+1233|Windows folder (source of boot files), e.g. D:\\Windows
+1234|Parameter "Host / name": only letters, digits, . - _ : are allowed
+1235|Reset Winlogon, IFEO, AppInit (and review autoruns)
+1237|BCD store not found (neither on the ESP nor on the system partition)
+1238|Many disk/FS events — check the cable/drive/power.
+1239|The recovery password must contain 48 digits (8 groups of 6).
+1240|Standard recovery and automatic repair will not work.
+1241|IFEO: launch hijacks removed — {} (sethc/utilman included).
+1242|{}. Click "Enter WinRE + WinRepair on the next boot".
+1243|If the internet "does not work" — check whether the proxy was replaced.
+1244|Repair wizard finished. Done: {}. Backups: {}
+1245|Parameter "Windows path": folder not found (e.g. C:\\Windows)
+1246|then add the driver to the offline Windows via DISM /Add-Driver.
+1247|\nA BCD backup is created automatically before the change. Continue?
+1248|{} is missing or empty (automatic copies are disabled since Windows 10 1803).
+1249|Repair wizard (SmartFix / Windows Repair) — online and offline
+1250|Path to the driver INF to load into the CURRENT WinPE/WinRE (drvload)

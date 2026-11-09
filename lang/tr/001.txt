@@ -1,0 +1,259 @@
+1|YES
+2|Yes
+3|OS
+4|FS
+5|yes
+6|ok
+7|Name
+8|NO
+9|No
+10|RAM
+11|Type
+12|Volume
+13|no
+14|[ok]
+15|{} h
+16|Auto
+17|Disk
+18|Summary
+19|Risk
+20|Network
+21|File
+22|failed
+23|network
+24|(none)
+25|{} GB
+26|Exit
+27|Dumps
+28|Disks
+29|Class
+30|Label
+31|Overview
+32|Port:
+33|Type:<sp>
+34|<sp>(none)
+35|CPU, s
+36|WS, MB
+37|Uptime
+38|Done
+39|Dumps
+40|Data
+41|Busy
+42|Start type
+43|Protection
+44|Wizard
+45|DANGEROUS
+46|Cancel
+47|Score
+48|Error
+49|Memory
+50|Password
+51|Threads
+52|Size
+53|Registry
+54|Service
+55|Method
+56|Status
+57|Volume {}
+58|code {}
+59|open
+60|read-only
+61|{} MHz.
+62|{} bytes
+63|{} in {}
+64|{}Image
+65|Enabled
+66|Manual
+67|Done.
+68|Driver
+69|Logs
+70|Close
+71|Hive {}
+72|Module<sp>
+73|Finding
+74|Power
+75|Flag
+76|Registry<sp>
+78|System
+79|Events
+80|Timeout
+81|Condition
+82|Gateway {}
+83|enabled
+84|7/9 Network
+85|{} on {}
+86|WARNING
+87|DISABLED
+88|Severity
+89|Enabled
+90|Warning
+91|Disabled
+92|Drivers
+93|Boot
+94|Modifies
+95|Refresh
+96|Description
+97|Disabled
+98|Clear
+99|Error:<sp>
+100|PROBLEM
+101|Details
+102|Information
+103|Free
+104|Network: {}
+105|Symptom:
+106|Speed
+107|Playbooks
+108|Playbook
+109|Delete…
+110|enabled
+111|disabled
+112|reachable
+113|modifies
+114|description
+115|denied
+116|<sp>(online)
+117|<sp>(offline)
+118|5/9 Disks
+119|{}\nStep {}
+120|{} Gbit/s
+121|{} Mbit/s
+122|Safe
+123|Enable…
+124|Kernel dump
+125|Note
+126|Edit…
+127|BCD backup
+128|NOT FOUND
+129|Find BCD
+130|Description…
+131|Disabled
+132|Symptom:<sp>
+133|Services: {}
+134|Clear all
+135|State
+136|Storage
+137|check
+138|6/9 Memory
+139|[WARNING]
+140|[PROBLEM]
+141|[present]<sp>
+142|[native]<sp>
+143|[absent]<sp><sp>
+144|{}\nType: {}
+145|{}\nVolume: {}
+146|{} (copy)
+147|{}: code {}
+148|Lock
+149|Enabled (
+150|Run…
+151|Entry: {}
+152|UNREACHABLE
+153|Updates
+154|Disable…
+155|Error: {}
+156|Searching in {}
+157|Registry: {}
+158|Target OS
+159|wear={}%<sp>
+160|not selected
+161|not created
+162|failed
+163|failed
+164|unavailable
+165|no data
+166|updates
+167|\nEntry: {}
+168|<sp><sp>(class {}
+169|<sp>(code {});<sp>
+170|<sp>(cancelled)
+171|(not set)
+172|,<sp>wear {}%
+173|1/9 System
+174|2/9 Events
+175|ping <host>
+176|{}\nWas: {}
+177|{} — module
+178|Disk {}: {}
+179|GPU driver
+180|Entries: {}
+181|Fix
+182|Critical
+183|About
+184|Pool error
+185|Full dump
+186|Applies to
+187|Profiles/ACL
+188|Reset {}
+189|Network, host:
+190|Scan
+191|Events: {}
+192|Target OS:
+193|Integrity
+194|Gateway {}: {}
+195|missing
+196|decrypted
+197|… ({} bytes)
+198|<sp>(disabled)
+199|<sp>Category:<sp>
+200|<sp>— VIOLATIONS
+201|,<sp>stopped
+202|4/9 Drivers
+203|9/9 Boot
+204|=== Network ===
+205|chkdsk <volume>
+206|{}\n\nPlan:\n{}
+207|{}\r\nFile: {}
+208|Autoruns
+209|Running…
+210|LOCKED
+211|Boot/BCD
+212|Started: {}
+213|Process name
+214|Find again
+215|New key
+216|OS: {}, {}{}
+217|Reboot
+218|Empty number
+219|Dump analysis
+220|Location
+221|Recommendation
+222|Playbook: {}
+223|Often a filter
+224|Export CSV…
+225|locked
+226|not read
+227|inconsistent
+228|\n\nLevel: {}
+229|<sp><sp>command: {}
+230|<sp><sp>reason: {}
+231|TPM not found
+232|TPM detected
+233|[view] {}
+234|{}\nWill become: {}
+235|{} (method {}
+236|{} — skipped.
+237|{}»\nin HKLM\\{}
+238|{}» in HKLM\\{}
+239|Into the OS image {}
+240|Enter WinRE
+241|All categories
+242|Log {}: {}
+243|Note: {}
+244|CHANGE: {}
+245|BCD backup: {}
+246|Data error
+247|SUSPICIOUS
+248|Period, days:
+249|Confirmation
+250|Processes: {}
+251|Windows path:
+252|Early stage
+253|Debug mode
+254|Saved: {}
+255|Menu timeout…
+256|Storage: {}
+257|Export .reg…
+258|no notes
+259|not determined
+260|inconsistent

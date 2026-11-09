@@ -1,0 +1,260 @@
+521|Log {}: {} events
+522|Value is larger than a DWORD
+523|Small dump (minidump)
+524|The module in the dump is the key
+525|Unknown signature
+526|New description of the entry
+527|Description of the new entry
+528|Open reports folder
+529|Cancel one-time entry
+530|Clear AppInit_DLLs
+531|My playbooks folder
+532|Initial diagnostics
+533|Reboot into WinRE
+534|Command confirmation
+535|Suspend protection…
+536|Playbook check «{}
+537|Unlock volume {}
+538|Copy entry {}
+539|Current user.
+540|Route trace.
+541|Host / name (host, IP)
+542|errors(R/pending)={}<sp>
+543|events: {} in {} d.
+544|\n\nCatalog command #{}
+545|One pass does not prove anything
+546|: media errors ({})
+547|<report folder>\\scratch
+548|=== System snapshot ===
+549|BCD restored from {}
+550|BCD: entry created {}
+551|GPT + ESP present
+552|Legacy BIOS (no UEFI)
+553|RunOnce (HKLM, 32-bit)
+554|{}\n\nNew value:\n{}
+555|{}: unknown error
+556|Hardware diagnostics
+557|Restore from backup…
+558|Select a volume in the list.
+559|Run this command?
+560|Done. BCD entry: {}
+561|Dump + memory report
+562|Disks and SMART in detail
+563|Task Manager (GUI).
+564|Boot: {} notes
+565|WinRE entry in BCD: {}
+566|Target OSes found: {}
+567|Could not write {}
+568|Unknown module: {}
+569|Operation failed.
+570|Board: {}; system: {}
+571|Playbook confirmation
+572|Policy DisableConfig
+573|Proxy: changed — {}.
+574|Recommended action
+575|Recursive (for a folder)
+576|Create SafeBoot keys
+577|Save Data to disk
+578|Volume status (to journal)
+579|Playbook not found: {}
+580|Routing table.
+581|Target OS not selected.
+582|No target OS found.
+583|log file view
+584|──────── SUMMARY ────────
+585|BCD: deleting entry {}
+586|SMART: failure predicted.<sp>
+587|Winre.wim not found: {}
+588|[playbook]: id is not set
+589|{} (up to 60 results)…
+590|{}. Rollback — rstrui.exe.
+591|Active power scheme.
+592|No blocking policies
+593|hosts contains entries: {}
+594|Restore the hosts file
+595|Dump (type not determined)
+596|Disk {}: {}, {}, {}, {}
+597|Disks, SMART, FS errors
+598|Boot by default…
+599|Copy failed.
+600|BCD backup saved: {}
+601|Low space on {}: {} GB
+602|Resource Monitor (GUI).
+603|Do not confuse with DRIVER_IRQL
+604|Could not write: {}
+605|Odd number of hex digits
+606|Important services are disabled
+607|Confirm again
+608|Interrupted by the user.
+609|Event Viewer (GUI).
+610|System snapshot: done.
+611|Saving Data to disk
+612|Offline target only.
+613|Read-only (no /f).
+614|Devices without a driver
+615|last BugCheck 0x{}
+616|<sp><sp>(temporarily mounted)
+617|<sp>and REBOOT NOW.
+618|AppInit_DLLs enabled: {}
+619|BCD: show all entries
+620|BCD: bootsequence removed
+621|ERROR: SMBIOS unavailable
+622|GPT disk without an ESP partition
+623|{}  Temp/Wear/Power-on
+624|Done ({} s). Report: {}
+625|Available sleep states.
+626|System log unavailable
+627|Boot: no notes.
+628|WinRE entry created: {}
+629|May slow the system down.
+630|Find storage drivers
+631|Do not rush to replace the RAM
+632|Could not start: {}
+633|Unknown check: {}
+634|New command / value
+635|Violations found: {}
+636|Clean temporary files
+637|Startup folder ({}
+638|GPU firmware — be careful
+639|Reset boot modes
+640|System Monitor (GUI).
+641|IFEO Debugger removed: {}
+642|Devices with errors: {}
+643|Key file not found: {}
+644|conversion status
+645|AppInit_DLLs disabled: {}
+646|JEDEC, several passes
+647|WinRE: create BCD entry
+648|boot.sdi copied from {}
+649|manage-bde unavailable: {}
+650|{}\n\nContinue WITHOUT a backup?
+651|{}\nCommand: manage-bde {}
+652|{} (previous state: {}
+653|{}:  Windows {}  [offline]
+654|Autoruns not read
+655|Safe (read-only)
+656|Select an entry in the list.
+657|Dump + drivers report
+658|Disk {}: errors R={}/W={}
+659|Disk or Windows is not visible
+660|GPT requires UEFI mode.
+661|WHEA log + temperatures
+662|MODIFIES: enables WinRE.
+663|Copying Winre.wim ({}
+664|Native: volume Win32 API.
+665|Could not copy {}
+666|Unhandled exception
+667|Services disabled ({}): {}
+668|Fix confirmation
+669|Check whether this is the right volume
+670|Registry key backup: {}
+671|Hive backup: {}
+672|Reset proxy settings
+673|Cancel one-time boot
+674|System information (GUI).
+675|Create a boot loader entry
+676|Files saved: {} to {}
+677|Physical disks are not visible
+678|No BCD stores found.
+679|<sp><sp>another candidate     : {}
+680|--- Fix {}: {} ---
+681|: high temperature {}°C
+682|=== Repair wizard ===
+683|BCD: cancel one-time entry
+684|FreePhysicalMemory(KB): {}
+685|TotalVisibleMemory(KB): {}
+686|[playbook]: title is not set
+687|Autoruns of the running OS
+688|Autoruns saved: {}
+689|Hardware errors WHEA: {}
+690|Select a command in the list.
+691|Dump + driver update
+692|DirectX diagnostics (GUI).
+693|Target OS drivers (DISM)
+694|Copy failed: {}
+695|Unknown PAGE signature
+696|Disk report + firmware
+697|Startup folder (all users)
+698|Full diagnostics + report
+699|Applies to the selected target.
+700|Check winre.wim (DISM)
+701|Host reachability check.
+702|Dump analysis (!analyze -v)
+703|Recommended action: {}
+704|First integrity and disk
+705|Disk/FS events ({} d.)
+706|NVMe counters unavailable.<sp>
+707|Boot menu timeout = {}
+708|Devices without a driver: {}
+709|Log file not found: {}
+710|native PowerShell replacement
+711|--- last 120 lines ---
+712|=== Command #{} [{}] {} ===
+713|BCD identifier         : {}
+714|BitLocker: unlock {}
+715|DISM /Add-Driver into {TARGET}
+716|GPT disk but no ESP found.
+717|SMART attributes unavailable.<sp>
+718|WinRE + WinRepair: creating
+719|WinRE + WinRepair: create…
+720|WinRE + WinRepair: removing
+721|WinRE + WinRepair: remove…
+722|{} as the default boot entry
+723|{} startup item: {}
+724|{}, the secret is not recorded)
+725|Disks: SMART, volumes, events
+726|Change the description of entry {}
+727|Native: SetupAPI/CfgMgr32.
+728|Could not rename {}
+729|Unhandled exception:<sp>
+730|System / Application errors
+731|BCD change confirmation
+732|Playbook step confirmation
+733|Last BugCheck: 0x{} {}
+734|View events in detail
+735|Check interrupted by an error:<sp>
+736|Integrity check + disk
+737|Name resolution via DNS.
+738|Location (per OS)      : {}
+739|WMI repository is consistent.
+740|Create RAM disk options
+741|WinRE state            : {}
+742|Value deleted {}\\{} = {}
+743|Startup file deleted {}
+744|No dump files found ({}
+745|Step {} of the playbook was interrupted: {}
+746|shadow copy id
+747|\r\n-- Driver packages --\r\n{}
+748|=== Restore point ===
+749|AppInit_DLLs: changed — {}.
+750|MBR disk when booted in UEFI
+751|WinRE + integrity check
+752|{}: SMART predicts failure
+753|Resume BitLocker protection
+754|Boot (BCD / GPT / WinRE)
+755|The hive root cannot be deleted.
+756|Almost no space on {}: {} GB
+757|Native: IOCTL + SMART/NVMe.
+758|Could not unload HKLM\\{}
+759|Open the last HTML report
+760|Memory (SMBIOS, diagnostics)
+761|Memory and hardware checks
+762|Sectors reallocated: {}.<sp>
+763|Full diagnostics interrupted.
+764|Unlock BitLocker volume
+765|Create a restore point
+766|Repair playbooks
+767|Devices: {}, with errors: {}
+768|BCD: error reading {current}.
+769|Secure Boot: 2023 certificates
+770|Tbsi_GetDeviceInfo unavailable
+771|bcdedit returned no entries: {}
+772|{} will have a driver added:\n{}
+773|Restore hives from RegBack
+774|Volume protectors (keys hidden)
+775|System stability monitor.
+776|Could not write hosts: {}
+777|Could not save the current<sp>
+778|RAM {}: {} MB {} {} MHz {} {}
+779|Cancelled by the user ({} s)
+780|AppInit_DLLs cleared (was: {}
