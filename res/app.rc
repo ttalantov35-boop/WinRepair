@@ -1,0 +1,39 @@
+#include <winver.h>
+#include "version.h"
+1 24 "WinRepair.manifest"
+2 RCDATA "..\\lang\\en.txt"
+// Built-in playbooks (RCDATA 100+): loaded by modules/playbook.cpp, can be overridden from disk by id
+100 RCDATA "..\\Playbooks\\repair-black-screen-login.wrp"
+101 RCDATA "..\\Playbooks\\repair-boot-uefi.wrp"
+102 RCDATA "..\\Playbooks\\repair-network-online.wrp"
+103 RCDATA "..\\Playbooks\\repair-pending-loop.wrp"
+104 RCDATA "..\\Playbooks\\repair-vmd-0x7b.wrp"
+105 RCDATA "..\\Playbooks\\symptom-slow-boot.wrp"
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION WR_VERSION_RC
+ PRODUCTVERSION WR_VERSION_RC
+ FILEFLAGSMASK 0x3fL
+ FILEFLAGS 0x0L
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041904b0"
+        BEGIN
+            VALUE "CompanyName", "WinRepair Project"
+            VALUE "FileDescription", "WinRepair Toolkit - diagnostics and repair"
+            VALUE "FileVersion", WR_VERSION_RCSTR
+            VALUE "InternalName", "WinRepair"
+            VALUE "OriginalFilename", "WinRepair.exe"
+            VALUE "ProductName", "WinRepair Toolkit"
+            VALUE "ProductVersion", WR_VERSION_STR
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x419, 1200
+    END
+END
