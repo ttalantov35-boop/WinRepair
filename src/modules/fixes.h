@@ -1,4 +1,4 @@
-// Repair wizard ("SmartFix"-like): reversible, journaled fixes working online and on an offline Windows.
+// Repair wizard (after-infection fixes): reversible, journaled fixes working online and on an offline Windows.
 #pragma once
 #include "../win/offreg.h"
 #include "catalog.h"

@@ -67,7 +67,7 @@ LRESULT CALLBACK HoverProc(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR, DWORD
     return DefSubclassProc(h, m, wp, lp);
 }
 
-COLORREF kBg = RGB(243, 246, 251), kText = RGB(26, 34, 52);
+COLORREF kBg = RGB(255, 255, 255), kText = RGB(26, 34, 52);
 }  // namespace
 
 void Init(int dpi) {

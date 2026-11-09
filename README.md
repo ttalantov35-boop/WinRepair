@@ -47,7 +47,7 @@
 * **Автозагрузка и службы офлайн (Autoruns + msconfig)** — Run/RunOnce (HKLM/HKCU, 32/64), папки «Автозагрузка», Winlogon, IFEO Debugger, AppInit_DLLs, BootExecute,
   службы и драйверы, задачи планировщика (просмотр); пометки «файл не найден / подозрительно»; отключение/включение (обратимо: StartupApproved, Start=4 + резерв),
   удаление, правка команды, «чистая загрузка» и откат, экспорт CSV.
-* **Мастер исправлений** (по мотивам SmartFix и Tweaking.com Windows Repair): Winlogon Shell/Userinit, IFEO, AppInit, политики после заражения, прокси, hosts,
+* **Мастер исправлений после заражений**: Winlogon Shell/Userinit, IFEO, AppInit, политики после заражения, прокси, hosts,
   ключевые службы, ассоциации .exe/.bat/…, SafeBoot, сброс Центра обновления, временные файлы, кэш значков, сброс сети, WMI, перерегистрация DLL,
   отложенные операции (pending.xml), замена кустов из RegBack.
 * **rstrui / точки восстановления** — `rstrui.exe` и `rstrui.exe /offline:<Windows>=active`, состояние защиты системы и список теневых копий целевой ОС.

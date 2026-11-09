@@ -44,3 +44,13 @@ MANIFEST.sha256 не найден (проверка файлов пропуще�
 На диске остались резервные копии состояния проверенных систем (кусты реестра, BCD).\n\n{}\nДа — удалить копии сейчас.\nНет — оставить (удалить можно позже кнопкой «Резервные копии…»; при запуске на другом ПК копии чужих систем будут предложены к удалению).\nОтмена — не выходить. ==> Backups of the checked systems (registry hives, BCD) are left on disk.\n\n{}\nYes — delete the backups now.\nNo — keep them (delete later with the "Backups…" button; on another PC, copies of foreign systems will be offered for deletion at start).\nCancel — do not exit.
 Администратор: да ==> Administrator: yes
 БЕЗ прав администратора ==> NO administrator rights
+Хост для проверки: ==> Host to test:
+Источник DISM (/Source): ==> DISM source (/Source):
+Мастер исправлений после заражений… ==> Post-infection repair wizard…
+Мастер исправлений после заражений — онлайн и офлайн ==> Post-infection repair wizard — online and offline
+Расширенный режим: chkdsk /scan (дольше) ==> Extended mode: chkdsk /scan (slower)
+Расширенный режим: DISM /ScanHealth (дольше) ==> Extended mode: DISM /ScanHealth (slower)
+Период — за сколько последних дней показывать ошибки и предупреждения из журналов System и Application. ==> Period — how many recent days of errors and warnings to show from the System and Application logs.
+Хост и порт для проверки связи: пинг, разрешение имени (DNS) и подключение к TCP-порту (443 — HTTPS, 80 — HTTP). Подойдёт любой доступный сайт или адрес. ==> Host and port for the connectivity test: ping, name resolution (DNS) and a TCP port connection (443 — HTTPS, 80 — HTTP). Any reachable site or address will do.
+Период — за сколько последних дней искать ошибки дисков и файловой системы в журнале событий. Расширенный режим добавляет проверку chkdsk /scan (занимает больше времени). ==> Period — how many recent days to search the event log for disk and file system errors. Extended mode adds a chkdsk /scan check (takes longer).
+Источник DISM (/Source) нужен, если Windows Update недоступен: укажите папку с файлами, например D:\\sources\\sxs, или WIM:D:\\sources\\install.wim:1. Пусто — обычный источник. Точка восстановления обычно создаётся не чаще раза в 24 часа; галка отключает это ограничение. ==> A DISM source (/Source) is needed when Windows Update is unavailable: give a folder with the files, e.g. D:\\sources\\sxs, or WIM:D:\\sources\\install.wim:1. Empty — the normal source. A restore point is normally created at most once per 24 hours; the checkbox lifts that limit.

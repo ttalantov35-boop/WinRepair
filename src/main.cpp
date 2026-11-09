@@ -32,7 +32,7 @@ enum {
     WM_APP_LOG = WM_APP + 1, WM_APP_STATUS, WM_APP_DONE, WM_APP_ASK = WM_APP + 10, WM_APP_CONFIRM, WM_APP_OPENWIN,
     IDC_BANNER = 100, IDC_TARGET, IDC_REFRESH, IDC_DAYS, IDC_EXT, IDC_FORCE, IDC_HOST, IDC_PORT, IDC_SOURCE,
     IDC_TAB, IDC_LOG, IDC_CANCEL, IDC_OPENREP, IDC_OPENLOG, IDC_SAVELOG, IDC_CLEAR, IDC_PROG, IDC_STATUS,
-    IDC_L1, IDC_L2, IDC_L3, IDC_L4, IDC_L5, IDC_ACTION0 = 1000,
+    IDC_L1, IDC_L2, IDC_L3, IDC_L4, IDC_L5, IDC_L6, IDC_ACTION0 = 1000,
     IDC_CAT_LIST = 2001, IDC_CAT_FILTER, IDC_CAT_RUN, IDC_CAT_CLOSE, IDC_CAT_DESC, IDC_CAT_E0 = 2010, IDC_CAT_L0 = 2020, IDC_CAT_FIND = 2030, IDC_LANG = 2040, IDC_EXIT = 2050
 };
 
@@ -78,7 +78,7 @@ Action kActions[] = {
     {L"Реестр офлайн-Windows (просмотр и правка)…", 7, nullptr, "registry", nullptr},
     {L"BCD / Загрузка: хранилище, записи, режимы…", 7, nullptr, "bcd", nullptr},
     {L"Автозагрузка и службы офлайн (Autoruns + msconfig)…", 7, nullptr, "autoruns", nullptr},
-    {L"Мастер исправлений (SmartFix / Windows Repair)…", 7, nullptr, "fixes", nullptr},
+    {L"Мастер исправлений после заражений…", 7, nullptr, "fixes", nullptr},
     {L"Восстановление системы: rstrui…", 7, nullptr, "rstrui", nullptr},
     {L"Точки восстановления: состояние", 7, nullptr, "restore-info", nullptr},
     {L"WinRE: вход в среду восстановления, WinRE + WinRepair…", 7, nullptr, "winre", nullptr},
@@ -91,7 +91,7 @@ Action kActions[] = {
 const int kActionCount = (int)(sizeof kActions / sizeof kActions[0]);
 
 HWND g_wnd, g_tab, g_log, g_target, g_days, g_ext, g_force, g_host, g_port, g_source, g_prog, g_status, g_banner;
-HWND g_btn[32], g_cancelBtn, g_refreshBtn, g_lbl[6];
+HWND g_btn[32], g_cancelBtn, g_refreshBtn, g_lbl[6], g_hint;
 HWND g_langBtn = nullptr, g_exitBtn = nullptr;
 HICON g_icon = nullptr;
 bool g_logRich = false;
@@ -183,9 +183,62 @@ void FillTargets() {
     SendMessageW(g_target, CB_SETCURSEL, 0, 0);
 }
 
+void Layout();
 void ShowTabButtons() {
     int sel = TabCtrl_GetCurSel(g_tab);
     for (int i = 0; i < kActionCount; ++i) ShowWindow(g_btn[i], kActions[i].tab == sel ? SW_SHOW : SW_HIDE);
+    Layout();   // options (period, DISM source, host...) follow the selected tab
+}
+
+// Options live inside the tab they belong to, right under that tab's buttons (tab: 2 Диски, 3 Целостность, 5 События, 6 Сеть).
+int OptionsStripH(int tab) {
+    switch (tab) {
+        case 2: case 5: case 6: return S(70);
+        case 3: return S(104);
+        default: return 0;
+    }
+}
+
+void PlaceOptions(const RECT& tr, const int* cnt, int cols, int bh, int gap) {
+    int sel = TabCtrl_GetCurSel(g_tab);
+    HWND all[] = {g_lbl[1], g_days, g_ext, g_force, g_lbl[2], g_host, g_lbl[3], g_port, g_lbl[4], g_source, g_hint};
+    for (HWND o : all) ShowWindow(o, SW_HIDE);
+    if (sel < 0 || sel > 15 || !OptionsStripH(sel)) return;
+    int rowsB = (cnt[sel] + cols - 1) / cols;
+    int ox = tr.left + S(10), oy = tr.top + S(6) + rowsB * (bh + gap) + S(6), ow = (int)(tr.right - tr.left) - S(20);
+    int rowH = S(26), step = S(32);
+    auto put = [&](HWND o, int x, int yy, int w) { MoveWindow(o, x, yy, w, rowH, TRUE); ShowWindow(o, SW_SHOW); };
+    auto label = [&](HWND o, int x, int yy, int w) { MoveWindow(o, x, yy + S(4), w, rowH - S(4), TRUE); ShowWindow(o, SW_SHOW); };
+    const wchar_t* hint = L"";
+    int rows = 1;
+    if (sel == 2) {
+        label(g_lbl[1], ox, oy, S(100));
+        put(g_days, ox + S(104), oy, S(52));
+        SetWindowTextW(g_ext, L"Расширенный режим: chkdsk /scan (дольше)");
+        put(g_ext, ox + S(176), oy, ow - S(176));
+        hint = L"Период — за сколько последних дней искать ошибки дисков и файловой системы в журнале событий. Расширенный режим добавляет проверку chkdsk /scan (занимает больше времени).";
+    } else if (sel == 3) {
+        SetWindowTextW(g_ext, L"Расширенный режим: DISM /ScanHealth (дольше)");
+        put(g_ext, ox, oy, S(360));
+        put(g_force, ox + S(370), oy, ow - S(370));
+        label(g_lbl[4], ox, oy + step, S(170));
+        put(g_source, ox + S(176), oy + step, ow - S(176));
+        rows = 2;
+        hint = L"Источник DISM (/Source) нужен, если Windows Update недоступен: укажите папку с файлами, например D:\\sources\\sxs, или WIM:D:\\sources\\install.wim:1. Пусто — обычный источник. Точка восстановления обычно создаётся не чаще раза в 24 часа; галка отключает это ограничение.";
+    } else if (sel == 5) {
+        label(g_lbl[1], ox, oy, S(100));
+        put(g_days, ox + S(104), oy, S(52));
+        hint = L"Период — за сколько последних дней показывать ошибки и предупреждения из журналов System и Application.";
+    } else if (sel == 6) {
+        label(g_lbl[2], ox, oy, S(140));
+        put(g_host, ox + S(144), oy, S(220));
+        label(g_lbl[3], ox + S(380), oy, S(50));
+        put(g_port, ox + S(432), oy, S(70));
+        hint = L"Хост и порт для проверки связи: пинг, разрешение имени (DNS) и подключение к TCP-порту (443 — HTTPS, 80 — HTTP). Подойдёт любой доступный сайт или адрес.";
+    }
+    SetWindowTextW(g_hint, hint);
+    MoveWindow(g_hint, ox, oy + rows * step, ow, S(36), TRUE);
+    ShowWindow(g_hint, SW_SHOW);
 }
 
 void Layout() {
@@ -204,25 +257,19 @@ void Layout() {
     MoveWindow(g_target, m + S(122), y + S(7), W_ - 2 * m - S(122) - S(124), S(300), TRUE);
     MoveWindow(g_refreshBtn, W_ - m - S(112), y + S(6), S(100), S(30), TRUE);
     y += S(52);
-    MoveWindow(g_lbl[1], m, y + S(3), S(90), rh, TRUE);
-    MoveWindow(g_days, m + S(95), y, S(50), rh, TRUE);
-    MoveWindow(g_ext, m + S(160), y, S(380), rh, TRUE);
-    MoveWindow(g_force, m + S(550), y, W_ - 2 * m - S(550), rh, TRUE);
-    y += S(30);
-    MoveWindow(g_lbl[2], m, y + S(3), S(90), rh, TRUE);
-    MoveWindow(g_host, m + S(95), y, S(190), rh, TRUE);
-    MoveWindow(g_lbl[3], m + S(295), y + S(3), S(50), rh, TRUE);
-    MoveWindow(g_port, m + S(345), y, S(60), rh, TRUE);
-    MoveWindow(g_lbl[4], m + S(420), y + S(3), S(120), rh, TRUE);
-    MoveWindow(g_source, m + S(545), y, W_ - 2 * m - S(545), rh, TRUE);
-    y += S(32);
     int gap = S(8), bh = S(44);
     int innerW = W_ - 2 * m - S(16);
     int cols = std::max(1, (innerW + gap) / (S(235) + gap));
     int cnt[16] = {0}, maxRows = 1;
     for (int i = 0; i < kActionCount; ++i) cnt[kActions[i].tab]++;
     for (int t = 0; t < 16; ++t) maxRows = std::max(maxRows, (cnt[t] + cols - 1) / cols);
-    int tabH = S(34) + maxRows * (bh + gap) + S(6);
+    int need = 0;   // tallest tab: its button rows + its options strip
+    for (int t = 0; t < 16; ++t) {
+        int rowsT = (cnt[t] + cols - 1) / cols;
+        need = std::max(need, rowsT * (bh + gap) + OptionsStripH(t));
+    }
+    (void)maxRows;
+    int tabH = S(34) + need + S(6);
     MoveWindow(g_tab, m, y, W_ - 2 * m, tabH, TRUE);
     RECT tr = {m, y, W_ - m, y + tabH};
     TabCtrl_AdjustRect(g_tab, FALSE, &tr);
@@ -232,6 +279,7 @@ void Layout() {
         int t = kActions[i].tab, k = idxInTab[t]++;
         MoveWindow(g_btn[i], tr.left + S(6) + (k % cols) * (bw + gap), tr.top + S(6) + (k / cols) * (bh + gap), bw, bh, TRUE);
     }
+    PlaceOptions(tr, cnt, cols, bh, gap);
     y += tabH + m;
     int barH = S(34);
     MoveWindow(g_log, m, y, W_ - 2 * m, std::max(S(60), H - y - barH - 2 * m - S(22)), TRUE);
@@ -632,14 +680,15 @@ void CreateControls() {
     g_target = Mk(L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, IDC_TARGET);
     g_refreshBtn = Mk(L"BUTTON", L"Обновить", BS_OWNERDRAW | WS_TABSTOP, IDC_REFRESH);
     g_lbl[1] = Mk(L"STATIC", L"Период, дней:", SS_LEFT, IDC_L2);
+    g_hint = Mk(L"STATIC", L"", SS_LEFT, IDC_L6);
     g_days = Mk(L"EDIT", L"3", ES_NUMBER | WS_TABSTOP, IDC_DAYS, WS_EX_CLIENTEDGE);
     g_ext = Mk(L"BUTTON", L"Расширенный режим (ScanHealth, chkdsk /scan)", BS_AUTOCHECKBOX | WS_TABSTOP, IDC_EXT);
     g_force = Mk(L"BUTTON", L"Точка восстановления: игнорировать лимит 24 ч", BS_AUTOCHECKBOX | WS_TABSTOP, IDC_FORCE);
-    g_lbl[2] = Mk(L"STATIC", L"Сеть, хост:", SS_LEFT, IDC_L3);
+    g_lbl[2] = Mk(L"STATIC", L"Хост для проверки:", SS_LEFT, IDC_L3);
     g_host = Mk(L"EDIT", L"www.microsoft.com", ES_AUTOHSCROLL | WS_TABSTOP, IDC_HOST, WS_EX_CLIENTEDGE);
     g_lbl[3] = Mk(L"STATIC", L"Порт:", SS_LEFT, IDC_L4);
     g_port = Mk(L"EDIT", L"443", ES_NUMBER | WS_TABSTOP, IDC_PORT, WS_EX_CLIENTEDGE);
-    g_lbl[4] = Mk(L"STATIC", L"DISM /Source:", SS_LEFT, IDC_L5);
+    g_lbl[4] = Mk(L"STATIC", L"Источник DISM (/Source):", SS_LEFT, IDC_L5);
     g_source = Mk(L"EDIT", L"", ES_AUTOHSCROLL | WS_TABSTOP, IDC_SOURCE, WS_EX_CLIENTEDGE);
     g_tab = Mk(WC_TABCONTROLW, L"", WS_TABSTOP | WS_CLIPSIBLINGS, IDC_TAB);
     for (int i = 0; i < (int)(sizeof kTabs / sizeof kTabs[0]); ++i) {
@@ -675,6 +724,7 @@ void CreateControls() {
     SendMessageW(g_target, WM_SETFONT, (WPARAM)theme::Big(), TRUE);
     SendMessageW(g_target, CB_SETITEMHEIGHT, (WPARAM)-1, S(22));
     SendMessageW(g_lbl[0], WM_SETFONT, (WPARAM)theme::Big(), TRUE);
+    SendMessageW(g_hint, WM_SETFONT, (WPARAM)theme::Small(), TRUE);
     EnableWindow(g_cancelBtn, FALSE);
     ShowWindow(g_prog, SW_HIDE);
     for (HWND hb : {g_langBtn, g_exitBtn, g_refreshBtn, g_cancelBtn, GetDlgItem(g_wnd, IDC_OPENREP), GetDlgItem(g_wnd, IDC_OPENLOG), GetDlgItem(g_wnd, IDC_SAVELOG), GetDlgItem(g_wnd, IDC_CLEAR)}) theme::AttachHover(hb);
@@ -726,7 +776,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
                 return (LRESULT)theme::TintBrush();
             }
             SetBkMode(dc, TRANSPARENT);
-            SetTextColor(dc, theme::Text());
+            SetTextColor(dc, (HWND)lp == g_hint ? RGB(88, 100, 122) : theme::Text());
             return (LRESULT)theme::BgBrush();
         }
         case WM_GETMINMAXINFO: {

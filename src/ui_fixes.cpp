@@ -1,4 +1,4 @@
-// Repair wizard window (SmartFix / Tweaking.com Windows Repair style).
+// Repair wizard window (after-infection fixes).
 #include "ui_tools_common.h"
 #include "modules/fixes.h"
 
@@ -88,7 +88,7 @@ void OpenFixWizardImpl() {
     if (F.wnd) { ShowWindow(F.wnd, SW_RESTORE); SetForegroundWindow(F.wnd); return; }
     RegisterOnce(L"WRFixes", Proc);
     F = State();
-    F.wnd = CreateWindowExW(0, L"WRFixes", L"Мастер исправлений (SmartFix / Windows Repair) — онлайн и офлайн", WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, S(1000), S(700),
+    F.wnd = CreateWindowExW(0, L"WRFixes", L"Мастер исправлений после заражений — онлайн и офлайн", WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, S(1000), S(700),
                             g_ui.main, nullptr, GetModuleHandleW(nullptr), nullptr);
     HWND h = F.wnd;
     Mk(h, L"STATIC", L"Целевая ОС:", SS_LEFT, 7900);
