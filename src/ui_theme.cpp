@@ -1,3 +1,6 @@
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include "ui_theme.h"
 #include "win/common.h"
 #include <commctrl.h>

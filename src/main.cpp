@@ -159,7 +159,7 @@ void AppendLog(const std::string& utf8) {
         cf.cbSize = sizeof cf;
         cf.dwMask = CFM_COLOR | CFM_BOLD;
         bool bold = false;
-        cf.crColor = theme::LevelColor(LevelOf(utf8), &bold);
+        cf.crTextColor = theme::LevelColor(LevelOf(utf8), &bold);
         cf.dwEffects = bold ? CFE_BOLD : 0;
         SendMessageW(g_log, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf);
     }
@@ -226,7 +226,7 @@ void Layout() {
     MoveWindow(g_tab, m, y, W_ - 2 * m, tabH, TRUE);
     RECT tr = {m, y, W_ - m, y + tabH};
     TabCtrl_AdjustRect(g_tab, FALSE, &tr);
-    int bw = std::max(S(150), (tr.right - tr.left - S(12) - gap * (cols - 1)) / cols);
+    int bw = std::max(S(150), ((int)(tr.right - tr.left) - S(12) - gap * (cols - 1)) / cols);
     int idxInTab[16] = {0};
     for (int i = 0; i < kActionCount; ++i) {
         int t = kActions[i].tab, k = idxInTab[t]++;
