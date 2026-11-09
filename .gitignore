@@ -1,0 +1,8 @@
+build/
+dist/
+Data/
+*.obj
+*.res
+*.pdb
+*.pfx
+*.snk
