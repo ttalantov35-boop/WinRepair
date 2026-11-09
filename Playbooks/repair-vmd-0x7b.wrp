@@ -1,0 +1,37 @@
+# Диск не виден / INACCESSIBLE_BOOT_DEVICE (0x7B) после смены режима SATA или при Intel VMD/RST
+[playbook]
+id = repair-vmd-0x7b
+title = Диск не виден или 0x7B: загрузить драйвер хранилища и добавить его в Windows
+kind = repair
+risk = changing
+needs = offline
+description = Для Intel VMD/RST и RAID-контроллеров. Шаги: найти устройства без драйвера, загрузить драйвер в WinPE (drvload), убедиться, что Windows видна,
+  затем добавить драйвер в офлайн-Windows через DISM /Add-Driver.
+
+[step]
+type = probe
+name = nodriver
+
+[step]
+type = message
+text = Откроется окно «BitLocker и драйверы хранилища». Найдите INF (кнопка поиска), загрузите его через drvload и закройте окно.
+
+[step]
+type = window
+name = storage
+
+[step]
+type = confirm
+text = Драйвер загружен (drvload), а Windows видна в списке «Целевая ОС» главного окна? Нажмите «Да», чтобы добавить драйвер в Windows.
+
+[step]
+type = ask
+var = DRV
+prompt = Путь к INF или папке с драйвером для добавления в офлайн-Windows
+default =
+
+[step]
+type = cmd
+title = DISM /Add-Driver в {TARGET}
+risk = changing
+run = dism.exe /Image:{TARGET} /Add-Driver /Driver:"{DRV}" /Recurse /ScratchDir:"{SCRATCH}"

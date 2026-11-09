@@ -1,0 +1,26 @@
+# Цикл «Отмена изменений» / зависание на обновлении
+[playbook]
+id = repair-pending-loop
+title = Цикл «Отмена изменений, не выключайте компьютер»: отменить отложенные операции обновления
+kind = repair
+risk = danger
+needs = offline
+description = Проверяет отложенные операции, отменяет их через DISM /RevertPendingActions и переименовывает pending.xml. Нужен свободный доступ к тому с Windows (BitLocker разблокирован).
+
+[step]
+type = probe
+name = pending
+
+[step]
+type = confirm
+text = Отложенные операции будут отменены. Обновление не применится, но система должна вернуться к загрузке. Есть копия важных данных?
+risk = danger
+
+[step]
+type = fix
+ids = 16
+risk = danger
+
+[step]
+type = message
+text = Готово. Перезагрузите компьютер. Если Windows загрузилась — приостановите обновления на несколько дней и запустите проверку целостности.

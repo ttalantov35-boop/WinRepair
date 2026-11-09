@@ -1,0 +1,30 @@
+# Чёрный экран / нет рабочего стола после входа (частое последствие заражения)
+[playbook]
+id = repair-black-screen-login
+title = Чёрный экран или нет рабочего стола после входа: сбросить подмены оболочки и политик
+kind = repair
+risk = changing
+needs = offline
+description = Сбрасывает Winlogon Shell/Userinit, подмены IFEO, AppInit_DLLs, блокирующие политики и ассоциации .exe. Перед правками сохраняются копии кустов и веток реестра.
+
+[step]
+type = probe
+name = persistence
+
+[step]
+type = probe
+name = policies
+
+[step]
+type = fix
+title = Сброс Winlogon, IFEO, AppInit, политик и ассоциаций
+ids = 1,2,3,4,8
+risk = changing
+
+[step]
+type = window
+name = autoruns
+
+[step]
+type = message
+text = Просмотрите автозагрузку: отключите записи с пометками «ПОДОЗРИТЕЛЬНО» и «ФАЙЛ НЕ НАЙДЕН». После перезагрузки проверьте компьютер антивирусом.

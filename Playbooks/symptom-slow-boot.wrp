@@ -1,0 +1,54 @@
+# Пример своего симптома для мастера «Что случилось?»
+[playbook]
+id = symptom-slow-boot
+title = Долго грузится после входа в систему
+kind = triage
+description = Свой симптом: проверяет диски, автозагрузку, место на диске, события и отключённые службы.
+
+[step]
+type = probe
+name = target
+
+[step]
+type = probe
+name = disks
+
+[step]
+type = probe
+name = persistence
+
+[step]
+type = check
+check = space_below
+gb = 15
+severity = warn
+title = Мало свободного места на системном томе
+detail = Менее 15 ГБ: индексация, обновления и файл подкачки работают медленно.
+action = fix:11,10
+action_label = Очистить временные файлы и кэш обновлений
+
+[step]
+type = check
+check = event
+log = System
+provider = Microsoft-Windows-Kernel-Power
+id = 41
+min = 1
+days = 14
+severity = warn
+title = Были неожиданные выключения (Kernel-Power 41)
+action = module:events
+action_label = Посмотреть события подробно
+
+[step]
+type = check
+check = service_disabled
+names = Dnscache, Dhcp, NlaSvc, Winmgmt
+severity = bad
+title = Отключены важные службы
+action = fix:7
+action_label = Включить обратно ключевые службы
+
+[step]
+type = probe
+name = events

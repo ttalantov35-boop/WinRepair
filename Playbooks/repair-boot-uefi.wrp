@@ -1,0 +1,33 @@
+# Пересоздание загрузчика UEFI
+[playbook]
+id = repair-boot-uefi
+title = Пересоздать загрузчик UEFI (bcdboot) для офлайн-Windows
+kind = repair
+risk = danger
+needs = offline
+description = Проверка структуры загрузки, список томов diskpart, затем bcdboot {WIN} /s <ESP> /f UEFI. ESP должен иметь букву — назначьте её (mountvol S: /S или diskpart assign) до запуска.
+
+[step]
+type = probe
+name = boot
+
+[step]
+type = catalog
+title = Список томов (diskpart list volume, команда каталога №55)
+no = 55
+
+[step]
+type = message
+text = Определите букву раздела EFI (FAT32, ~100–500 МБ). Если буквы нет: в diskpart выберите том и выполните assign letter=S.
+
+[step]
+type = ask
+var = ESP
+prompt = Буква раздела ESP (например S:)
+default = S:
+
+[step]
+type = cmd
+title = bcdboot {WIN} /s {ESP} /f UEFI
+risk = danger
+run = bcdboot.exe "{WIN}" /s {ESP} /f UEFI /v

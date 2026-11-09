@@ -1,0 +1,28 @@
+# Сброс сети в работающей Windows
+[playbook]
+id = repair-network-online
+title = Нет сети в работающей Windows: сбросить Winsock, TCP/IP и DNS
+kind = repair
+risk = changing
+needs = online
+description = netsh winsock reset, netsh int ip reset, сброс прокси WinHTTP, очистка DNS-кэша. Нужна перезагрузка.
+
+[step]
+type = probe
+name = network
+
+[step]
+type = catalog
+no = 69
+
+[step]
+type = catalog
+no = 70
+
+[step]
+type = catalog
+no = 71
+
+[step]
+type = message
+text = Перезагрузите компьютер и проверьте сеть.
