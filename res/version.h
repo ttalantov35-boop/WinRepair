@@ -6,3 +6,8 @@
 #define WR_VERSION_STR "1.0.0-rc1"
 #define WR_VERSION_RC  1,0,0,0
 #define WR_VERSION_RCSTR "1.0.0.0"
+
+// Product identity: change here only (window title, About, exe properties).
+#define WR_PRODUCT   "WinRepair Toolkit"
+#define WR_COMPANY   "WinRepair Project"          // put your name / company here if you want it shown in the exe properties
+#define WR_COPYRIGHT "Copyright (c) 2026 WinRepair Project"

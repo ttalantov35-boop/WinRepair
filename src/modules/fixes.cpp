@@ -17,9 +17,9 @@ void BackupKey(Ctx& c, HKEY base, const std::string& sub, const std::string& tag
     std::string reg;
     ExportRegKey(k, "HKEY_LOCAL_MACHINE\\" + sub, reg);
     RegCloseKey(k);
-    std::string f = Hives().backupDir() + tag + "_" + Stamp() + ".reg";
-    WriteText(f, reg);
-    c.info("Резервная копия ветки: " + f);
+    std::string f;
+    if (BackupRegText(c.target.root, tag, reg, f)) c.info("Резервная копия ветки: " + f);
+    else c.info("Копия ветки уже сохранена в этом сеансе (до первого изменения): " + f);
 }
 
 // delete the listed values; returns number deleted

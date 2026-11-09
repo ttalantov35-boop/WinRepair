@@ -116,8 +116,8 @@ std::vector<BcdEntry> BcdEnum(const std::string& store, std::string& raw) {
 
 std::string BcdBackup(const std::string& store, std::string& err) {
     if (store.empty()) {  // live store: let bcdedit export it
-        std::string dst = DataDir() + "Backups\\" + Stamp() + "_bcd_live.bcd";
-        MakeDirs(DataDir() + "Backups\\");
+        std::string dst = BackupDirFor("", "bcd") + "bcd_live.bcd";
+        if (!BackupOncePerSession("bcdlive:" + dst)) return dst;   // already exported in this session (pre-change state)
         std::string o;
         if (!BcdRunSync("", "/export \"" + dst + "\"", o)) { err = "bcdedit /export: " + o; return ""; }
         return dst;

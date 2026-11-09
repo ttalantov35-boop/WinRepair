@@ -102,8 +102,9 @@ void BackupPath(const std::string& p, const char* tag) {
     std::string reg;
     ExportRegKey(k, "HKEY_LOCAL_MACHINE\\" + p, reg);
     RegCloseKey(k);
-    std::string f = Hives().backupDir() + tag + "_" + Stamp() + ".reg";
-    if (WriteText(f, reg)) Logger::I().log(Lvl::Info, "Резервная копия ветки реестра: " + f);
+    std::string f;
+    if (BackupRegText(UiCurrentTarget().root, tag, reg, f)) Logger::I().log(Lvl::Info, "Резервная копия ветки реестра: " + f);
+    else Logger::I().log(Lvl::Info, "Копия ветки уже сохранена в этом сеансе (до первого изменения): " + f);
 }
 
 void RefreshTree() {

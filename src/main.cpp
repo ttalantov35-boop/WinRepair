@@ -1,5 +1,8 @@
 // WinRepair Toolkit - native Win32 GUI (no .NET / PowerShell / VC++ runtime required).
 #include "win/integrity.h"
+#include "win/backups.h"
+#include "ui_theme.h"
+#include <set>
 #include "win/app.h"
 #include "modules/catalog.h"
 #include "modules/bcd.h"
@@ -29,7 +32,7 @@ enum {
     IDC_BANNER = 100, IDC_TARGET, IDC_REFRESH, IDC_DAYS, IDC_EXT, IDC_FORCE, IDC_HOST, IDC_PORT, IDC_SOURCE,
     IDC_TAB, IDC_LOG, IDC_CANCEL, IDC_OPENREP, IDC_OPENLOG, IDC_SAVELOG, IDC_CLEAR, IDC_PROG, IDC_STATUS,
     IDC_L1, IDC_L2, IDC_L3, IDC_L4, IDC_L5, IDC_ACTION0 = 1000,
-    IDC_CAT_LIST = 2001, IDC_CAT_FILTER, IDC_CAT_RUN, IDC_CAT_CLOSE, IDC_CAT_DESC, IDC_CAT_E0 = 2010, IDC_CAT_L0 = 2020, IDC_CAT_FIND = 2030, IDC_LANG = 2040
+    IDC_CAT_LIST = 2001, IDC_CAT_FILTER, IDC_CAT_RUN, IDC_CAT_CLOSE, IDC_CAT_DESC, IDC_CAT_E0 = 2010, IDC_CAT_L0 = 2020, IDC_CAT_FIND = 2030, IDC_LANG = 2040, IDC_EXIT = 2050
 };
 
 struct Action {
@@ -80,6 +83,7 @@ Action kActions[] = {
     {L"WinRE: вход в среду восстановления, WinRE + WinRepair…", 7, nullptr, "winre", nullptr},
     {L"Выйти в штатное меню WinRE (RecEnv)…", 7, nullptr, "winre-menu", nullptr},
     {L"Сохранить журналы и отчёты на диск…", 7, nullptr, "savedata", nullptr},
+    {L"Резервные копии: просмотр и очистка…", 7, nullptr, "backups", nullptr},
     {L"Secure Boot: сертификаты 2023", 7, nullptr, "secureboot", nullptr},
     {L"BitLocker и драйверы хранилища (диск не виден)…", 7, nullptr, "storagefix", nullptr},
 };
@@ -87,7 +91,9 @@ const int kActionCount = (int)(sizeof kActions / sizeof kActions[0]);
 
 HWND g_wnd, g_tab, g_log, g_target, g_days, g_ext, g_force, g_host, g_port, g_source, g_prog, g_status, g_banner;
 HWND g_btn[32], g_cancelBtn, g_refreshBtn, g_lbl[6];
-HWND g_langBtn = nullptr;
+HWND g_langBtn = nullptr, g_exitBtn = nullptr;
+HICON g_icon = nullptr;
+std::wstring g_hdrSub;
 HWND g_cat = nullptr, g_catList, g_catFilter, g_catDesc, g_catRun, g_catClose, g_catEd[6], g_catLb[6], g_catFind;
 std::vector<std::string> g_bcdPaths;
 std::vector<int> g_catMap;
@@ -102,6 +108,18 @@ std::string g_lastOut, g_jobName;
 ULONGLONG g_jobStart = 0;
 
 int S(int v) { return MulDiv(v, g_dpi, 96); }
+
+// Purpose of a command -> colour (see ui_theme.h)
+theme::Cat CatOfAction(const char* n) {
+    static const char* guide[] = {"triage", "playbooks", "catalog"};
+    static const char* repair[] = {"repair", "fixes", "registry", "bcd", "autoruns", "winre", "winre-menu", "storagefix", "rstrui"};
+    static const char* protect[] = {"restorepoint", "savedata", "backups"};
+    for (auto g : guide) if (!strcmp(n, g)) return theme::Cat::Guide;
+    for (auto g : repair) if (!strcmp(n, g)) return theme::Cat::Repair;
+    for (auto g : protect) if (!strcmp(n, g)) return theme::Cat::Protect;
+    if (!strcmp(n, "about")) return theme::Cat::Info;
+    return theme::Cat::Diag;
+}
 
 std::wstring GetText(HWND h) {
     int n = GetWindowTextLengthW(h);
@@ -148,10 +166,12 @@ void ShowTabButtons() {
 void Layout() {
     RECT rc;
     GetClientRect(g_wnd, &rc);
-    int W_ = rc.right, H = rc.bottom, m = S(8), y = m;
-    MoveWindow(g_banner, m, y, W_ - 2 * m - S(110), S(20), TRUE);
-    MoveWindow(g_langBtn, W_ - m - S(100), y - 2, S(100), S(22), TRUE);
-    y += S(26);
+    int W_ = rc.right, H = rc.bottom, m = S(8);
+    int hdrH = S(66);
+    MoveWindow(g_banner, 0, 0, 1, 1, TRUE);   // hidden: the header band is painted in WM_PAINT
+    MoveWindow(g_exitBtn, W_ - m - S(104), S(15), S(104), S(32), TRUE);
+    MoveWindow(g_langBtn, W_ - m - S(104) - S(8) - S(96), S(15), S(96), S(32), TRUE);
+    int y = hdrH + S(30);
     int rh = S(24);
     MoveWindow(g_lbl[0], m, y + S(3), S(90), rh, TRUE);
     MoveWindow(g_target, m + S(95), y, W_ - 2 * m - S(95) - S(100), S(300), TRUE);
@@ -169,11 +189,11 @@ void Layout() {
     MoveWindow(g_lbl[4], m + S(420), y + S(3), S(120), rh, TRUE);
     MoveWindow(g_source, m + S(545), y, W_ - 2 * m - S(545), rh, TRUE);
     y += S(32);
-    int tabH = S(150);
+    int tabH = S(186);
     MoveWindow(g_tab, m, y, W_ - 2 * m, tabH, TRUE);
     RECT tr = {m, y, W_ - m, y + tabH};
     TabCtrl_AdjustRect(g_tab, FALSE, &tr);
-    int bw = S(235), bh = S(30), gap = S(8);
+    int bw = S(235), bh = S(40), gap = S(8);
     int cols = std::max(1, (int)((tr.right - tr.left + gap) / (bw + gap)));
     int idxInTab[16] = {0};
     for (int i = 0; i < kActionCount; ++i) {
@@ -249,6 +269,36 @@ void RunJob(JobData* d, const std::string& title) {
     else { delete d; SetRunning(false); }
 }
 
+void ManageBackups() {
+    std::vector<BackupItem> bk = ListBackups();
+    if (bk.empty()) { MessageBoxW(g_wnd, L"Резервных копий нет: папка Data\\Backups пуста.", L"Резервные копии", MB_OK | MB_ICONINFORMATION); return; }
+    std::wstring msg = W(fmt("Резервные копии хранятся по одной на систему и не накапливаются.\n\n%s\nДа — удалить все копии.\nНет — открыть папку с копиями.\nОтмена — закрыть окно.", BackupsSummary(bk).c_str()));
+    int r = MessageBoxW(g_wnd, msg.c_str(), L"Резервные копии", MB_YESNOCANCEL | MB_ICONQUESTION | MB_DEFBUTTON3);
+    if (r == IDYES) {
+        if (MessageBoxW(g_wnd, L"Удалить все резервные копии? Вернуть изменённые системные файлы из них после этого будет нельзя.", L"Подтверждение", MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) == IDYES) {
+            int n = DeleteBackups(bk);
+            Logger::I().log(Lvl::Ok, fmt("Удалено резервных копий: %d", n));
+        }
+    } else if (r == IDNO) OpenPath(DataDir() + "Backups");
+}
+
+// Copies left by other computers (the Data folder travels on the USB drive) and old-format folders are offered for deletion at start.
+void CheckForeignBackups() {
+    std::vector<BackupItem> bk = ListBackups();
+    if (bk.empty()) return;
+    std::set<std::string> mine;
+    mine.insert(VolumeId(""));
+    for (auto& t : g_targets) mine.insert(VolumeId(t.root));
+    std::vector<BackupItem> foreign;
+    for (auto& i : bk) if (i.legacy || !mine.count(i.name)) foreign.push_back(i);
+    if (foreign.empty()) return;
+    std::wstring msg = W(fmt("В папке Data\\Backups найдены резервные копии от других систем или старого формата.\nСейчас здесь должны быть только копии проверяемых вами систем.\n\n%s\nУдалить эти копии?", BackupsSummary(foreign).c_str()));
+    if (MessageBoxW(g_wnd, msg.c_str(), L"Резервные копии других систем", MB_YESNO | MB_ICONQUESTION) == IDYES) {
+        int n = DeleteBackups(foreign);
+        Logger::I().log(Lvl::Ok, fmt("Удалено резервных копий других систем: %d", n));
+    } else Logger::I().log(Lvl::Info, "Резервные копии других систем оставлены по выбору пользователя.");
+}
+
 void StartAction(int idx) {
     const Action& a = kActions[idx];
     if (!a.fn) {
@@ -264,6 +314,7 @@ void StartAction(int idx) {
         else if (!strcmp(a.name, "restore-info")) QuickCmd(59);
         else if (!strcmp(a.name, "winre")) OpenWinReManager();
         else if (!strcmp(a.name, "savedata")) OpenSaveData();
+        else if (!strcmp(a.name, "backups")) ManageBackups();
         else if (!strcmp(a.name, "secureboot")) QuickCmd(80);
         else if (!strcmp(a.name, "storagefix")) OpenStorageAccess();
         else if (!strcmp(a.name, "winre-menu")) {
@@ -486,7 +537,8 @@ void OpenCatalog() {
         wc.lpfnWndProc = CatProc;
         wc.hInstance = GetModuleHandleW(nullptr);
         wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-        wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+        wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.hbrBackground = theme::BgBrush();
         wc.lpszClassName = L"WinRepairCatalog";
         RegisterClassExW(&wc);
         reg = true;
@@ -532,10 +584,13 @@ void CreateControls() {
     g_banner = Mk(L"STATIC", L"", SS_LEFT, IDC_BANNER);
     std::string b = fmt("Среда: %s, %s%s  |  Администратор: %s  |  Версия %s", e.osName.c_str(), e.arch.c_str(), e.isWinRE ? "  [WinRE]" : (e.isWinPE ? "  [WinPE]" : ""), e.isAdmin ? "да" : "НЕТ", kAppVersion);
     SetWindowTextW(g_banner, W(b).c_str());
-    g_langBtn = Mk(L"BUTTON", CurrentLang() == Lang::RU ? L"English" : L"Русский", BS_PUSHBUTTON | WS_TABSTOP, IDC_LANG);
+    ShowWindow(g_banner, SW_HIDE);
+    g_hdrSub = W(b);
+    g_langBtn = Mk(L"BUTTON", CurrentLang() == Lang::RU ? L"English" : L"Русский", BS_OWNERDRAW | WS_TABSTOP, IDC_LANG);
+    g_exitBtn = Mk(L"BUTTON", L"Выход", BS_OWNERDRAW | WS_TABSTOP, IDC_EXIT);
     g_lbl[0] = Mk(L"STATIC", L"Целевая ОС:", SS_LEFT, IDC_L1);
     g_target = Mk(L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, IDC_TARGET);
-    g_refreshBtn = Mk(L"BUTTON", L"Обновить", BS_PUSHBUTTON | WS_TABSTOP, IDC_REFRESH);
+    g_refreshBtn = Mk(L"BUTTON", L"Обновить", BS_OWNERDRAW | WS_TABSTOP, IDC_REFRESH);
     g_lbl[1] = Mk(L"STATIC", L"Период, дней:", SS_LEFT, IDC_L2);
     g_days = Mk(L"EDIT", L"3", ES_NUMBER | WS_TABSTOP, IDC_DAYS, WS_EX_CLIENTEDGE);
     g_ext = Mk(L"BUTTON", L"Расширенный режим (ScanHealth, chkdsk /scan)", BS_AUTOCHECKBOX | WS_TABSTOP, IDC_EXT);
@@ -554,22 +609,24 @@ void CreateControls() {
         TabCtrl_InsertItem(g_tab, i, &it);
     }
     for (int i = 0; i < kActionCount; ++i) {
-        g_btn[i] = Mk(L"BUTTON", kActions[i].text, BS_PUSHBUTTON | BS_MULTILINE | WS_TABSTOP, IDC_ACTION0 + i);
+        g_btn[i] = Mk(L"BUTTON", kActions[i].text, BS_OWNERDRAW | WS_TABSTOP, IDC_ACTION0 + i);
         SetParent(g_btn[i], g_wnd);
         SetWindowPos(g_btn[i], HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
     }
     g_log = Mk(L"EDIT", L"", ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL | WS_HSCROLL | ES_AUTOHSCROLL, IDC_LOG, WS_EX_CLIENTEDGE);
     SendMessageW(g_log, WM_SETFONT, (WPARAM)g_mono, TRUE);
     SendMessageW(g_log, EM_SETLIMITTEXT, 0x7FFFFFFE, 0);
-    g_cancelBtn = Mk(L"BUTTON", L"Отмена", BS_PUSHBUTTON | WS_TABSTOP, IDC_CANCEL);
-    Mk(L"BUTTON", L"Открыть папку отчётов", BS_PUSHBUTTON | WS_TABSTOP, IDC_OPENREP);
-    Mk(L"BUTTON", L"Открыть лог-файл", BS_PUSHBUTTON | WS_TABSTOP, IDC_OPENLOG);
-    Mk(L"BUTTON", L"Сохранить журнал…", BS_PUSHBUTTON | WS_TABSTOP, IDC_SAVELOG);
-    Mk(L"BUTTON", L"Очистить", BS_PUSHBUTTON | WS_TABSTOP, IDC_CLEAR);
+    g_cancelBtn = Mk(L"BUTTON", L"Отмена", BS_OWNERDRAW | WS_TABSTOP, IDC_CANCEL);
+    Mk(L"BUTTON", L"Открыть папку отчётов", BS_OWNERDRAW | WS_TABSTOP, IDC_OPENREP);
+    Mk(L"BUTTON", L"Открыть лог-файл", BS_OWNERDRAW | WS_TABSTOP, IDC_OPENLOG);
+    Mk(L"BUTTON", L"Сохранить журнал…", BS_OWNERDRAW | WS_TABSTOP, IDC_SAVELOG);
+    Mk(L"BUTTON", L"Очистить", BS_OWNERDRAW | WS_TABSTOP, IDC_CLEAR);
     g_prog = Mk(PROGRESS_CLASSW, L"", PBS_MARQUEE, IDC_PROG);
     g_status = Mk(L"STATIC", L"Готово", SS_LEFT, IDC_STATUS);
     EnableWindow(g_cancelBtn, FALSE);
     ShowWindow(g_prog, SW_HIDE);
+    for (HWND hb : {g_langBtn, g_exitBtn, g_refreshBtn, g_cancelBtn, GetDlgItem(g_wnd, IDC_OPENREP), GetDlgItem(g_wnd, IDC_OPENLOG), GetDlgItem(g_wnd, IDC_SAVELOG), GetDlgItem(g_wnd, IDC_CLEAR)}) theme::AttachHover(hb);
+    for (int i = 0; i < kActionCount; ++i) theme::AttachHover(g_btn[i]);
     FillTargets();
     ShowTabButtons();
 }
@@ -577,7 +634,43 @@ void CreateControls() {
 LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     switch (m) {
         case WM_CREATE: g_wnd = h; return 0;
-        case WM_SIZE: if (g_tab) Layout(); return 0;
+        case WM_SIZE: if (g_tab) Layout(); InvalidateRect(h, nullptr, FALSE); return 0;
+        case WM_PAINT: {
+            PAINTSTRUCT ps;
+            HDC dc = BeginPaint(h, &ps);
+            RECT rc;
+            GetClientRect(h, &rc);
+            RECT hr = rc;
+            hr.bottom = S(66);
+            theme::PaintHeader(dc, hr, g_icon, W(kAppName), g_hdrSub);
+            theme::PaintLegend(dc, S(10), hr.bottom + S(6), rc.right - S(20));
+            EndPaint(h, &ps);
+            return 0;
+        }
+        case WM_DRAWITEM: {
+            auto* di = (DRAWITEMSTRUCT*)lp;
+            if (di->CtlType != ODT_BUTTON) break;
+            int id = (int)di->CtlID;
+            theme::Cat c = theme::Cat::Info;
+            if (id >= IDC_ACTION0 && id < IDC_ACTION0 + kActionCount) c = CatOfAction(kActions[id - IDC_ACTION0].name);
+            else if (id == IDC_EXIT) c = theme::Cat::Exit;
+            else if (id == IDC_LANG) c = theme::Cat::Header;
+            else if (id == IDC_CANCEL) c = theme::Cat::Repair;
+            else if (id == IDC_REFRESH) c = theme::Cat::Diag;
+            theme::DrawButton(di, c, theme::IsHover(di->hwndItem));
+            return TRUE;
+        }
+        case WM_CTLCOLORSTATIC: {
+            HDC dc = (HDC)wp;
+            if ((HWND)lp == g_log) {
+                SetTextColor(dc, theme::LogText());
+                SetBkColor(dc, theme::LogBg());
+                return (LRESULT)theme::LogBrush();
+            }
+            SetBkMode(dc, TRANSPARENT);
+            SetTextColor(dc, theme::Text());
+            return (LRESULT)theme::BgBrush();
+        }
         case WM_GETMINMAXINFO: {
             auto* mm = (MINMAXINFO*)lp;
             mm->ptMinTrackSize.x = S(920);
@@ -596,6 +689,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             else if (id == IDC_REFRESH) { FillTargets(); Logger::I().log(Lvl::Info, fmt("Найдено целевых ОС: %zu", g_targets.size())); }
             else if (id == IDC_CLEAR) SetWindowTextW(g_log, L"");
             else if (id == IDC_LANG) ChangeLanguage();
+            else if (id == IDC_EXIT) SendMessageW(h, WM_CLOSE, 0, 0);
             else if (id == IDC_OPENLOG) OpenPath(Logger::I().path());
             else if (id == IDC_OPENREP) OpenPath(g_lastOut.empty() ? DataDir() + "Reports" : g_lastOut);
             else if (id == IDC_SAVELOG) SaveLogAs();
@@ -659,6 +753,15 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             }
             if (g_running && MessageBoxW(h, L"Операция выполняется. Прервать и выйти?", L"Выход", MB_YESNO | MB_ICONQUESTION) != IDYES) return 0;
             g_cancel = true;
+            {
+                std::vector<BackupItem> bk = ListBackups();
+                if (!bk.empty()) {
+                    std::wstring msg = W(fmt("На диске остались резервные копии состояния проверенных систем (кусты реестра, BCD).\n\n%s\nДа — удалить копии сейчас.\nНет — оставить (удалить можно позже кнопкой «Резервные копии…»; при запуске на другом ПК копии чужих систем будут предложены к удалению).\nОтмена — не выходить.", BackupsSummary(bk).c_str()));
+                    int r = MessageBoxW(h, msg.c_str(), L"Резервные копии", MB_YESNOCANCEL | MB_ICONQUESTION | MB_DEFBUTTON2);
+                    if (r == IDCANCEL) { g_cancel = false; return 0; }
+                    if (r == IDYES) Logger::I().log(Lvl::Ok, fmt("Удалено резервных копий: %d", DeleteBackups(bk)));
+                }
+            }
             DestroyWindow(h);
             return 0;
         case WM_DESTROY: PostQuitMessage(0); return 0;
@@ -757,9 +860,8 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int show) {
     g_dpi = GetDeviceCaps(dc, LOGPIXELSX);
     ReleaseDC(nullptr, dc);
 
-    NONCLIENTMETRICSW ncm{sizeof ncm};
-    if (SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof ncm, &ncm, 0)) g_font = CreateFontIndirectW(&ncm.lfMessageFont);
-    if (!g_font) g_font = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+    theme::Init(g_dpi);
+    g_font = theme::Body();
     g_mono = CreateFontW(-S(13), 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, FIXED_PITCH | FF_MODERN, L"Consolas");
 
     WNDCLASSEXW wc{sizeof wc};
@@ -768,9 +870,12 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int show) {
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     wc.lpszClassName = L"WinRepairMain";
-    wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+    wc.hIcon = (HICON)LoadImageW(hi, MAKEINTRESOURCEW(1), IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), 0);
+    wc.hIconSm = (HICON)LoadImageW(hi, MAKEINTRESOURCEW(1), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
+    g_icon = (HICON)LoadImageW(hi, MAKEINTRESOURCEW(1), IMAGE_ICON, S(48), S(48), 0);
+    if (!wc.hIcon) wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
     RegisterClassExW(&wc);
-    HWND w = CreateWindowExW(0, wc.lpszClassName, L"WinRepair Toolkit — диагностика и ремонт Windows", WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
+    HWND w = CreateWindowExW(0, wc.lpszClassName, (W(kAppName) + L" — диагностика и ремонт Windows").c_str(), WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
                              CW_USEDEFAULT, CW_USEDEFAULT, S(1120), S(780), nullptr, nullptr, hi, nullptr);
     g_wnd = w;
     g_ui.main = w; g_ui.font = g_font; g_ui.mono = g_mono; g_ui.dpi = g_dpi;
@@ -779,6 +884,7 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int show) {
     Layout();
     ShowWindow(w, show);
     UpdateWindow(w);
+    CheckForeignBackups();
     AppendLog("Файл журнала: " + Logger::I().path());
     if (!GetEnv().isAdmin) Logger::I().log(Lvl::Error, "Программа запущена БЕЗ прав администратора — большинство функций будет недоступно.");
     if (GetEnv().isWinPE) Logger::I().log(Lvl::Info, "Обнаружена WinPE: выберите установленную Windows в списке «Целевая ОС» (режим офлайн).");

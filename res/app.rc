@@ -1,5 +1,6 @@
 #include <winver.h>
 #include "version.h"
+1 ICON "winrepair.ico"
 1 24 "WinRepair.manifest"
 2 RCDATA "..\\lang\\en.txt"
 // Built-in playbooks (RCDATA 100+): loaded by modules/playbook.cpp, can be overridden from disk by id
@@ -23,12 +24,13 @@ BEGIN
     BEGIN
         BLOCK "041904b0"
         BEGIN
-            VALUE "CompanyName", "WinRepair Project"
-            VALUE "FileDescription", "WinRepair Toolkit - diagnostics and repair"
+            VALUE "CompanyName", WR_COMPANY
+            VALUE "FileDescription", WR_PRODUCT " - diagnostics and repair"
+            VALUE "LegalCopyright", WR_COPYRIGHT
             VALUE "FileVersion", WR_VERSION_RCSTR
             VALUE "InternalName", "WinRepair"
             VALUE "OriginalFilename", "WinRepair.exe"
-            VALUE "ProductName", "WinRepair Toolkit"
+            VALUE "ProductName", WR_PRODUCT
             VALUE "ProductVersion", WR_VERSION_STR
         END
     END

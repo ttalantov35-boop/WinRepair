@@ -1,4 +1,5 @@
 #include "offreg.h"
+#include "backups.h"
 
 #include <cstring>
 
@@ -87,7 +88,7 @@ HiveManager& Hives() {
 
 std::string HiveManager::backupDir() {
     std::lock_guard<std::recursive_mutex> g(mu_);
-    if (backupDir_.empty()) { backupDir_ = DataDir() + "Backups\\" + Stamp() + "_hives\\"; MakeDirs(backupDir_); }
+    if (backupDir_.empty()) backupDir_ = BackupDirFor("", "hives");   // before any hive is loaded: the system volume
     return backupDir_;
 }
 
@@ -108,9 +109,11 @@ bool HiveManager::load(const HiveInfo& h, std::string& err) {
     if (loaded_.count(h.mount)) return true;
     EnablePriv(SE_BACKUP_NAME);
     EnablePriv(SE_RESTORE_NAME);
-    std::string bk = backupDir() + h.mount + ".hiv";  // copy BEFORE the registry locks the file
-    if (!CopyFileW(W(h.file).c_str(), W(bk).c_str(), FALSE)) Logger::I().log(Lvl::Warn, "Не удалось сделать копию куста " + h.file + ": " + ErrMsg(GetLastError()));
-    else Logger::I().log(Lvl::Info, "Резервная копия куста: " + bk);
+    backupDir_ = BackupDirFor(h.file, "hives");        // one folder per examined volume
+    std::string bk = backupDir_ + h.mount + ".hiv";    // copy BEFORE the registry locks the file
+    if (!BackupOncePerSession("hive:" + bk)) Logger::I().log(Lvl::Info, "Копия куста уже сохранена в этом сеансе: " + bk);
+    else if (!CopyFileW(W(h.file).c_str(), W(bk).c_str(), FALSE)) Logger::I().log(Lvl::Warn, "Не удалось сделать копию куста " + h.file + ": " + ErrMsg(GetLastError()));
+    else Logger::I().log(Lvl::Info, "Резервная копия куста (одна на систему, заменяет прежнюю): " + bk);
     RegUnLoadKeyW(HKEY_LOCAL_MACHINE, WK(h.mount).c_str());  // stale mount from a previous crash
     LONG r = RegLoadKeyW(HKEY_LOCAL_MACHINE, WK(h.mount).c_str(), W(h.file).c_str());
     if (r != ERROR_SUCCESS) { err = h.label + ": RegLoadKey — " + ErrMsg((DWORD)r); return false; }
@@ -431,10 +434,10 @@ void AuditChange(const std::string& what) {
 }
 
 std::string FileBackup(const std::string& path, const std::string& tag) {
-    static std::string dir;
-    if (dir.empty()) { dir = DataDir() + "Backups\\" + Stamp() + "_files\\"; MakeDirs(dir); }
+    std::string dir = BackupDirFor(path, "files");
     std::string name = path.substr(path.find_last_of('\\') + 1);
     std::string dst = dir + tag + "_" + name;
+    if (!BackupOncePerSession("file:" + dst)) return dst;   // the first copy of this session is the pre-change state; keep it
     if (!CopyFileW(W(path).c_str(), W(dst).c_str(), FALSE)) return "";
     return dst;
 }

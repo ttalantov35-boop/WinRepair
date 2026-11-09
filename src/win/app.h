@@ -5,7 +5,7 @@
 
 namespace wr {
 
-constexpr const char* kAppName = "WinRepair Toolkit";
+constexpr const char* kAppName = WR_PRODUCT;
 constexpr const char* kAppVersion = WR_VERSION_STR;
 
 // ---- environment --------------------------------------------------------

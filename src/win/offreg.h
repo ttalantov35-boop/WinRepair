@@ -1,6 +1,7 @@
 // Offline registry engine: load hives of a (non-running) Windows with RegLoadKey, edit values/keys, backups, audit.
 #pragma once
 #include "app.h"
+#include "backups.h"
 
 namespace wr {
 

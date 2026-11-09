@@ -15,3 +15,30 @@ MANIFEST.sha256 не найден (проверка файлов пропуще�
 [встроенный #{}] ==> [built-in #{}]
 [встроен в программу] ==> [built into the program]
 Сценарии (playbooks): всего {} (встроенных файлов {}, с диска: {}; ошибок разбора {}) ==> Playbooks: {} total (built-in files {}, from disk: {}; parse errors {})
+Резервные копии ==> Backups
+ (старый формат) ==>  (old format)
+Мастера и сценарии ==> Wizards and playbooks
+Защита и сохранение ==> Protection and saving
+Диагностика (только чтение) ==> Diagnostics (read-only)
+Изменяет систему (с подтверждением) ==> Changes the system (asks first)
+Резервные копии: просмотр и очистка… ==> Backups: view and clean up…
+{} — диагностика и ремонт Windows ==> {} — Windows diagnostics and repair
+Не удалось удалить: {} ==> Could not delete: {}
+Удалена резервная копия: {} ==> Backup deleted: {}
+Удалено резервных копий: {} ==> Backups deleted: {}
+Удалено резервных копий других систем: {} ==> Backups of other systems deleted: {}
+Резервные копии других систем ==> Backups of other systems
+Резервные копии других систем оставлены по выбору пользователя. ==> Backups of other systems kept at the user's choice.
+Резервные копии WinRepair для тома {} ==> WinRepair backups for volume {}
+{} (метка: {} ==> {} (label: {}
+{})\r\nСоздано: {} ==> {})\r\nCreated: {}
+\r\nПолитика: одна копия на том; обновляется один раз за сеанс перед первым изменением. Удалить можно в программе («Резервные копии…») или вручную.\r\n ==> \r\nPolicy: one copy per volume, refreshed once per session before the first change. Delete it in the program ("Backups…") or by hand.\r\n
+Папка: {}\nЭлементов: {}, общий размер: {}\n ==> Folder: {}\nItems: {}, total size: {}\n
+Копия куста уже сохранена в этом сеансе: {} ==> Hive copy already saved in this session: {}
+Резервных копий нет: папка Data\\Backups пуста. ==> No backups: the Data\\Backups folder is empty.
+Резервная копия куста (одна на систему, заменяет прежнюю): {} ==> Hive backup (one per system, replaces the previous one): {}
+Копия ветки уже сохранена в этом сеансе (до первого изменения): {} ==> Key copy already saved in this session (pre-change state): {}
+Удалить все резервные копии? Вернуть изменённые системные файлы из них после этого будет нельзя. ==> Delete all backups? You will not be able to restore changed system files from them afterwards.
+Резервные копии хранятся по одной на систему и не накапливаются.\n\n{}\nДа — удалить все копии.\nНет — открыть папку с копиями.\nОтмена — закрыть окно. ==> Backups are kept as one per system and do not pile up.\n\n{}\nYes — delete all backups.\nNo — open the backups folder.\nCancel — close this window.
+В папке Data\\Backups найдены резервные копии от других систем или старого формата.\nСейчас здесь должны быть только копии проверяемых вами систем.\n\n{}\nУдалить эти копии? ==> Data\\Backups contains backups from other systems or in an old format.\nOnly copies of the systems you are checking should be here.\n\n{}\nDelete these copies?
+На диске остались резервные копии состояния проверенных систем (кусты реестра, BCD).\n\n{}\nДа — удалить копии сейчас.\nНет — оставить (удалить можно позже кнопкой «Резервные копии…»; при запуске на другом ПК копии чужих систем будут предложены к удалению).\nОтмена — не выходить. ==> Backups of the checked systems (registry hives, BCD) are left on disk.\n\n{}\nYes — delete the backups now.\nNo — keep them (delete later with the "Backups…" button; on another PC, copies of foreign systems will be offered for deletion at start).\nCancel — do not exit.
