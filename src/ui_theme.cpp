@@ -2,14 +2,15 @@
 #include "win/common.h"
 #include <commctrl.h>
 #include <cwchar>
+#include <algorithm>
 
 namespace wr {
 namespace theme {
 
 namespace {
 int g_dpi = 96;
-HFONT g_body, g_semi, g_title, g_small;
-HBRUSH g_bg, g_log;
+HFONT g_body, g_semi, g_title, g_small, g_big;
+HBRUSH g_bg, g_log, g_tint;
 
 int S(int v) { return MulDiv(v, g_dpi, 96); }
 COLORREF Blend(COLORREF a, COLORREF b, int pct) {   // pct % of b
@@ -73,6 +74,8 @@ void Init(int dpi) {
     g_semi = MakeFont(face, 9, FW_SEMIBOLD);
     g_title = MakeFont(face, 17, FW_SEMIBOLD);
     g_small = MakeFont(face, 9, FW_NORMAL);
+    g_big = MakeFont(face, 10, FW_SEMIBOLD);
+    g_tint = CreateSolidBrush(TintColor());
     g_bg = CreateSolidBrush(kBg);
     g_log = CreateSolidBrush(LogBg());
 }
@@ -81,11 +84,25 @@ HFONT Body() { return g_body ? g_body : (HFONT)GetStockObject(DEFAULT_GUI_FONT);
 HFONT Semi() { return g_semi ? g_semi : Body(); }
 HFONT Title() { return g_title ? g_title : Body(); }
 HFONT Small() { return g_small ? g_small : Body(); }
+HFONT Big() { return g_big ? g_big : Semi(); }
+HBRUSH TintBrush() { return g_tint ? g_tint : BgBrush(); }
+COLORREF TintColor() { return RGB(228, 239, 253); }
+COLORREF LevelColor(int level, bool* bold) {
+    if (bold) *bold = (level == 2 || level == 5);
+    switch (level) {
+        case 1: return RGB(176, 84, 0);      // warning: dark amber
+        case 2: return RGB(200, 36, 36);     // error
+        case 3: return RGB(88, 100, 122);    // raw tool output: quieter
+        case 4: return RGB(24, 128, 70);     // ok
+        case 5: return RGB(20, 90, 180);     // section heading
+        default: return RGB(27, 36, 51);     // info
+    }
+}
 HBRUSH BgBrush() { return g_bg ? g_bg : (HBRUSH)(COLOR_BTNFACE + 1); }
 HBRUSH LogBrush() { return g_log ? g_log : (HBRUSH)GetStockObject(BLACK_BRUSH); }
 COLORREF Text() { return kText; }
-COLORREF LogText() { return RGB(214, 226, 244); }
-COLORREF LogBg() { return RGB(15, 27, 45); }
+COLORREF LogText() { return RGB(27, 36, 51); }
+COLORREF LogBg() { return RGB(252, 253, 255); }
 
 COLORREF Accent(Cat c) {
     switch (c) {
@@ -142,13 +159,16 @@ void DrawButton(const DRAWITEMSTRUCT* d, Cat c, bool hover) {
     DeleteObject(pen);
 
     RECT tr = r;
-    if (!filled) {   // colour stripe on the left = category
-        RECT st = {r.left + S(1), r.top + S(5), r.left + S(1) + S(5), r.bottom - S(5)};
+    if (!filled) {   // colour bar under the text = category
+        int bh = down || hover ? S(4) : S(3);
+        RECT st = {r.left + S(12), r.bottom - S(6) - bh + S(3), r.right - S(12), r.bottom - S(6) + S(3)};
         HBRUSH sb = CreateSolidBrush(acc);
         FillRect(dc, &st, sb);
         DeleteObject(sb);
-        tr.left += S(14);
-        tr.right -= S(8);
+        tr.left += S(12);
+        tr.right -= S(10);
+        tr.top += S(2);
+        tr.bottom -= S(9);
     } else {
         tr.left += S(6);
         tr.right -= S(6);
@@ -171,7 +191,7 @@ void DrawButton(const DRAWITEMSTRUCT* d, Cat c, bool hover) {
     }
 }
 
-void PaintHeader(HDC dc, const RECT& rc, HICON icon, const std::wstring& title, const std::wstring& subtitle) {
+void PaintHeader(HDC dc, const RECT& rc, HICON icon, const std::wstring& title, const std::wstring& subtitle, const std::vector<Chip>& chips) {
     int w = rc.right - rc.left, h = rc.bottom - rc.top;
     const COLORREF c1 = RGB(10, 26, 54), c2 = RGB(24, 108, 204);
     int strips = 64;
@@ -190,19 +210,52 @@ void PaintHeader(HDC dc, const RECT& rc, HICON icon, const std::wstring& title, 
         FillRect(dc, &s, b);
         DeleteObject(b);
     }
-    int isz = S(44), x = rc.left + S(14), y = rc.top + (h - lh - isz) / 2;
+    int isz = S(48), x = rc.left + S(14), y = rc.top + (h - lh - isz) / 2;
     if (icon) DrawIconEx(dc, x, y, icon, isz, isz, 0, nullptr, DI_NORMAL);
     SetBkMode(dc, TRANSPARENT);
-    int tx = x + (icon ? isz + S(12) : 0);
+    int tx = x + (icon ? isz + S(14) : 0), right = rc.right - S(230);
     HGDIOBJ of = SelectObject(dc, Title());
     SetTextColor(dc, RGB(255, 255, 255));
-    RECT tr = {tx, rc.top + S(7), rc.right - S(220), rc.top + S(36)};
+    RECT tr = {tx, rc.top + S(6), right, rc.top + S(38)};
     DrawTextW(dc, title.c_str(), -1, &tr, DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
-    SelectObject(dc, Small());
-    SetTextColor(dc, RGB(176, 204, 240));
-    RECT sr = {tx, rc.top + S(38), rc.right - S(220), rc.bottom - lh - S(2)};
-    DrawTextW(dc, subtitle.c_str(), -1, &sr, DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+
+    // second line: OS name (bright, semibold) followed by status chips
+    int ly = rc.top + S(40), lhgt = S(22);
+    SelectObject(dc, Semi());
+    SetTextColor(dc, RGB(240, 247, 255));
+    RECT m{0, 0, 0, 0};
+    DrawTextW(dc, subtitle.c_str(), -1, &m, DT_SINGLELINE | DT_CALCRECT | DT_NOPREFIX);
+    int sw = std::min<int>(m.right - m.left, (right - tx) * 55 / 100);
+    RECT sr = {tx, ly, tx + sw, ly + lhgt};
+    DrawTextW(dc, subtitle.c_str(), -1, &sr, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+    int cx = tx + sw + S(12);
+    for (const Chip& c : chips) {
+        RECT cm{0, 0, 0, 0};
+        DrawTextW(dc, c.text.c_str(), -1, &cm, DT_SINGLELINE | DT_CALCRECT | DT_NOPREFIX);
+        int cw = (cm.right - cm.left) + S(18);
+        if (cx + cw > right) break;
+        COLORREF fill = c.kind == 1 ? RGB(33, 160, 90) : c.kind == 2 ? RGB(214, 48, 49) : Blend(RGB(18, 52, 104), RGB(255, 255, 255), 24);
+        HBRUSH fb = CreateSolidBrush(fill);
+        HPEN pen = CreatePen(PS_SOLID, 1, fill);
+        HGDIOBJ ob = SelectObject(dc, fb), op = SelectObject(dc, pen);
+        RoundRect(dc, cx, ly, cx + cw, ly + lhgt, lhgt, lhgt);   // pill
+        SelectObject(dc, ob); SelectObject(dc, op);
+        DeleteObject(fb); DeleteObject(pen);
+        SetTextColor(dc, RGB(255, 255, 255));
+        RECT ct = {cx, ly, cx + cw, ly + lhgt};
+        DrawTextW(dc, c.text.c_str(), -1, &ct, DT_SINGLELINE | DT_VCENTER | DT_CENTER | DT_NOPREFIX);
+        cx += cw + S(6);
+    }
     SelectObject(dc, of);
+}
+
+void PaintTargetPanel(HDC dc, const RECT& r) {
+    HBRUSH fb = CreateSolidBrush(TintColor());
+    HPEN pen = CreatePen(PS_SOLID, std::max(2, S(2)), RGB(31, 122, 224));
+    HGDIOBJ ob = SelectObject(dc, fb), op = SelectObject(dc, pen);
+    RoundRect(dc, r.left, r.top, r.right, r.bottom, S(12), S(12));
+    SelectObject(dc, ob); SelectObject(dc, op);
+    DeleteObject(fb); DeleteObject(pen);
 }
 
 int PaintLegend(HDC dc, int x, int y, int maxWidth) {

@@ -3,6 +3,7 @@
 #pragma once
 #include <windows.h>
 #include <string>
+#include <vector>
 
 namespace wr {
 namespace theme {
@@ -22,8 +23,12 @@ HFONT Body();      // controls
 HFONT Semi();      // buttons, headings
 HFONT Title();     // product name in the header
 HFONT Small();     // captions
+HFONT Big();       // target selector
 HBRUSH BgBrush();
 HBRUSH LogBrush();
+HBRUSH TintBrush();   // light-blue fill of the highlighted "target OS" panel
+COLORREF TintColor();
+COLORREF LevelColor(int level, bool* bold);   // log line colour: 0 info, 1 warn, 2 error, 3 out, 4 ok, 5 heading
 COLORREF Text();
 COLORREF LogText();
 COLORREF LogBg();
@@ -32,7 +37,9 @@ COLORREF Accent(Cat c);
 void DrawButton(const DRAWITEMSTRUCT* d, Cat c, bool hover);
 void AttachHover(HWND button);        // subclass: repaint on mouse enter/leave
 bool IsHover(HWND button);
-void PaintHeader(HDC dc, const RECT& rc, HICON icon, const std::wstring& title, const std::wstring& subtitle);
+struct Chip { std::wstring text; int kind; };   // kind: 0 neutral, 1 good (green), 2 bad (red)
+void PaintHeader(HDC dc, const RECT& rc, HICON icon, const std::wstring& title, const std::wstring& subtitle, const std::vector<Chip>& chips);
+void PaintTargetPanel(HDC dc, const RECT& rc);
 int PaintLegend(HDC dc, int x, int y, int maxWidth);   // returns used height
 
 }  // namespace theme

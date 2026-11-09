@@ -2,6 +2,7 @@
 #include "win/integrity.h"
 #include "win/backups.h"
 #include "ui_theme.h"
+#include <richedit.h>
 #include <set>
 #include "win/app.h"
 #include "modules/catalog.h"
@@ -93,6 +94,9 @@ HWND g_wnd, g_tab, g_log, g_target, g_days, g_ext, g_force, g_host, g_port, g_so
 HWND g_btn[32], g_cancelBtn, g_refreshBtn, g_lbl[6];
 HWND g_langBtn = nullptr, g_exitBtn = nullptr;
 HICON g_icon = nullptr;
+bool g_logRich = false;
+RECT g_targetFrame{};
+std::vector<theme::Chip> g_chips;
 std::wstring g_hdrSub;
 HWND g_cat = nullptr, g_catList, g_catFilter, g_catDesc, g_catRun, g_catClose, g_catEd[6], g_catLb[6], g_catFind;
 std::vector<std::string> g_bcdPaths;
@@ -129,15 +133,36 @@ std::wstring GetText(HWND h) {
     return s;
 }
 
+// Log line colour by level tag: "2026-... [WARN ] text"
+int LevelOf(const std::string& line) {
+    if (line.find("──────") != std::string::npos) return 5;
+    size_t p = line.find('[');
+    if (p != std::string::npos && p < 30 && line.size() > p + 6) {
+        if (!line.compare(p, 5, "[WARN")) return 1;
+        if (!line.compare(p, 6, "[ERROR")) return 2;
+        if (!line.compare(p, 4, "[OUT")) return 3;
+        if (!line.compare(p, 3, "[OK")) return 4;
+    }
+    return 0;
+}
+
 void AppendLog(const std::string& utf8) {
     std::wstring w = W(utf8) + L"\r\n";
     int len = GetWindowTextLengthW(g_log);
     if (len > 3000000) {  // keep the control responsive: drop the oldest ~1/3
         SendMessageW(g_log, EM_SETSEL, 0, 1000000);
         SendMessageW(g_log, EM_REPLACESEL, FALSE, (LPARAM)L"");
-        len = GetWindowTextLengthW(g_log);
     }
-    SendMessageW(g_log, EM_SETSEL, len, len);
+    SendMessageW(g_log, EM_SETSEL, (WPARAM)-1, -1);   // end of text (works for EDIT and RichEdit)
+    if (g_logRich) {
+        CHARFORMAT2W cf{};
+        cf.cbSize = sizeof cf;
+        cf.dwMask = CFM_COLOR | CFM_BOLD;
+        bool bold = false;
+        cf.crColor = theme::LevelColor(LevelOf(utf8), &bold);
+        cf.dwEffects = bold ? CFE_BOLD : 0;
+        SendMessageW(g_log, EM_SETCHARFORMAT, SCF_SELECTION, (LPARAM)&cf);
+    }
     SendMessageW(g_log, EM_REPLACESEL, FALSE, (LPARAM)w.c_str());
     SendMessageW(g_log, WM_VSCROLL, SB_BOTTOM, 0);
 }
@@ -167,16 +192,18 @@ void Layout() {
     RECT rc;
     GetClientRect(g_wnd, &rc);
     int W_ = rc.right, H = rc.bottom, m = S(8);
-    int hdrH = S(66);
+    int hdrH = S(72);
     MoveWindow(g_banner, 0, 0, 1, 1, TRUE);   // hidden: the header band is painted in WM_PAINT
-    MoveWindow(g_exitBtn, W_ - m - S(104), S(15), S(104), S(32), TRUE);
-    MoveWindow(g_langBtn, W_ - m - S(104) - S(8) - S(96), S(15), S(96), S(32), TRUE);
-    int y = hdrH + S(30);
+    MoveWindow(g_exitBtn, W_ - m - S(104), S(20), S(104), S(32), TRUE);
+    MoveWindow(g_langBtn, W_ - m - S(104) - S(8) - S(96), S(20), S(96), S(32), TRUE);
+    int y = hdrH + S(32);
     int rh = S(24);
-    MoveWindow(g_lbl[0], m, y + S(3), S(90), rh, TRUE);
-    MoveWindow(g_target, m + S(95), y, W_ - 2 * m - S(95) - S(100), S(300), TRUE);
-    MoveWindow(g_refreshBtn, W_ - m - S(95), y - 1, S(95), rh + 2, TRUE);
-    y += S(30);
+    y += S(2);
+    g_targetFrame = {m, y, W_ - m, y + S(42)};
+    MoveWindow(g_lbl[0], m + S(14), y + S(11), S(104), rh, TRUE);
+    MoveWindow(g_target, m + S(122), y + S(7), W_ - 2 * m - S(122) - S(124), S(300), TRUE);
+    MoveWindow(g_refreshBtn, W_ - m - S(112), y + S(6), S(100), S(30), TRUE);
+    y += S(52);
     MoveWindow(g_lbl[1], m, y + S(3), S(90), rh, TRUE);
     MoveWindow(g_days, m + S(95), y, S(50), rh, TRUE);
     MoveWindow(g_ext, m + S(160), y, S(380), rh, TRUE);
@@ -189,16 +216,21 @@ void Layout() {
     MoveWindow(g_lbl[4], m + S(420), y + S(3), S(120), rh, TRUE);
     MoveWindow(g_source, m + S(545), y, W_ - 2 * m - S(545), rh, TRUE);
     y += S(32);
-    int tabH = S(186);
+    int gap = S(8), bh = S(44);
+    int innerW = W_ - 2 * m - S(16);
+    int cols = std::max(1, (innerW + gap) / (S(235) + gap));
+    int cnt[16] = {0}, maxRows = 1;
+    for (int i = 0; i < kActionCount; ++i) cnt[kActions[i].tab]++;
+    for (int t = 0; t < 16; ++t) maxRows = std::max(maxRows, (cnt[t] + cols - 1) / cols);
+    int tabH = S(34) + maxRows * (bh + gap) + S(6);
     MoveWindow(g_tab, m, y, W_ - 2 * m, tabH, TRUE);
     RECT tr = {m, y, W_ - m, y + tabH};
     TabCtrl_AdjustRect(g_tab, FALSE, &tr);
-    int bw = S(235), bh = S(40), gap = S(8);
-    int cols = std::max(1, (int)((tr.right - tr.left + gap) / (bw + gap)));
+    int bw = std::max(S(150), (tr.right - tr.left - S(12) - gap * (cols - 1)) / cols);
     int idxInTab[16] = {0};
     for (int i = 0; i < kActionCount; ++i) {
         int t = kActions[i].tab, k = idxInTab[t]++;
-        MoveWindow(g_btn[i], tr.left + (k % cols) * (bw + gap), tr.top + S(6) + (k / cols) * (bh + gap), bw, bh, TRUE);
+        MoveWindow(g_btn[i], tr.left + S(6) + (k % cols) * (bw + gap), tr.top + S(6) + (k / cols) * (bh + gap), bw, bh, TRUE);
     }
     y += tabH + m;
     int barH = S(34);
@@ -206,7 +238,7 @@ void Layout() {
     int by = H - barH - S(22) - m + S(0);
     by = y + std::max(S(60), H - y - barH - 2 * m - S(22)) + m;
     int x = m;
-    int ws[] = {S(100), S(200), S(130), S(150), S(90)};
+    int ws[] = {S(110), S(200), S(170), S(180), S(100)};
     HWND hs[] = {g_cancelBtn, GetDlgItem(g_wnd, IDC_OPENREP), GetDlgItem(g_wnd, IDC_OPENLOG), GetDlgItem(g_wnd, IDC_SAVELOG), GetDlgItem(g_wnd, IDC_CLEAR)};
     for (int i = 0; i < 5; ++i) { MoveWindow(hs[i], x, by, ws[i], barH - S(4), TRUE); x += ws[i] + gap; }
     MoveWindow(g_prog, x + gap, by + S(6), std::max(S(60), W_ - x - m - gap), S(18), TRUE);
@@ -375,8 +407,12 @@ void SaveLogAs() {
     o.nMaxFile = MAX_PATH;
     o.Flags = OFN_OVERWRITEPROMPT;
     if (!GetSaveFileNameW(&o)) return;
-    std::wstring w = GetText(g_log);
-    if (WriteText(U(file), U(w))) Logger::I().log(Lvl::Ok, "Журнал сохранён: " + U(file));
+    std::wstring w = GetText(g_log), n;
+    for (size_t i = 0; i < w.size(); ++i) {   // RichEdit stores line breaks as a lone CR
+        n += w[i];
+        if (w[i] == L'\r' && (i + 1 >= w.size() || w[i + 1] != L'\n')) n += L'\n';
+    }
+    if (WriteText(U(file), U(n))) Logger::I().log(Lvl::Ok, "Журнал сохранён: " + U(file));
 }
 
 // ---- command catalogue window ---------------------------------------------------------------------------
@@ -585,7 +621,11 @@ void CreateControls() {
     std::string b = fmt("Среда: %s, %s%s  |  Администратор: %s  |  Версия %s", e.osName.c_str(), e.arch.c_str(), e.isWinRE ? "  [WinRE]" : (e.isWinPE ? "  [WinPE]" : ""), e.isAdmin ? "да" : "НЕТ", kAppVersion);
     SetWindowTextW(g_banner, W(b).c_str());
     ShowWindow(g_banner, SW_HIDE);
-    g_hdrSub = W(b);
+    g_hdrSub = W(e.osName);
+    g_chips.push_back({W(e.arch), 0});
+    if (e.isWinRE) g_chips.push_back({L"WinRE", 0}); else if (e.isWinPE) g_chips.push_back({L"WinPE", 0});
+    g_chips.push_back({e.isAdmin ? W("Администратор: да") : W("БЕЗ прав администратора"), e.isAdmin ? 1 : 2});
+    g_chips.push_back({W(std::string("v") + kAppVersion), 0});
     g_langBtn = Mk(L"BUTTON", CurrentLang() == Lang::RU ? L"English" : L"Русский", BS_OWNERDRAW | WS_TABSTOP, IDC_LANG);
     g_exitBtn = Mk(L"BUTTON", L"Выход", BS_OWNERDRAW | WS_TABSTOP, IDC_EXIT);
     g_lbl[0] = Mk(L"STATIC", L"Целевая ОС:", SS_LEFT, IDC_L1);
@@ -613,7 +653,15 @@ void CreateControls() {
         SetParent(g_btn[i], g_wnd);
         SetWindowPos(g_btn[i], HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
     }
-    g_log = Mk(L"EDIT", L"", ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL | WS_HSCROLL | ES_AUTOHSCROLL, IDC_LOG, WS_EX_CLIENTEDGE);
+    {   // RichEdit (msftedit.dll) gives per-level colours; fall back to a plain EDIT where it is missing (some WinPE images)
+        g_logRich = LoadLibraryW(L"msftedit.dll") != nullptr;
+        g_log = Mk(g_logRich ? L"RICHEDIT50W" : L"EDIT", L"", ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL | WS_HSCROLL | ES_AUTOHSCROLL, IDC_LOG, WS_EX_CLIENTEDGE);
+        if (!g_log && g_logRich) {
+            g_logRich = false;
+            g_log = Mk(L"EDIT", L"", ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL | WS_HSCROLL | ES_AUTOHSCROLL, IDC_LOG, WS_EX_CLIENTEDGE);
+        }
+        if (g_logRich) SendMessageW(g_log, EM_SETBKGNDCOLOR, 0, (LPARAM)theme::LogBg());
+    }
     SendMessageW(g_log, WM_SETFONT, (WPARAM)g_mono, TRUE);
     SendMessageW(g_log, EM_SETLIMITTEXT, 0x7FFFFFFE, 0);
     g_cancelBtn = Mk(L"BUTTON", L"Отмена", BS_OWNERDRAW | WS_TABSTOP, IDC_CANCEL);
@@ -623,6 +671,10 @@ void CreateControls() {
     Mk(L"BUTTON", L"Очистить", BS_OWNERDRAW | WS_TABSTOP, IDC_CLEAR);
     g_prog = Mk(PROGRESS_CLASSW, L"", PBS_MARQUEE, IDC_PROG);
     g_status = Mk(L"STATIC", L"Готово", SS_LEFT, IDC_STATUS);
+    SendMessageW(g_tab, WM_SETFONT, (WPARAM)theme::Semi(), TRUE);
+    SendMessageW(g_target, WM_SETFONT, (WPARAM)theme::Big(), TRUE);
+    SendMessageW(g_target, CB_SETITEMHEIGHT, (WPARAM)-1, S(22));
+    SendMessageW(g_lbl[0], WM_SETFONT, (WPARAM)theme::Big(), TRUE);
     EnableWindow(g_cancelBtn, FALSE);
     ShowWindow(g_prog, SW_HIDE);
     for (HWND hb : {g_langBtn, g_exitBtn, g_refreshBtn, g_cancelBtn, GetDlgItem(g_wnd, IDC_OPENREP), GetDlgItem(g_wnd, IDC_OPENLOG), GetDlgItem(g_wnd, IDC_SAVELOG), GetDlgItem(g_wnd, IDC_CLEAR)}) theme::AttachHover(hb);
@@ -641,9 +693,10 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             RECT rc;
             GetClientRect(h, &rc);
             RECT hr = rc;
-            hr.bottom = S(66);
-            theme::PaintHeader(dc, hr, g_icon, W(kAppName), g_hdrSub);
-            theme::PaintLegend(dc, S(10), hr.bottom + S(6), rc.right - S(20));
+            hr.bottom = S(72);
+            theme::PaintHeader(dc, hr, g_icon, W(kAppName), g_hdrSub, g_chips);
+            theme::PaintLegend(dc, S(10), hr.bottom + S(7), rc.right - S(20));
+            theme::PaintTargetPanel(dc, g_targetFrame);
             EndPaint(h, &ps);
             return 0;
         }
@@ -667,6 +720,11 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
                 SetBkColor(dc, theme::LogBg());
                 return (LRESULT)theme::LogBrush();
             }
+            if ((HWND)lp == g_lbl[0]) {   // "Target OS" label sits on the highlighted panel
+                SetBkColor(dc, theme::TintColor());
+                SetTextColor(dc, RGB(16, 78, 168));
+                return (LRESULT)theme::TintBrush();
+            }
             SetBkMode(dc, TRANSPARENT);
             SetTextColor(dc, theme::Text());
             return (LRESULT)theme::BgBrush();
@@ -674,7 +732,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         case WM_GETMINMAXINFO: {
             auto* mm = (MINMAXINFO*)lp;
             mm->ptMinTrackSize.x = S(920);
-            mm->ptMinTrackSize.y = S(620);
+            mm->ptMinTrackSize.y = S(720);
             return 0;
         }
         case WM_NOTIFY: {
@@ -862,7 +920,7 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int show) {
 
     theme::Init(g_dpi);
     g_font = theme::Body();
-    g_mono = CreateFontW(-S(13), 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, FIXED_PITCH | FF_MODERN, L"Consolas");
+    g_mono = CreateFontW(-S(15), 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET, 0, 0, CLEARTYPE_QUALITY, FIXED_PITCH | FF_MODERN, L"Consolas");
 
     WNDCLASSEXW wc{sizeof wc};
     wc.lpfnWndProc = WndProc;
@@ -876,7 +934,7 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int show) {
     if (!wc.hIcon) wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
     RegisterClassExW(&wc);
     HWND w = CreateWindowExW(0, wc.lpszClassName, (W(kAppName) + L" — диагностика и ремонт Windows").c_str(), WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
-                             CW_USEDEFAULT, CW_USEDEFAULT, S(1120), S(780), nullptr, nullptr, hi, nullptr);
+                             CW_USEDEFAULT, CW_USEDEFAULT, S(1120), S(840), nullptr, nullptr, hi, nullptr);
     g_wnd = w;
     g_ui.main = w; g_ui.font = g_font; g_ui.mono = g_mono; g_ui.dpi = g_dpi;
     CreateControls();
