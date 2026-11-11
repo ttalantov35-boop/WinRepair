@@ -12,10 +12,13 @@ namespace ui {
 namespace {
 
 enum { ID_COMBO = 4001, ID_LOAD, ID_UNLOAD, ID_REGEDIT, ID_TREE, ID_LIST, ID_PATH, ID_NEWVAL, ID_EDIT, ID_DELVAL, ID_NEWKEY, ID_DELKEY, ID_EXPORT, ID_COPY, ID_NOTE };
-enum { ID_SEARCH = 4200, ID_FIND, ID_FKEYS, ID_FNAMES, ID_FDATA, ID_FSEL, ID_SLBL, ID_FLIST, ID_FSTOP, ID_FCLOSE, ID_FSTATUS };
+enum { ID_SEARCH = 4200, ID_FIND, ID_FKEYS, ID_FNAMES, ID_FDATA, ID_FSEL, ID_SLBL, ID_FLIST, ID_FSTOP, ID_FCLOSE, ID_FSTATUS, ID_ADDR, ID_STATUSBAR };
+enum { IDM_EXIT = ID_COPY + 50, IDM_FINDBOX = 4300, IDM_REFRESH, IDM_RENVAL, IDM_RENKEY, IDM_FAVADD, IDM_FAVDEL, IDM_STATUS, IDM_CPYNAME, IDM_FAV0 = 4400 };
 
 struct State {
-    HWND wnd = nullptr, combo, tree, list, path, note, btn[8], bLoad, bUnload, bRegedit, search = nullptr, bFind = nullptr, lblSearch = nullptr, chk[4] = {};
+    HWND wnd = nullptr, combo, tree, list, path, note, btn[8], bLoad, bUnload, bRegedit, search = nullptr, bFind = nullptr, lblSearch = nullptr, chk[4] = {}, status = nullptr;
+    bool showStatus = true;
+    std::vector<std::string> favs;
     std::vector<std::unique_ptr<std::string>> paths;
     std::map<std::string, std::string> labels;  // mount -> label
     std::vector<RegVal> vals;
@@ -80,7 +83,8 @@ void FillValues() {
     ListView_DeleteAllItems(R.list);
     R.vals.clear();
     std::string p = SelPath();
-    SetWindowTextW(R.path, p.empty() ? L"" : W("HKLM\\" + p).c_str());
+    if (GetFocus() != R.path) SetWindowTextW(R.path, p.empty() ? L"" : W("HKLM\\" + p).c_str());
+    if (R.status) SetWindowTextW(R.status, p.empty() ? L"" : (TrW(L"  Компьютер\\") + W("HKEY_LOCAL_MACHINE\\" + p)).c_str());
     if (p.empty()) return;
     HKEY k = nullptr;
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, W(p).c_str(), 0, KEY_READ, &k) != ERROR_SUCCESS) return;
@@ -281,13 +285,14 @@ void Layout() {
         top += S(28);
     }
     int treeW = std::max(S(260), W_ * 36 / 100);
-    int btnH = S(30);
-    int bodyH = H - top - btnH - 2 * m - S(24);
+    int statusH = R.showStatus ? S(22) : 0;
+    int bodyH = H - top - statusH - m;
     Place(R.tree, m, top, treeW, bodyH);
-    Place(R.path, m + treeW + m, top, W_ - treeW - 3 * m, S(20));
-    Place(R.list, m + treeW + m, top + S(24), W_ - treeW - 3 * m, bodyH - S(24));
-    int y = H - btnH - m, x = m, bw = std::max(S(120), (W_ - 2 * m - 7 * S(6)) / 8);
-    for (int i = 0; i < 8; ++i) { Place(R.btn[i], x, y, bw, btnH); x += bw + S(6); }
+    Place(R.path, m + treeW + m, top, W_ - treeW - 3 * m, S(24));
+    Place(R.list, m + treeW + m, top + S(28), W_ - treeW - 3 * m, bodyH - S(28));
+    ShowWindow(R.status, R.showStatus ? SW_SHOW : SW_HIDE);
+    Place(R.status, 0, H - statusH, W_, statusH);
+    for (int i = 0; i < 8; ++i) ShowWindow(R.btn[i], SW_HIDE);   // commands live in the menu bar, the context menus and the keyboard, as in regedit
 }
 
 // ---- search --------------------------------------------------------------------------------------------------
@@ -572,8 +577,176 @@ bool RegContextMenu(HWND src, LPARAM lp) {
 }
 
 
+// ---- regedit-style extras: menu bar, address bar, rename, favourites, keys ----------------------------------
+std::string FavFile() { return DataDir() + "registry_favorites.txt"; }
+void LoadFavs() {
+    R.favs.clear();
+    std::vector<uint8_t> b;
+    if (!ReadBytes(FavFile(), b, 1 << 20)) return;
+    std::string t(b.begin(), b.end());
+    if (t.size() >= 3 && (uint8_t)t[0] == 0xEF) t.erase(0, 3);
+    size_t a = 0;
+    while (a < t.size()) {
+        size_t e = t.find('\n', a);
+        std::string l = trim(t.substr(a, e == std::string::npos ? std::string::npos : e - a));
+        if (!l.empty()) R.favs.push_back(l);
+        if (e == std::string::npos) break;
+        a = e + 1;
+    }
+}
+void SaveFavs() {
+    std::string t;
+    for (const auto& f : R.favs) t += f + "\r\n";
+    WriteText(FavFile(), t);
+}
+
+HMENU BuildMenuBar() {
+    HMENU bar = CreateMenu();
+    auto add = [](HMENU m, UINT id, const wchar_t* t, UINT fl = 0) { AppendMenuW(m, MF_STRING | fl, id, TrW(t).c_str()); };
+    HMENU f = CreatePopupMenu();
+    add(f, ID_LOAD, L"Загрузить кусты…");
+    add(f, ID_UNLOAD, L"Выгрузить кусты");
+    AppendMenuW(f, MF_SEPARATOR, 0, nullptr);
+    add(f, ID_EXPORT, L"Экспорт ветки .reg…");
+    AppendMenuW(f, MF_SEPARATOR, 0, nullptr);
+    add(f, ID_REGEDIT, L"regedit текущей ОС");
+    add(f, IDM_EXIT, L"Выход");
+    AppendMenuW(bar, MF_POPUP, (UINT_PTR)f, TrW(L"Файл").c_str());
+    HMENU e = CreatePopupMenu();
+    add(e, ID_EDIT, L"Изменить…\tEnter");
+    HMENU nw = CreatePopupMenu();
+    add(nw, ID_NEWKEY, L"Раздел");
+    add(nw, ID_NEWVAL, L"Значение…");
+    AppendMenuW(e, MF_POPUP, (UINT_PTR)nw, TrW(L"Создать").c_str());
+    add(e, ID_DELKEY, L"Удалить раздел");
+    add(e, ID_DELVAL, L"Удалить значение\tDel");
+    add(e, IDM_RENVAL, L"Переименовать значение\tF2");
+    add(e, IDM_RENKEY, L"Переименовать раздел");
+    AppendMenuW(e, MF_SEPARATOR, 0, nullptr);
+    add(e, IDM_CPYNAME, L"Копировать имя раздела");
+    AppendMenuW(e, MF_SEPARATOR, 0, nullptr);
+    add(e, IDM_FINDBOX, L"Найти…\tCtrl+F");
+    add(e, ID_FIND, L"Найти далее\tF3");
+    AppendMenuW(bar, MF_POPUP, (UINT_PTR)e, TrW(L"Правка").c_str());
+    HMENU v = CreatePopupMenu();
+    add(v, IDM_STATUS, L"Строка состояния", MF_CHECKED);
+    add(v, IDM_REFRESH, L"Обновить\tF5");
+    AppendMenuW(bar, MF_POPUP, (UINT_PTR)v, TrW(L"Вид").c_str());
+    HMENU fv = CreatePopupMenu();   // rebuilt in WM_INITMENUPOPUP
+    AppendMenuW(bar, MF_POPUP, (UINT_PTR)fv, TrW(L"Избранное").c_str());
+    return bar;
+}
+
+void RebuildFavMenu(HMENU m) {
+    while (GetMenuItemCount(m) > 0) DeleteMenu(m, 0, MF_BYPOSITION);
+    std::string cur = SelPath();
+    AppendMenuW(m, MF_STRING | (cur.empty() ? MF_GRAYED : 0), IDM_FAVADD, TrW(L"Добавить в избранное").c_str());
+    AppendMenuW(m, MF_STRING | (R.favs.empty() ? MF_GRAYED : 0), IDM_FAVDEL, TrW(L"Удалить из избранного…").c_str());
+    if (!R.favs.empty()) AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    for (size_t i = 0; i < R.favs.size() && i < 40; ++i) {
+        std::wstring t = W(R.favs[i]);
+        if (t.size() > 90) t = L"…" + t.substr(t.size() - 88);
+        for (size_t p = 0; (p = t.find(L'&', p)) != std::wstring::npos; p += 2) t.insert(p, 1, L'&');
+        AppendMenuW(m, MF_STRING, (UINT_PTR)(IDM_FAV0 + i), t.c_str());
+    }
+}
+
+void AddFavorite() {
+    std::string p = SelPath();
+    if (p.empty()) return;
+    if (std::find(R.favs.begin(), R.favs.end(), p) == R.favs.end()) { R.favs.push_back(p); SaveFavs(); }
+}
+void DeleteFavorite() {
+    std::vector<FormField> f(1);
+    f[0].label = L"Какую запись удалить из избранного";
+    f[0].kind = 2;
+    for (const auto& x : R.favs) f[0].options.push_back(W(x));
+    f[0].value = f[0].options.empty() ? L"" : f[0].options[0];
+    if (!FormDialog(R.wnd, L"Избранное", f)) return;
+    std::string v = U(f[0].value);
+    R.favs.erase(std::remove(R.favs.begin(), R.favs.end(), v), R.favs.end());
+    SaveFavs();
+}
+
+// address bar: HKLM\WRO_SYSTEM\... (also HKEY_LOCAL_MACHINE\, "Компьютер\" prefixes)
+void GoToAddress() {
+    std::string a = trim(U(GetText(R.path)));
+    for (const char* pre : {"Компьютер\\", "Computer\\", "HKEY_LOCAL_MACHINE\\", "HKLM\\"}) {
+        std::string pr = pre;
+        if (a.size() >= pr.size() && toLowerUtf8(a.substr(0, pr.size())) == toLowerUtf8(pr)) { a = a.substr(pr.size()); }
+    }
+    while (!a.empty() && a.back() == '\\') a.pop_back();
+    if (a.empty()) return;
+    NavigateTo(a, "");
+    SetFocus(R.tree);
+}
+
+LRESULT CALLBACK AddrProc(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR, DWORD_PTR) {
+    if (m == WM_KEYDOWN && wp == VK_RETURN) { GoToAddress(); return 0; }
+    if (m == WM_CHAR && wp == VK_RETURN) return 0;
+    if (m == WM_KILLFOCUS) { std::string sp = SelPath(); SetWindowTextW(h, sp.empty() ? L"" : W("HKLM\\" + sp).c_str()); }   // unfinished text -> path of the selected key
+    if (m == WM_NCDESTROY) RemoveWindowSubclass(h, AddrProc, 2);
+    return DefSubclassProc(h, m, wp, lp);
+}
+
+void RenameValue() {
+    std::string p = SelPath();
+    int si = SelVal();
+    if (p.empty() || si < 0 || si >= (int)R.vals.size()) return;
+    RegVal cur = R.vals[(size_t)si];
+    if (cur.name.empty()) { MessageBoxW(R.wnd, TrW(L"Значение «По умолчанию» переименовать нельзя.").c_str(), TrW(L"Реестр").c_str(), MB_OK | MB_ICONINFORMATION); return; }
+    std::vector<FormField> f(1);
+    f[0].label = L"Новое имя значения";
+    f[0].value = W(cur.name);
+    if (!FormDialog(R.wnd, L"Переименовать значение", f)) return;
+    std::string nn = U(f[0].value);
+    if (nn.empty() || nn == cur.name) return;
+    if (!ConfirmChange(L"Переименовать значение «" + W(cur.name) + L"» → «" + W(nn) + L"»\nв HKLM\\" + W(p))) return;
+    BackupPath(p, "regedit");
+    HKEY k = nullptr;
+    LONG r = RegOpenKeyExW(HKEY_LOCAL_MACHINE, W(p).c_str(), 0, KEY_SET_VALUE, &k);
+    if (r == ERROR_SUCCESS) { r = RegSetRaw(k, nn, cur.type, cur.data); if (r == ERROR_SUCCESS) RegDeleteValueW(k, W(cur.name).c_str()); RegFlushKey(k); RegCloseKey(k); }
+    if (r != ERROR_SUCCESS) { MessageBoxW(R.wnd, W(ErrMsg((DWORD)r)).c_str(), L"Ошибка", MB_OK | MB_ICONERROR); return; }
+    AuditChange("REG RENAME VALUE HKLM\\" + p + " \"" + cur.name + "\" -> \"" + nn + "\"");
+    FillValues();
+}
+
+void RenameKey() {
+    std::string p = SelPath();
+    size_t sl = p.rfind('\\');
+    if (p.empty() || sl == std::string::npos) { MessageBoxW(R.wnd, TrW(L"Корень куста переименовать нельзя.").c_str(), TrW(L"Реестр").c_str(), MB_OK | MB_ICONWARNING); return; }
+    std::string parent = p.substr(0, sl), leaf = p.substr(sl + 1);
+    std::vector<FormField> f(1);
+    f[0].label = L"Новое имя раздела";
+    f[0].value = W(leaf);
+    if (!FormDialog(R.wnd, L"Переименовать раздел", f)) return;
+    std::string nn = trim(U(f[0].value));
+    if (nn.empty() || nn == leaf || nn.find('\\') != std::string::npos) return;
+    if (!ConfirmChange(L"Переименовать раздел «" + W(leaf) + L"» → «" + W(nn) + L"»\nв HKLM\\" + W(parent))) return;
+    BackupPath(p, "regedit_renkey");
+    HKEY pk = nullptr;
+    LONG r = RegOpenKeyExW(HKEY_LOCAL_MACHINE, W(parent).c_str(), 0, KEY_READ | KEY_WRITE, &pk);
+    if (r == ERROR_SUCCESS) {
+        typedef LONG(WINAPI * RenFn)(HKEY, LPCWSTR, LPCWSTR);
+        RenFn fn = (RenFn)GetProcAddress(GetModuleHandleW(L"advapi32.dll"), "RegRenameKey");
+        r = fn ? fn(pk, W(leaf).c_str(), W(nn).c_str()) : ERROR_CALL_NOT_IMPLEMENTED;
+        RegCloseKey(pk);
+    }
+    if (r != ERROR_SUCCESS) { MessageBoxW(R.wnd, W(ErrMsg((DWORD)r)).c_str(), L"Ошибка", MB_OK | MB_ICONERROR); return; }
+    AuditChange("REG RENAME KEY HKLM\\" + p + " -> " + nn);
+    RefreshTree();
+    NavigateTo(parent + "\\" + nn, "");
+}
+
+
 LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     switch (m) {
+        case WM_INITMENUPOPUP: {
+            HMENU mp = (HMENU)wp;
+            HMENU bar = GetMenu(h);
+            if (bar && GetMenuItemCount(bar) == 4 && GetSubMenu(bar, 3) == mp) RebuildFavMenu(mp);
+            break;
+        }
         case WM_CONTEXTMENU: return RegContextMenu((HWND)wp, lp) ? 1 : 0;
         case WM_SIZE: if (R.btn[7]) Layout(); return 0;
         case WM_GETMINMAXINFO: { auto* mm = (MINMAXINFO*)lp; mm->ptMinTrackSize.x = S(900); mm->ptMinTrackSize.y = S(520); return 0; }
@@ -581,7 +754,7 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             switch (LOWORD(wp)) {
                 case ID_LOAD: LoadHives(); break;
                 case ID_UNLOAD: TreeView_DeleteAllItems(R.tree); R.paths.clear(); ListView_DeleteAllItems(R.list); R.vals.clear(); Hives().unloadAll(); R.labels.clear(); break;
-                case ID_COPY + 50: DestroyWindow(h); break;
+                case IDM_EXIT: DestroyWindow(h); break;
                 case ID_REGEDIT: ShellExecuteW(h, L"open", L"regedit.exe", nullptr, nullptr, SW_SHOWNORMAL); break;
                 case ID_NEWVAL: SetValue(true); break;
                 case ID_EDIT: SetValue(false); break;
@@ -591,6 +764,17 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
                 case ID_EXPORT: ExportKey(); break;
                 case ID_COPY: CopyPath(); break;
                 case ID_FIND: DoFind(); break;
+                case IDM_FINDBOX: SetFocus(R.search); SendMessageW(R.search, EM_SETSEL, 0, -1); break;
+                case IDM_REFRESH: RefreshTree(); break;
+                case IDM_RENVAL: RenameValue(); break;
+                case IDM_RENKEY: RenameKey(); break;
+                case IDM_CPYNAME: CopyPath(); break;
+                case IDM_FAVADD: AddFavorite(); break;
+                case IDM_FAVDEL: DeleteFavorite(); break;
+                case IDM_STATUS: R.showStatus = !R.showStatus; CheckMenuItem(GetMenu(h), IDM_STATUS, MF_BYCOMMAND | (R.showStatus ? MF_CHECKED : MF_UNCHECKED)); Layout(); break;
+                default:
+                    if (LOWORD(wp) >= IDM_FAV0 && LOWORD(wp) < IDM_FAV0 + 40 && (size_t)(LOWORD(wp) - IDM_FAV0) < R.favs.size()) NavigateTo(R.favs[(size_t)(LOWORD(wp) - IDM_FAV0)], "");
+                    break;
             }
             return 0;
         case WM_NOTIFY: {
@@ -600,7 +784,26 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
                     auto* tv = (NMTREEVIEWW*)lp;
                     if (tv->action == TVE_EXPAND && !(tv->itemNew.state & TVIS_EXPANDEDONCE)) Expand(tv->itemNew.hItem, *(std::string*)tv->itemNew.lParam);
                 } else if (nh->code == TVN_SELCHANGEDW) FillValues();
+                else if (nh->code == TVN_KEYDOWN) {
+                    WORD k = ((NMTVKEYDOWN*)lp)->wVKey;
+                    bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+                    if (k == VK_F2) RenameKey();
+                    else if (k == VK_DELETE) DelKey();
+                    else if (k == VK_F5) RefreshTree();
+                    else if (k == VK_F3) DoFind();
+                    else if (ctrl && k == 'F') { SetFocus(R.search); SendMessageW(R.search, EM_SETSEL, 0, -1); }
+                }
             } else if (nh->hwndFrom == R.list && nh->code == NM_DBLCLK) SetValue(false);
+            else if (nh->hwndFrom == R.list && nh->code == LVN_KEYDOWN) {
+                WORD k = ((NMLVKEYDOWN*)lp)->wVKey;
+                bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+                if (k == VK_F2) RenameValue();
+                else if (k == VK_DELETE) DelValue();
+                else if (k == VK_RETURN) SetValue(false);
+                else if (k == VK_F5) RefreshTree();
+                else if (k == VK_F3) DoFind();
+                else if (ctrl && k == 'F') { SetFocus(R.search); SendMessageW(R.search, EM_SETSEL, 0, -1); }
+            }
             return 0;
         }
         case WM_DESTROY:
@@ -638,7 +841,12 @@ void OpenRegistryEditorImpl() {
     const wchar_t* cl[] = {L"Имена разделов", L"Имена значений", L"Данные значений", L"Только в выбранном разделе"};
     for (int i = 0; i < 4; ++i) { R.chk[i] = Mk(h, L"BUTTON", cl[i], BS_AUTOCHECKBOX | WS_TABSTOP, ID_FKEYS + i); if (i < 3) SendMessageW(R.chk[i], BM_SETCHECK, BST_CHECKED, 0); }
     R.tree = Mk(h, WC_TREEVIEWW, L"", TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_SHOWSELALWAYS | WS_TABSTOP, ID_TREE, WS_EX_CLIENTEDGE);
-    R.path = Mk(h, L"EDIT", L"", ES_READONLY | ES_AUTOHSCROLL, ID_PATH, WS_EX_CLIENTEDGE);
+    R.path = Mk(h, L"EDIT", L"", ES_AUTOHSCROLL | WS_TABSTOP, ID_ADDR, WS_EX_CLIENTEDGE);
+    SetWindowSubclass(R.path, AddrProc, 2, 0);
+    SendMessageW(R.path, EM_SETCUEBANNER, TRUE, (LPARAM)TrW(L"Адрес раздела: HKLM\\WRO_SYSTEM\\… (Enter — перейти)").c_str());
+    R.status = Mk(h, L"STATIC", L"", SS_LEFT | SS_CENTERIMAGE | SS_SUNKEN, ID_STATUSBAR);
+    LoadFavs();
+    SetMenu(h, BuildMenuBar());
     R.list = Mk(h, WC_LISTVIEWW, L"", LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_TABSTOP, ID_LIST, WS_EX_CLIENTEDGE);
     ListView_SetExtendedListViewStyle(R.list, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
     const wchar_t* cols[] = {L"Имя", L"Тип", L"Данные"};

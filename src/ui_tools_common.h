@@ -169,6 +169,10 @@ bool FormDialog(HWND owner, const std::wstring& title, std::vector<FormField>& f
 std::vector<Target> FillTargetCombo(HWND combo, bool offlineOnly);
 
 void OpenRegistryEditorImpl();
+void OpenAppsImpl();
+void AppsJobDone();
+void OpenOfflineExplorerImpl();
+void OpenOfflineExplorerAt(const std::string& path);
 void OpenBcdManagerImpl();
 void OpenAutorunsImpl();
 void OpenFixWizardImpl();

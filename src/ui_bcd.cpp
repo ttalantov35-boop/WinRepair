@@ -189,31 +189,44 @@ void Action(int i) {
     }
 }
 
+RECT g_cardStore{}, g_cardMode{};
+
 void Layout() {
     RECT rc;
     GetClientRect(B.wnd, &rc);
     int W_ = rc.right, H = rc.bottom, m = S(8), y = m;
-    Place(GetDlgItem(B.wnd, 5900), m, y + S(3), S(110), S(20));
-    Place(B.store, m + S(115), y, W_ - 2 * m - S(115) - S(120), S(300));
-    Place(GetDlgItem(B.wnd, ID_REFRESH), W_ - m - S(110), y - 1, S(110), S(26));
-    y += S(34);
+    ShowWindow(GetDlgItem(B.wnd, 5900), SW_HIDE);   // captions of the cards are painted in WM_PAINT
+    ShowWindow(GetDlgItem(B.wnd, 5901), SW_HIDE);
+    g_cardStore = {m, y, W_ - m, y + S(64)};
+    Place(B.store, m + S(14), y + S(28), W_ - 2 * m - S(14) - S(136), S(300));
+    Place(GetDlgItem(B.wnd, ID_REFRESH), W_ - m - S(122), y + S(26), S(112), S(30));
+    y += S(64) + m;
     int leftW = std::max(S(380), W_ * 45 / 100);
     int btnAreaH = S(36) * 3 + S(40);
     int listH = (H - y - m - btnAreaH) * 38 / 100;
     Place(B.list, m, y, leftW, listH);
     Place(B.detail, m, y + listH + m, leftW, H - y - listH - 2 * m - btnAreaH);
     int rx = leftW + 2 * m, rw = W_ - rx - m;
-    Place(GetDlgItem(B.wnd, 5901), rx, y, rw, S(20));
-    Place(B.mode, rx, y + S(22), rw, S(300));
-    Place(B.bApply, rx, y + S(54), rw / 2 - S(4), S(30));
-    Place(B.bReset, rx + rw / 2 + S(4), y + S(54), rw / 2 - S(4), S(30));
-    int by = y + S(100), bw = (rw - S(8)) / 2, bh = S(30);
+    g_cardMode = {rx, y, rx + rw, y + S(112)};
+    Place(B.mode, rx + S(14), y + S(28), rw - S(26), S(300));
+    Place(B.bApply, rx + S(14), y + S(68), (rw - S(36)) / 2, S(32));
+    Place(B.bReset, rx + S(22) + (rw - S(36)) / 2, y + S(68), (rw - S(36)) / 2, S(32));
+    int by = y + S(112) + S(10), bw = (rw - S(8)) / 2, bh = S(30);
     for (int i = 0; i < 12; ++i) Place(B.btn[i], rx + (i % 2) * (bw + S(8)), by + (i / 2) * (bh + S(6)), bw, bh);
     Place(GetDlgItem(B.wnd, 5902), rx, by + 6 * (bh + S(6)) + S(4), rw, S(90));
+    InvalidateRect(B.wnd, nullptr, TRUE);
 }
 
 LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     switch (m) {
+        case WM_PAINT: {
+            PAINTSTRUCT ps;
+            HDC dc = BeginPaint(h, &ps);
+            theme::PaintCard(dc, g_cardStore, theme::Cat::Diag, TrW(L"Хранилище BCD"), TrW(L"где лежит загрузчик выбранной Windows (ESP монтируется автоматически)"));
+            theme::PaintCard(dc, g_cardMode, theme::Cat::Repair, TrW(L"Режим следующей загрузки"), TrW(L"как в msconfig / F8 — для выбранной записи"));
+            EndPaint(h, &ps);
+            return 0;
+        }
         case WM_SIZE: if (B.btn[11]) Layout(); return 0;
         case WM_GETMINMAXINFO: { auto* mm = (MINMAXINFO*)lp; mm->ptMinTrackSize.x = S(940); mm->ptMinTrackSize.y = S(620); return 0; }
         case WM_COMMAND: {
@@ -257,6 +270,7 @@ void OpenBcdManagerImpl() {
     B.mode = Mk(h, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, ID_MODE);
     for (const auto& m : BootModes()) SendMessageW(B.mode, CB_ADDSTRING, 0, (LPARAM)W(m.title).c_str());
     SendMessageW(B.mode, CB_SETCURSEL, 0, 0);
+    for (HWND cb : {B.store, B.mode}) { SendMessageW(cb, WM_SETFONT, (WPARAM)theme::Big(), TRUE); SendMessageW(cb, CB_SETITEMHEIGHT, (WPARAM)-1, S(22)); }
     B.bApply = Mk(h, L"BUTTON", L"Применить режим…", BS_PUSHBUTTON | WS_TABSTOP, ID_APPLYMODE);
     B.bReset = Mk(h, L"BUTTON", L"Сбросить все режимы…", BS_PUSHBUTTON | WS_TABSTOP, ID_RESETMODES);
     const wchar_t* bt[] = {L"Описание…", L"Загружать по умолчанию…", L"Таймаут меню…", L"device/osdevice…", L"Копировать запись…", L"Удалить запись…",

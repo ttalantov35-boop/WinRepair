@@ -17,6 +17,8 @@ void UiStartJob(const std::string& name, const std::string& title, std::function
 void OpenRegistryEditor();
 void OpenBcdManager();
 void OpenAutoruns();
+void OpenInstalledApps();
+void OpenOfflineExplorer();
 void OpenFixWizard();
 void OpenWinReManager();
 void OpenStorageAccess();

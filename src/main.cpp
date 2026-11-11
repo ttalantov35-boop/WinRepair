@@ -89,6 +89,8 @@ Action kActions[] = {
     {L"Резервные копии: просмотр и очистка…", 7, nullptr, "backups", nullptr},
     {L"Secure Boot: сертификаты 2023", 7, nullptr, "secureboot", nullptr},
     {L"BitLocker и драйверы хранилища (диск не виден)…", 7, nullptr, "storagefix", nullptr},
+    {L"Установленные приложения офлайн (удалить мешающую программу)…", 7, nullptr, "apps", nullptr},
+    {L"Офлайн-проводник: файлы выбранной Windows…", 7, nullptr, "explorer", nullptr},
 };
 const int kActionCount = (int)(sizeof kActions / sizeof kActions[0]);
 
@@ -138,6 +140,8 @@ const ActionDesc kDescs[] = {
     {"network", L"Сетевая диагностика: адаптеры, настройки IP, шлюз, DNS, проверка связи с указанным хостом и портом. Только чтение."},
     {"registry", L"Офлайн-редактор реестра выбранной Windows: просмотр и правка кустов (SYSTEM, SOFTWARE, профили пользователей). Перед изменением сохраняется копия ветки; правки подтверждаются и пишутся в журнал."},
     {"bcd", L"Менеджер загрузки: просмотр и правка записей BCD, режимы безопасной загрузки при следующем запуске, создание загрузочных файлов (bcdboot). Перед изменением делается копия хранилища."},
+    {"apps", L"Список программ офлайн-Windows из реестра (машина и пользователи) с выделением антивирусов и средств защиты. Для программы, из-за которой Windows не запускается: отключить её службы, драйверы и автозапуск, переместить папку в карантин (обратимо) и убрать запись из списка. Деинсталлятор без работающей Windows не запустить — это принудительное удаление."},
+    {"explorer", L"Автономный проводник для файлов выбранной (в том числе неработающей) Windows: дерево дисков, копирование, перемещение, переименование, поиск. Удаление по умолчанию — в карантин WinRepair_Removed (обратимо), есть окончательное удаление и получение прав владельца, если доступ запрещён."},
     {"autoruns", L"Автозагрузка и службы выбранной (в том числе офлайн) Windows: ключи Run, задачи, службы, драйверы. Подозрительные записи можно отключить, режим запуска служб менять (аналог msconfig). Отключение обратимо."},
     {"fixes", L"Обратимые исправления после заражения: Winlogon Shell/Userinit, IFEO, AppInit_DLLs, политики, прокси, файл hosts и др. Каждое исправление описано, подтверждается и записывается в журнал."},
     {"rstrui", L"Запускает мастер восстановления системы (rstrui.exe) для отката к точке восстановления, если она есть. Меняет систему, потребуется подтверждение."},
@@ -158,7 +162,7 @@ const wchar_t* DescOf(const char* name) {
 // Purpose of a command -> colour (see ui_theme.h)
 theme::Cat CatOfAction(const char* n) {
     static const char* guide[] = {"triage", "playbooks", "catalog"};
-    static const char* repair[] = {"repair", "fixes", "registry", "bcd", "autoruns", "winre", "winre-menu", "storagefix", "rstrui"};
+    static const char* repair[] = {"repair", "fixes", "registry", "bcd", "autoruns", "winre", "winre-menu", "storagefix", "rstrui", "apps", "explorer"};
     static const char* protect[] = {"restorepoint", "savedata", "backups"};
     for (auto g : guide) if (!strcmp(n, g)) return theme::Cat::Guide;
     for (auto g : repair) if (!strcmp(n, g)) return theme::Cat::Repair;
@@ -493,6 +497,8 @@ void StartAction(int idx) {
         else if (!strcmp(a.name, "registry")) OpenRegistryEditor();
         else if (!strcmp(a.name, "bcd")) OpenBcdManager();
         else if (!strcmp(a.name, "autoruns")) OpenAutoruns();
+        else if (!strcmp(a.name, "apps")) OpenInstalledApps();
+        else if (!strcmp(a.name, "explorer")) OpenOfflineExplorer();
         else if (!strcmp(a.name, "fixes")) OpenFixWizard();
         else if (!strcmp(a.name, "rstrui")) { Target t = CurrentTarget(); QuickCmd(t.valid && t.online ? 56 : 57); }
         else if (!strcmp(a.name, "restore-info")) QuickCmd(59);
@@ -1109,6 +1115,8 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             if (*n == "storage") wr::OpenStorageAccess();
             else if (*n == "bcd") wr::OpenBcdManager();
             else if (*n == "autoruns") wr::OpenAutoruns();
+            else if (*n == "apps") wr::OpenInstalledApps();
+            else if (*n == "explorer") wr::OpenOfflineExplorer();
             else if (*n == "registry") wr::OpenRegistryEditor();
             else if (*n == "winre") wr::OpenWinReManager();
             else if (*n == "fixes") wr::OpenFixWizard();

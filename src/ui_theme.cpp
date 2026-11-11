@@ -343,6 +343,39 @@ void DrawTab(const DRAWITEMSTRUCT* d, const wchar_t* text, Cat c, bool selected)
     RestoreDC(dc, saved);
 }
 
+void PaintCard(HDC dc, const RECT& r, Cat c, const std::wstring& title, const std::wstring& hint) {
+    COLORREF acc = Accent(c);
+    int saved = SaveDC(dc);
+    HBRUSH fb = CreateSolidBrush(Blend(RGB(255, 255, 255), acc, 12));
+    HPEN pen = CreatePen(PS_SOLID, 1, Blend(RGB(255, 255, 255), acc, 55));
+    SelectObject(dc, fb);
+    SelectObject(dc, pen);
+    RoundRect(dc, r.left, r.top, r.right, r.bottom, S(10), S(10));
+    RECT bar = {r.left + 1, r.top + S(6), r.left + S(5), r.bottom - S(6)};   // accent bar on the left edge
+    HBRUSH ab = CreateSolidBrush(acc);
+    FillRect(dc, &bar, ab);
+    DeleteObject(ab);
+    SetBkMode(dc, TRANSPARENT);
+    SetTextColor(dc, acc);
+    SelectObject(dc, Semi());
+    RECT tr = {r.left + S(14), r.top + S(5), r.right - S(10), r.top + S(24)};
+    DrawTextW(dc, title.c_str(), -1, &tr, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+    if (!hint.empty()) {
+        SetTextColor(dc, RGB(90, 100, 120));
+        SelectObject(dc, Small());
+        SIZE ts{};
+        GetTextExtentPoint32W(dc, title.c_str(), (int)title.size(), &ts);
+        SelectObject(dc, Semi());
+        GetTextExtentPoint32W(dc, title.c_str(), (int)title.size(), &ts);
+        SelectObject(dc, Small());
+        RECT hr = {r.left + S(14) + ts.cx + S(10), r.top + S(7), r.right - S(10), r.top + S(24)};
+        DrawTextW(dc, hint.c_str(), -1, &hr, DT_LEFT | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+    }
+    RestoreDC(dc, saved);
+    DeleteObject(fb);
+    DeleteObject(pen);
+}
+
 void DrawInfoCard(const DRAWITEMSTRUCT* d, const std::wstring& title, const std::wstring& text, Cat c, const std::wstring& catLabel) {
     HDC dc = d->hDC;
     RECT r = d->rcItem;

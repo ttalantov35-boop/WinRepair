@@ -45,6 +45,8 @@ void PaintTargetPanel(HDC dc, const RECT& rc);
 void DrawTab(const DRAWITEMSTRUCT* d, const wchar_t* text, Cat c, bool selected);
 // "What does this command do" card: bold title, category label on the right, description below
 void DrawInfoCard(const DRAWITEMSTRUCT* d, const std::wstring& title, const std::wstring& text, Cat c, const std::wstring& catLabel);
+// Highlighted group box for tool windows: tinted rounded panel with an accent bar and a bold caption (+ optional small hint under it)
+void PaintCard(HDC dc, const RECT& r, Cat c, const std::wstring& title, const std::wstring& hint = L"");
 int PaintLegend(HDC dc, int x, int y, int maxWidth);   // returns used height
 
 }  // namespace theme

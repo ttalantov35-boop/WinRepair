@@ -162,3 +162,186 @@ MANIFEST.sha256 не найден (проверка файлов пропуще�
 Перейти к записи ==> Jump to entry
 У записи нет существующего файла. ==> The entry has no existing file.
 Свойства ==> Properties
+Хранилище BCD ==> BCD store
+где лежит загрузчик выбранной Windows (ESP монтируется автоматически) ==> where the boot loader of the selected Windows lives (ESP is mounted automatically)
+Режим следующей загрузки ==> Next boot mode
+как в msconfig / F8 — для выбранной записи ==> as in msconfig / F8 — for the selected entry
+Загрузить кусты… ==> Load hives…
+Экспорт ветки .reg… ==> Export branch .reg…
+regedit текущей ОС ==> regedit of the current OS
+Правка ==> Edit
+Вид ==> View
+Избранное ==> Favorites
+Изменить…\tEnter ==> Modify…\tEnter
+Создать ==> New
+Значение… ==> Value…
+Удалить значение\tDel ==> Delete value\tDel
+Переименовать значение\tF2 ==> Rename value\tF2
+Переименовать раздел ==> Rename key
+Копировать имя раздела ==> Copy key name
+Найти…\tCtrl+F ==> Find…\tCtrl+F
+Найти далее\tF3 ==> Find next\tF3
+Строка состояния ==> Status bar
+Обновить\tF5 ==> Refresh\tF5
+Добавить в избранное ==> Add to favorites
+Удалить из избранного… ==> Remove from favorites…
+Адрес раздела: HKLM\WRO_SYSTEM\… (Enter — перейти) ==> Key address: HKLM\WRO_SYSTEM\… (Enter to go)
+  Компьютер\ ==>   Computer\
+Значение «По умолчанию» переименовать нельзя. ==> The (Default) value cannot be renamed.
+Корень куста переименовать нельзя. ==> A hive root cannot be renamed.
+Новое имя значения ==> New value name
+Новое имя раздела ==> New key name
+Переименовать значение ==> Rename value
+Какую запись удалить из избранного ==> Which favorite to remove
+Папка в проводнике… ==> Folder in explorer…
+Системный компонент ==> System component
+УДАЛИТЬ НАВСЕГДА:\n\n ==> DELETE PERMANENTLY:\n\n
+  Папка не найдена:  ==>   Folder not found: 
+Отключить (обратимо) ==> Disable (reversible)
+Файлы не тронуты: {} ==> Files left untouched: {}
+Копировать путь папки ==> Copy folder path
+Снять атрибуты R/H/S… ==> Clear R/H/S attributes…
+Подтверждение удаления ==> Confirm deletion
+Службы и автозагрузка… ==> Services and startup…
+Удалить в карантин\tDel ==> Move to quarantine\tDel
+Удалить только запись… ==> Delete entry only…
+  Размер: {} ({} байт)\n ==>   Size: {} ({} bytes)\n
+Владелец и права папки… ==> Folder owner and permissions…
+Запись в списке программ ==> Entry in the programs list
+Отключить только запуск… ==> Disable startup only…
+Переименовать раздел «{} ==> Rename key “{}
+Принудительное удаление… ==> Force removal…
+Установленные приложения ==> Installed applications
+Что связано с программой ==> What belongs to the program
+НЕ УДАЛОСЬ отключить: [{} ==> FAILED to disable: [{}
+Что связано с программой… ==> What belongs to the program…
+Не удалось переместить: {} ==> Could not move: {}
+Переименовать значение «{} ==> Rename value “{}
+Только антивирусы и защита ==> Antivirus and security only
+Удалить навсегда\tShift+Del ==> Delete permanently\tShift+Del
+Выполнено с замечаниями: {} ==> Completed with warnings: {}
+Куст пользователя не найден ==> User hive not found
+  Папок: {}, файлов: {} ({}) ==>   Folders: {}, files: {} ({})
+Корень диска удалять нельзя. ==> The root of a drive cannot be deleted.
+Список программ сохранён: {} ==> Programs list saved: {}
+НЕ УДАЛОСЬ удалить запись: {} ==> FAILED to delete the entry: {}
+Удаление программы офлайн: {} ==> Offline program removal: {}
+  Введите путь вида D:\\Windows ==>   Enter a path like D:\\Windows
+Папка удалена не полностью: {} ==> Folder was not deleted completely: {}
+НЕ УДАЛОСЬ переместить папку: {} ==> FAILED to move the folder: {}
+Удалить (копия .reg сохраняется) ==> Delete (a .reg copy is kept)
+Удалить только запись из списка… ==> Delete only the list entry…
+Открыть папку в офлайн-проводнике ==> Open folder in the offline explorer
+Принудительное удаление программы ==> Force removal of a program
+удалить запись из списка программ ==> delete the entry from the programs list
+папку программы УДАЛИТЬ НАВСЕГДА:  ==> DELETE the program folder PERMANENTLY: 
+Название, издатель, папка… (Ctrl+F) ==> Name, publisher, folder… (Ctrl+F)
+Команда удаления (на живой системе):  ==> Uninstall command (on a live system): 
+Службы, драйверы, автозапуск программы ==> Services, drivers, startup of the program
+отключить службы/драйверы/автозапуск:  ==> disable services/drivers/startup: 
+папку программы переместить в карантин:  ==> move the program folder to quarantine: 
+Проводник: {} — успешно {}, с ошибками {} ==> Explorer: {} — succeeded {}, failed {}
+Связанные службы, драйверы и автозапуск:  ==> Related services, drivers and startup: 
+Фильтр / поиск (Enter — в подпапках, * ?) ==> Filter / search (Enter — in subfolders, * ?)
+Офлайн-проводник: файлы выбранной Windows… ==> Offline explorer: files of the selected Windows…
+У программы не определена папка установки. ==> The program has no known install folder.
+  (кнопка «Владелец и права…» может помочь) ==>   (the “Owner and permissions…” button may help)
+Выберите целевую ОС и нажмите «Сканировать». ==> Choose the target OS and press “Scan”.
+Папка не находится на диске целевой системы. ==> The folder is not on the target system's drive.
+Папка программы не найдена — файлы не тронуты. ==> Program folder not found — files left untouched.
+Папка перемещена в карантин (можно вернуть): {} ==> Folder moved to quarantine (can be restored): {}
+Скрыть обновления Windows и системные компоненты ==> Hide Windows updates and system components
+Это общая системная папка, а не папка программы. ==> This is a shared system folder, not a program folder.
+Адрес раздела: HKLM\\WRO_SYSTEM\\… (Enter — перейти) ==> Key address: HKLM\\WRO_SYSTEM\\… (Enter to go)
+Переместить в карантин WinRepair_Removed (обратимо) ==> Move to the WinRepair_Removed quarantine (reversible)
+Введите имя или маску (например *.log) в поле поиска. ==> Enter a name or mask (for example *.log) in the search box.
+Отключить только запуск (службы, драйверы, автозапуск)… ==> Disable startup only (services, drivers, autorun)…
+Запись удалена из списка программ (копия .reg сохранена). ==> Entry removed from the programs list (.reg copy saved).
+Это нужно, если Windows отказывает в доступе. Продолжить? ==> Needed when Windows denies access. Continue?
+Снять атрибуты «только чтение», «скрытый», «системный» у:\n\n ==> Clear the read-only, hidden and system attributes of:\n\n
+Установленные приложения офлайн (удалить мешающую программу)… ==> Installed applications offline (remove a program that blocks boot)…
+Папка внутри каталога Windows — системные файлы удалять нельзя. ==> The folder is inside the Windows directory — system files must not be deleted.
+Слишком короткий путь — похоже на корневую или системную папку. ==> Path is too short — looks like a root or system folder.
+Файлы программы будут удалены БЕЗ возможности вернуть.\n\nУверены? ==> The program files will be deleted with NO way back.\n\nAre you sure?
+  Размер: {} (файлов {}, папок {}; подсчёт ограничен 8 секундами)\n ==>   Size: {} (files {}, folders {}; counting limited to 8 seconds)\n
+Переместить в карантин WinRepair_Removed (на этом же диске, обратимо):\n\n ==> Move to the WinRepair_Removed quarantine (same drive, reversible):\n\n
+Офлайн-проводник — файлы выбранной Windows: просмотр, копирование, удаление ==> Offline explorer — files of the selected Windows: browse, copy, delete
+Все изменения записываются в журнал, ветки реестра сохраняются в Backups. Продолжить? ==> All changes are logged, registry branches are saved to Backups. Continue?
+Стать владельцем и выдать группе «Администраторы» полный доступ (takeown + icacls):\n\n ==> Take ownership and give the Administrators group full access (takeown + icacls):\n\n
+ВНИМАНИЕ: это файлы каталога Windows. Удаление нужных системных файлов сломает загрузку.\n ==> WARNING: these are files of the Windows directory. Deleting needed system files will break the boot.\n
+План (принудительное удаление «офлайн»: деинсталлятор без работающей Windows не запустить) ==> Plan (offline force removal: an uninstaller cannot run without a working Windows)
+Это важная системная папка целиком — удалять её нельзя (содержимое можно, с подтверждением). ==> This is an important system folder as a whole and cannot be deleted (its contents can, with confirmation).
+Установленные приложения офлайн-Windows — найти и принудительно удалить программу, мешающую загрузке ==> Installed applications of offline Windows — find and force-remove a program that blocks the boot
+Записей: {}, показано: {}, с пометками: {}.  Розовый — подозрительная запись, жёлтый — файл не найден, серый — отключено.  Отключение обратимо. ==> Entries: {}, shown: {}, flagged: {}.  Pink — suspicious entry, yellow — file not found, grey — disabled.  Disabling is reversible.
+Программ в реестре: {}, показано: {}, антивирусов/защиты: {}.  Оранжевым выделены антивирусы и средства защиты — чаще всего именно они мешают загрузке. ==> Programs in the registry: {}, shown: {}, antivirus/security: {}.  Antivirus and security tools are highlighted in orange — they are the most frequent cause of boot problems.
+Удаление по умолчанию — в карантин X:\\WinRepair_Removed (обратимо). «Удалить навсегда» и файлы Windows требуют повторного подтверждения. Все изменения пишутся в журнал. ==> Deletion goes to the X:\\WinRepair_Removed quarantine by default (reversible). “Delete permanently” and Windows files need a second confirmation. All changes are logged.
+Автономный проводник для файлов выбранной (в том числе неработающей) Windows: дерево дисков, копирование, перемещение, переименование, поиск. Удаление по умолчанию — в карантин WinRepair_Removed (обратимо), есть окончательное удаление и получение прав владельца, если доступ запрещён. ==> A standalone explorer for the files of the selected (including non-working) Windows: drive tree, copy, move, rename, search. Deletion goes to the WinRepair_Removed quarantine by default (reversible); permanent deletion and taking ownership when access is denied are available.
+Список программ офлайн-Windows из реестра (машина и пользователи) с выделением антивирусов и средств защиты. Для программы, из-за которой Windows не запускается: отключить её службы, драйверы и автозапуск, переместить папку в карантин (обратимо) и убрать запись из списка. Деинсталлятор без работающей Windows не запустить — это принудительное удаление. ==> The programs list of an offline Windows from the registry (machine and users), with antivirus and security tools highlighted. For a program that stops Windows from starting: disable its services, drivers and autorun, move its folder to quarantine (reversible) and remove the list entry. An uninstaller cannot run without a working Windows — this is a forced removal.
+Дата ==> Date
+Папка ==> Folder
+Поиск ==> Search
+Версия ==> Version
+{}-файл ==> {} file
+Изменён ==> Modified
+Открыть ==> Open
+Папка:  ==> Folder: 
+Перейти ==> Go
+Атрибуты ==> Attributes
+Вставить ==> Paste
+Вырезать ==> Cut
+Издатель ==> Publisher
+Источник ==> Source
+Название ==> Name
+Оставить ==> Keep
+Категория ==> Category
+Новое имя ==> New name
+Программа ==> Program
+Готово: {} ==> Done: {}
+Копировать ==> Copy
+Не трогать ==> Leave alone
+Обновление ==> Update
+Нет данных. ==> No data.
+Новая папка ==> New folder
+Программа:  ==> Program: 
+Продолжить? ==> Continue?
+  Создан: {} ==>   Created: {}
+Новая папка… ==> New folder…
+Целевая ОС:  ==> Target OS: 
+Что связано… ==> Related…
+  Найдено: {} ==>   Found: {}
+  … и ещё {}\n ==>   … and {} more\n
+HKLM (32-бит) ==> HKLM (32-bit)
+Открыть\tEnter ==> Open\tEnter
+Переименовать ==> Rename
+Создать папку ==> Create folder
+Обновить ветку ==> Refresh branch
+Отключено: [{} ==> Disabled: [{}
+Папка (ссылка) ==> Folder (link)
+Переименовать… ==> Rename…
+Свойства папки ==> Folder properties
+  Нет доступа:  ==>   No access: 
+(не определена) ==> (not determined)
+Вверх\tBackspace ==> Up\tBackspace
+Вставить\tCtrl+V ==> Paste\tCtrl+V
+Вырезать\tCtrl+X ==> Cut\tCtrl+X
+Имя новой папки ==> New folder name
+Папка программы ==> Program folder
+Папка установки ==> Install folder
+Пользователь {} ==> User {}
+  (нет на диске) ==>   (not on disk)
+Будет выполнено: ==> Will be done:
+Владелец и права ==> Owner and permissions
+Переименовать\tF2 ==> Rename\tF2
+Удалить навсегда ==> Delete permanently
+Владелец и права… ==> Owner and permissions…
+Драйвер / утилита ==> Driver / utility
+Нечего выполнять. ==> Nothing to do.
+Папка удалена: {} ==> Folder deleted: {}
+Удалить навсегда… ==> Delete permanently…
+Антивирус / защита ==> Antivirus / security
+Открыть в Блокноте ==> Open in Notepad
+Удаление запрещено ==> Deletion forbidden
+Удалить в карантин ==> Move to quarantine
+  В буфере: {} ({}) ==>   In clipboard: {} ({})
+Выберите программу. ==> Select a program.
+Выделить всё\tCtrl+A ==> Select all\tCtrl+A

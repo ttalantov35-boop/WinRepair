@@ -110,13 +110,15 @@ std::vector<Target> FillTargetCombo(HWND combo, bool offlineOnly) {
 void OpenRegistryEditor() { ui::OpenRegistryEditorImpl(); }
 void OpenBcdManager() { ui::OpenBcdManagerImpl(); }
 void OpenAutoruns() { ui::OpenAutorunsImpl(); }
+void OpenInstalledApps() { ui::OpenAppsImpl(); }
+void OpenOfflineExplorer() { ui::OpenOfflineExplorerImpl(); }
 void OpenFixWizard() { ui::OpenFixWizardImpl(); }
 void OpenWinReManager() { ui::OpenWinReImpl(); }
 void OpenTriage() { ui::OpenTriageImpl(); }
 void OpenPlaybooks() { ui::OpenPlaybooksImpl(); }
 void OpenStorageAccess() { ui::OpenStorageAccessImpl(); }
 void OpenSaveData() { ui::OpenSaveDataImpl(); }
-void UiJobDone() { ui::BcdJobDone(); ui::AutorunsJobDone(); ui::WinReJobDone(); ui::StorageJobDone(); ui::TriageJobDone(); ui::PlaybooksJobDone(); }
+void UiJobDone() { ui::BcdJobDone(); ui::AutorunsJobDone(); ui::WinReJobDone(); ui::StorageJobDone(); ui::TriageJobDone(); ui::PlaybooksJobDone(); ui::AppsJobDone(); }
 void UiShutdown() {
     Hives().unloadAll();
     UnmountTempBcdVolumes();
