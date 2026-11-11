@@ -92,51 +92,42 @@ inline std::wstring ListRowText(HWND lv, int row) {
     return out;
 }
 
-// Right-click menu shared by every tool window: copy from a table under the pointer + every push button of the window as a command.
+// Right-click menu shared by every tool window: ONLY for a table under the pointer (copy cell / row / whole table).
+// Anywhere else (buttons, labels, empty area) nothing is shown: a context menu belongs to the object it is opened on.
 // `clicked` is the control under the pointer (WM_CONTEXTMENU wParam).
 inline void ShowCommandsMenu(HWND wnd, HWND clicked, LPARAM lp) {
-    POINT pt{(short)LOWORD(lp), (short)HIWORD(lp)};
-    if (lp == (LPARAM)-1) { RECT r; GetWindowRect(clicked ? clicked : wnd, &r); pt = {r.left + 12, r.top + 12}; }
-    HMENU m = CreatePopupMenu();
     wchar_t cn[64] = L"";
     if (clicked) GetClassNameW(clicked, cn, 64);
-    bool isList = !wcscmp(cn, WC_LISTVIEWW);
-    enum { C_ROW = 1, C_ALL, C_CMD0 = 100 };
-    if (isList) {
-        int sel = ListView_GetNextItem(clicked, -1, LVNI_SELECTED);
-        AppendMenuW(m, MF_STRING | (sel < 0 ? MF_GRAYED : 0), C_ROW, TrW(L"Копировать выбранную строку").c_str());
-        AppendMenuW(m, MF_STRING | (ListView_GetItemCount(clicked) == 0 ? MF_GRAYED : 0), C_ALL, TrW(L"Копировать всю таблицу").c_str());
-        AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    if (wcscmp(cn, WC_LISTVIEWW) != 0) return;
+    POINT pt{(short)LOWORD(lp), (short)HIWORD(lp)};
+    if (lp == (LPARAM)-1) { RECT r; GetWindowRect(clicked, &r); pt = {r.left + 12, r.top + 12}; }
+    else {   // right-click selects the row under the pointer, like in Explorer
+        POINT c = pt;
+        ScreenToClient(clicked, &c);
+        LVHITTESTINFO hi{};
+        hi.pt = c;
+        int i = ListView_HitTest(clicked, &hi);
+        if (i >= 0) ListView_SetItemState(clicked, i, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
     }
-    std::vector<HWND> btns;
-    std::vector<std::wstring> seen;
-    for (HWND c = GetWindow(wnd, GW_CHILD); c; c = GetWindow(c, GW_HWNDNEXT)) {
-        wchar_t k[32] = L"";
-        GetClassNameW(c, k, 32);
-        if (_wcsicmp(k, L"Button") != 0 || !IsWindowVisible(c)) continue;
-        if ((GetWindowLongW(c, GWL_STYLE) & 0xF) > BS_DEFPUSHBUTTON) continue;   // only push buttons, not check boxes or groups
-        std::wstring t = GetText(c);
-        t.erase(std::remove(t.begin(), t.end(), L'&'), t.end());
-        if (t.empty() || std::find(seen.begin(), seen.end(), t) != seen.end()) continue;
-        seen.push_back(t);
-        AppendMenuW(m, MF_STRING | (IsWindowEnabled(c) ? 0 : MF_GRAYED), (UINT_PTR)(C_CMD0 + btns.size()), t.c_str());
-        btns.push_back(c);
-    }
+    int sel = ListView_GetNextItem(clicked, -1, LVNI_SELECTED);
+    enum { C_ROW = 1, C_ALL };
+    HMENU m = CreatePopupMenu();
+    AppendMenuW(m, MF_STRING | (sel < 0 ? MF_GRAYED : 0), C_ROW, TrW(L"Копировать выбранную строку").c_str());
+    AppendMenuW(m, MF_STRING | (ListView_GetItemCount(clicked) == 0 ? MF_GRAYED : 0), C_ALL, TrW(L"Копировать всю таблицу").c_str());
     SetForegroundWindow(wnd);
     int c = TrackPopupMenu(m, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, wnd, nullptr);
     DestroyMenu(m);
-    if (c == C_ROW) { int sel = ListView_GetNextItem(clicked, -1, LVNI_SELECTED); if (sel >= 0) ClipText(wnd, ListRowText(clicked, sel)); }
+    if (c == C_ROW && sel >= 0) ClipText(wnd, ListRowText(clicked, sel));
     else if (c == C_ALL) {
         std::wstring all;
         for (int i = 0, n = ListView_GetItemCount(clicked); i < n; ++i) all += ListRowText(clicked, i) + L"\r\n";
         ClipText(wnd, all);
-    } else if (c >= C_CMD0 && c < C_CMD0 + (int)btns.size()) SendMessageW(btns[(size_t)(c - C_CMD0)], BM_CLICK, 0, 0);
+    }
 }
 
 namespace detail {
 inline std::map<std::wstring, WNDPROC>& ToolProcs() { static std::map<std::wstring, WNDPROC> m; return m; }
-// Every tool window gets the right-click menu: the window's own procedure may handle WM_CONTEXTMENU and return 1,
-// otherwise the shared menu (commands of the window + copy from tables) is shown.
+// The window's own procedure may handle WM_CONTEXTMENU (return 1); otherwise a table gets the shared copy menu.
 inline LRESULT CALLBACK ToolProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     wchar_t cn[128] = L"";
     GetClassNameW(h, cn, 128);

@@ -311,14 +311,14 @@ void Layout() {
         need = std::max(need, rowsT * (bh + gap) + OptionsStripH(t));
     }
     (void)maxRows;
-    int tabHdr = S(50);
+    int tabHdr = S(42);
     int tabH = tabHdr + need + S(8);
     MoveWindow(g_tab, m, y, W_ - 2 * m, tabH, TRUE);
     {   // the tab strip spans the whole width: every tab gets an equal share up to the right edge
         RECT tc;
         GetClientRect(g_tab, &tc);
         int n = (int)(sizeof kTabs / sizeof kTabs[0]);
-        TabCtrl_SetItemSize(g_tab, std::max(S(60), (int)(tc.right - tc.left) / n), S(44));
+        TabCtrl_SetItemSize(g_tab, std::max(S(60), (int)(tc.right - tc.left - S(6)) / n), S(36));   // a few pixels spare: no scroll arrows, every tab visible
     }
     RECT tr = {m, y, W_ - m, y + tabH};
     TabCtrl_AdjustRect(g_tab, FALSE, &tr);
@@ -842,7 +842,7 @@ void CreateControls() {
     g_port = Mk(L"EDIT", L"443", ES_NUMBER | WS_TABSTOP, IDC_PORT, WS_EX_CLIENTEDGE);
     g_lbl[4] = Mk(L"STATIC", L"Источник DISM (/Source):", SS_LEFT, IDC_L5);
     g_source = Mk(L"EDIT", L"", ES_AUTOHSCROLL | WS_TABSTOP, IDC_SOURCE, WS_EX_CLIENTEDGE);
-    g_tab = Mk(WC_TABCONTROLW, L"", WS_TABSTOP | WS_CLIPSIBLINGS | TCS_OWNERDRAWFIXED | TCS_FIXEDWIDTH, IDC_TAB);
+    g_tab = Mk(WC_TABCONTROLW, L"", WS_TABSTOP | WS_CLIPSIBLINGS | TCS_OWNERDRAWFIXED | TCS_FIXEDWIDTH | TCS_MULTILINE, IDC_TAB);
     for (int i = 0; i < (int)(sizeof kTabs / sizeof kTabs[0]); ++i) {
         TCITEMW it{};
         it.mask = TCIF_TEXT;
@@ -977,34 +977,16 @@ void LogMenu(POINT pt) {
     }
 }
 
-// General menu: any other place of the main window (tab strip, free area, service buttons).
+// Tab strip menu: jump to a tab.
 void GeneralMenu(POINT pt) {
-    HMENU tabs = CreatePopupMenu();
+    HMENU m = CreatePopupMenu();
     int cur = TabCtrl_GetCurSel(g_tab);
     for (int i = 0; i < (int)(sizeof kTabs / sizeof kTabs[0]); ++i)
-        AppendMenuW(tabs, MF_STRING | (i == cur ? MF_CHECKED : 0), CM_TAB0 + i, TrW(kTabs[i]).c_str());
-    HMENU m = CreatePopupMenu();
-    AppendMenuW(m, MF_POPUP, (UINT_PTR)tabs, Tm(L"Перейти на вкладку").c_str());
-    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(m, MF_STRING | (g_running ? MF_GRAYED : 0), CM_REFRESH, Tm(L"Обновить список ОС").c_str());
-    AppendMenuW(m, MF_STRING, CM_OPENREP, Tm(L"Открыть папку отчётов").c_str());
-    AppendMenuW(m, MF_STRING, CM_OPENLOG, Tm(L"Открыть файл журнала").c_str());
-    AppendMenuW(m, MF_STRING, CM_COPYALL, Tm(L"Копировать журнал").c_str());
-    AppendMenuW(m, MF_STRING, CM_LANG, Tm(L"Сменить язык (RU / EN)").c_str());
-    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(m, MF_STRING, CM_EXIT, Tm(L"Выход").c_str());
+        AppendMenuW(m, MF_STRING | (i == cur ? MF_CHECKED : 0), CM_TAB0 + i, TrW(kTabs[i]).c_str());
     SetForegroundWindow(g_wnd);
     int c = TrackPopupMenu(m, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, g_wnd, nullptr);
-    DestroyMenu(m);   // also destroys the submenu
-    if (c >= CM_TAB0 && c < CM_TAB0 + 16) { TabCtrl_SetCurSel(g_tab, c - CM_TAB0); ShowTabButtons(); return; }
-    switch (c) {
-        case CM_REFRESH: SendMessageW(g_wnd, WM_COMMAND, MAKEWPARAM(IDC_REFRESH, 0), 0); break;
-        case CM_OPENREP: SendMessageW(g_wnd, WM_COMMAND, MAKEWPARAM(IDC_OPENREP, 0), 0); break;
-        case CM_OPENLOG: SendMessageW(g_wnd, WM_COMMAND, MAKEWPARAM(IDC_OPENLOG, 0), 0); break;
-        case CM_COPYALL: CopyLog(); break;
-        case CM_LANG: SendMessageW(g_wnd, WM_COMMAND, MAKEWPARAM(IDC_LANG, 0), 0); break;
-        case CM_EXIT: SendMessageW(g_wnd, WM_CLOSE, 0, 0); break;
-    }
+    DestroyMenu(m);
+    if (c >= CM_TAB0 && c < CM_TAB0 + 16) { TabCtrl_SetCurSel(g_tab, c - CM_TAB0); ShowTabButtons(); }
 }
 
 void OnContextMenu(HWND src, LPARAM lp) {
@@ -1012,7 +994,7 @@ void OnContextMenu(HWND src, LPARAM lp) {
     if (src == g_log) { LogMenu(pt); return; }
     int id = GetDlgCtrlID(src);
     if (id >= IDC_ACTION0 && id < IDC_ACTION0 + kActionCount) { CommandMenu(id - IDC_ACTION0, pt); return; }
-    GeneralMenu(pt);
+    if (src == g_tab) GeneralMenu(pt);   // tab strip: go to a tab; other places have no menu of their own
 }
 
 // the log (RichEdit) has its own built-in menu; route it to ours so Save / Clear / Open are there too

@@ -1566,3 +1566,13 @@ MANIFEST.sha256 не найден (проверка файлов пропуще�
 Обновить дерево ==> Refresh tree
 Выполнить выбранную команду ==> Run the selected command
 Копировать текст команды ==> Copy command text
+Показать все значения столбца « ==> Show all values of column “
+Сбросить все фильтры ==> Reset all filters
+(пусто) ==> (empty)
+… показаны первые  ==> … first 
+ значений ==>  values shown
+Фильтр по столбцу « ==> Filter by column “
+Копировать ячейку ==> Copy cell
+Копировать строку ==> Copy row
+Отключить запись… ==> Disable entry…
+Включить запись… ==> Enable entry…

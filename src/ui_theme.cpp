@@ -325,6 +325,11 @@ void DrawTab(const DRAWITEMSTRUCT* d, const wchar_t* text, Cat c, bool selected)
     tr.bottom -= S(4);
     RECT cal = tr;
     DrawTextW(dc, text, -1, &cal, DT_CALCRECT | DT_SINGLELINE | DT_NOPREFIX);
+    if (cal.right - cal.left > tr.right - tr.left) {   // too wide: first try the smaller font, wrap only as a last resort
+        SelectObject(dc, Small());
+        cal = tr;
+        DrawTextW(dc, text, -1, &cal, DT_CALCRECT | DT_SINGLELINE | DT_NOPREFIX);
+    }
     if (cal.right - cal.left <= tr.right - tr.left)
         DrawTextW(dc, text, -1, &tr, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
     else {   // a long caption wraps to two lines instead of being cut off
