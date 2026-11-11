@@ -9,5 +9,5 @@
 
 // Product identity: change here only (window title, About, exe properties).
 #define WR_PRODUCT   "WinRepair Toolkit"
-#define WR_COMPANY   "WinRepair Project"          // put your name / company here if you want it shown in the exe properties
-#define WR_COPYRIGHT "Copyright (c) 2026 WinRepair Project"
+#define WR_COMPANY   "Bekkoenov Tynychbek" 
+#define WR_COPYRIGHT "Copyright (c) 2026 WinRepair Project Tynychsoft"
