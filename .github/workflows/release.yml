@@ -27,9 +27,16 @@ jobs:
         run: |
           Compress-Archive -Path dist\WinRepair -DestinationPath "WinRepair-${{ github.ref_name }}.zip"
           (Get-FileHash "WinRepair-${{ github.ref_name }}.zip" -Algorithm SHA256).Hash | Out-File "WinRepair-${{ github.ref_name }}.zip.sha256" -Encoding ascii
+      - name: Standalone exe files (download and run, no unpacking)
+        shell: pwsh
+        run: |
+          Copy-Item dist\WinRepair\WinRepair_x64.exe WinRepair_x64.exe
+          Copy-Item dist\WinRepair\WinRepair_x86.exe WinRepair_x86.exe
       - uses: softprops/action-gh-release@v2
         with:
           files: |
+            WinRepair_x64.exe
+            WinRepair_x86.exe
             WinRepair-${{ github.ref_name }}.zip
             WinRepair-${{ github.ref_name }}.zip.sha256
           generate_release_notes: true
