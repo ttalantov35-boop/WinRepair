@@ -31,8 +31,8 @@ namespace {
 enum {
     WM_APP_LOG = WM_APP + 1, WM_APP_STATUS, WM_APP_DONE, WM_APP_ASK = WM_APP + 10, WM_APP_CONFIRM, WM_APP_OPENWIN,
     IDC_BANNER = 100, IDC_TARGET, IDC_REFRESH, IDC_DAYS, IDC_EXT, IDC_FORCE, IDC_HOST, IDC_PORT, IDC_SOURCE,
-    IDC_TAB, IDC_LOG, IDC_CANCEL, IDC_OPENREP, IDC_OPENLOG, IDC_SAVELOG, IDC_CLEAR, IDC_PROG, IDC_STATUS,
-    IDC_L1, IDC_L2, IDC_L3, IDC_L4, IDC_L5, IDC_L6, IDC_ACTION0 = 1000,
+    IDC_TAB, IDC_LOG, IDC_CANCEL, IDC_OPENREP, IDC_OPENLOG, IDC_SAVELOG, IDC_CLEAR, IDC_COPYLOG, IDC_PROG, IDC_STATUS,
+    IDC_L1, IDC_L2, IDC_L3, IDC_L4, IDC_L5, IDC_L6, IDC_DESC, IDC_ACTION0 = 1000,
     IDC_CAT_LIST = 2001, IDC_CAT_FILTER, IDC_CAT_RUN, IDC_CAT_CLOSE, IDC_CAT_DESC, IDC_CAT_E0 = 2010, IDC_CAT_L0 = 2020, IDC_CAT_FIND = 2030, IDC_LANG = 2040, IDC_EXIT = 2050
 };
 
@@ -58,7 +58,7 @@ Action kActions[] = {
     {L"Сценарии ремонта (playbooks)…", 0, nullptr, "playbooks", nullptr},
     {L"Полная диагностика + HTML-отчёт", 0, ModFull, "full", nullptr},
     {L"Открыть последний HTML-отчёт", 0, nullptr, "open-report", nullptr},
-    {L"Каталог команд (55)…", 0, nullptr, "catalog", nullptr},
+    {L"Каталог команд…", 0, nullptr, "catalog", nullptr},
     {L"О программе", 0, nullptr, "about", nullptr},
     {L"Снимок системы", 1, ModSystem, "system", nullptr},
     {L"Память (SMBIOS, диагностика)", 1, ModMemory, "memory", nullptr},
@@ -91,7 +91,11 @@ Action kActions[] = {
 const int kActionCount = (int)(sizeof kActions / sizeof kActions[0]);
 
 HWND g_wnd, g_tab, g_log, g_target, g_days, g_ext, g_force, g_host, g_port, g_source, g_prog, g_status, g_banner;
-HWND g_btn[32], g_cancelBtn, g_refreshBtn, g_lbl[6], g_hint;
+HWND g_btn[32], g_cancelBtn, g_refreshBtn, g_lbl[6], g_hint, g_descBox;
+constexpr UINT WM_HOVERCMD = WM_APP + 10;   // posted by theme::AttachHover: wParam = control id, lParam = 1 enter / 0 leave
+std::wstring g_descTitle, g_descText;
+theme::Cat g_descCat = theme::Cat::Info;
+int g_descId = -2, g_lastCmdId = -1;
 HWND g_langBtn = nullptr, g_exitBtn = nullptr;
 HICON g_icon = nullptr;
 bool g_logRich = false;
@@ -112,6 +116,46 @@ std::string g_lastOut, g_jobName;
 ULONGLONG g_jobStart = 0;
 
 int S(int v) { return MulDiv(v, g_dpi, 96); }
+
+// What each command does (shown in the card under the tabs when the pointer is on a button)
+struct ActionDesc { const char* name; const wchar_t* text; };
+const ActionDesc kDescs[] = {
+    {"triage", L"Выберите, что случилось (не загружается, синий экран, медленно работает, нет сети и т. д.). Программа выполнит набор проверок только на чтение, покажет найденные проблемы по важности и предложит действие для каждой."},
+    {"playbooks", L"Готовые пошаговые сценарии ремонта: ошибка 0x7B, зацикленное обновление, ремонт загрузки UEFI и другие. Перед запуском показывается весь план, каждый шаг, меняющий систему, подтверждается отдельно."},
+    {"full", L"Запускает 9 диагностических модулей подряд, выставляет оценку состояния системы и сохраняет HTML-отчёт в папку отчётов. Ничего не изменяет."},
+    {"open-report", L"Открывает в браузере последний сохранённый HTML-отчёт полной диагностики."},
+    {"catalog", L"Каталог из 83 команд Windows (winver, systeminfo, sfc, DISM, bcdedit, diskpart, netsh и др.) с описанием, уровнем риска и точной командной строкой. Каждый запуск подтверждается отдельно."},
+    {"about", L"Версия программы, среда запуска, права, расположение журналов и отчётов, результат проверки целостности."},
+    {"system", L"Снимок системы: версия и сборка Windows, имя и состояние компьютера, процессор, память, BIOS и плата, TPM, Secure Boot, диски. Только чтение."},
+    {"memory", L"Модули памяти по данным SMBIOS (объём, тип, скорость, слоты) и результаты диагностики памяти Windows, если она запускалась. Даёт рекомендации при подозрении на неисправное ОЗУ. Только чтение."},
+    {"boot", L"Состояние загрузки выбранной ОС: хранилище BCD, записи загрузки, схема дисков (GPT/MBR), системный раздел ESP и среда WinRE. Показывает замечания, например отсутствующую запись. Только чтение."},
+    {"disk", L"Состояние дисков: SMART и здоровье, тома и свободное место, ошибки файловой системы из журнала событий за выбранный период. В расширенном режиме добавляется chkdsk /scan. Ничего не меняет."},
+    {"integrity", L"Проверяет целостность системных файлов и хранилища компонентов Windows (DISM, SFC) только в режиме проверки: ничего не исправляет, показывает, есть ли нарушения."},
+    {"repair", L"ИСПРАВЛЯЕТ целостность: DISM /RestoreHealth, затем sfc /scannow на выбранной ОС. Может занять десятки минут. Перед запуском создайте точку восстановления и сохраните данные. Потребуется подтверждение."},
+    {"restorepoint", L"Создаёт точку восстановления Windows, чтобы можно было откатить изменения. Обычно система разрешает не чаще одной точки в 24 часа: галка рядом снимает это ограничение."},
+    {"drivers", L"Устройства с ошибками драйверов (код проблемы, ИД оборудования) и список установленных пакетов драйверов. Помогает найти устройство без драйвера. Только чтение."},
+    {"bsod", L"События BugCheck за выбранный период и найденные файлы дампов (Minidump, MEMORY.DMP). Код синего экрана — категория, а не диагноз. Только чтение."},
+    {"dump", L"Разбор файлов дампов: заголовок и коды остановки; если в папке Tools есть cdb.exe, выполняется подробный анализ. Только чтение."},
+    {"events", L"Ошибки и критические события из журналов System и Application за выбранный период. Только чтение."},
+    {"network", L"Сетевая диагностика: адаптеры, настройки IP, шлюз, DNS, проверка связи с указанным хостом и портом. Только чтение."},
+    {"registry", L"Офлайн-редактор реестра выбранной Windows: просмотр и правка кустов (SYSTEM, SOFTWARE, профили пользователей). Перед изменением сохраняется копия ветки; правки подтверждаются и пишутся в журнал."},
+    {"bcd", L"Менеджер загрузки: просмотр и правка записей BCD, режимы безопасной загрузки при следующем запуске, создание загрузочных файлов (bcdboot). Перед изменением делается копия хранилища."},
+    {"autoruns", L"Автозагрузка и службы выбранной (в том числе офлайн) Windows: ключи Run, задачи, службы, драйверы. Подозрительные записи можно отключить, режим запуска служб менять (аналог msconfig). Отключение обратимо."},
+    {"fixes", L"Обратимые исправления после заражения: Winlogon Shell/Userinit, IFEO, AppInit_DLLs, политики, прокси, файл hosts и др. Каждое исправление описано, подтверждается и записывается в журнал."},
+    {"rstrui", L"Запускает мастер восстановления системы (rstrui.exe) для отката к точке восстановления, если она есть. Меняет систему, потребуется подтверждение."},
+    {"restore-info", L"Показывает, какие точки восстановления есть в системе, их дату и описание. Только чтение."},
+    {"winre", L"Среда восстановления Windows (WinRE): состояние, вход в неё при следующей загрузке или сразу, создание образа WinRE с этой утилитой и его удаление."},
+    {"winre-menu", L"Из WinRE выходит в штатное меню среды восстановления (Поиск и устранение неисправностей, Командная строка и др.). Работает только внутри WinRE."},
+    {"savedata", L"Копирует журналы и отчёты на выбранный диск: оперативный диск WinPE/WinRE очищается при перезагрузке, и результаты иначе потеряются."},
+    {"backups", L"Показывает резервные копии кустов реестра, BCD и файлов, сделанные перед изменениями: размер и расположение. Можно удалить все копии или открыть папку. Хранится одна копия на систему."},
+    {"secureboot", L"Проверка Secure Boot: включён ли он и есть ли в KEK и db сертификаты 2023 года взамен истекающих в 2026. Только чтение."},
+    {"storagefix", L"Если диск не виден или синий экран 0x7B: поиск томов, заблокированных BitLocker (разблокировка ключом), устройств без драйвера хранилища (Intel VMD/RST, NVMe, RAID) и загрузка драйвера."},
+};
+
+const wchar_t* DescOf(const char* name) {
+    for (const auto& d : kDescs) if (!strcmp(d.name, name)) return d.text;
+    return L"";
+}
 
 // Purpose of a command -> colour (see ui_theme.h)
 theme::Cat CatOfAction(const char* n) {
@@ -269,7 +313,9 @@ void Layout() {
         need = std::max(need, rowsT * (bh + gap) + OptionsStripH(t));
     }
     (void)maxRows;
-    int tabH = S(34) + need + S(6);
+    int tabHdr = S(50);
+    TabCtrl_SetItemSize(g_tab, std::max(S(90), (W_ - 2 * m - S(8)) / (int)(sizeof kTabs / sizeof kTabs[0])), S(44));
+    int tabH = tabHdr + need + S(8);
     MoveWindow(g_tab, m, y, W_ - 2 * m, tabH, TRUE);
     RECT tr = {m, y, W_ - m, y + tabH};
     TabCtrl_AdjustRect(g_tab, FALSE, &tr);
@@ -280,15 +326,17 @@ void Layout() {
         MoveWindow(g_btn[i], tr.left + S(6) + (k % cols) * (bw + gap), tr.top + S(6) + (k / cols) * (bh + gap), bw, bh, TRUE);
     }
     PlaceOptions(tr, cnt, cols, bh, gap);
-    y += tabH + m;
+    y += tabH + S(6);
+    MoveWindow(g_descBox, m, y, W_ - 2 * m, S(88), TRUE);
+    y += S(88) + m;
     int barH = S(34);
     MoveWindow(g_log, m, y, W_ - 2 * m, std::max(S(60), H - y - barH - 2 * m - S(22)), TRUE);
     int by = H - barH - S(22) - m + S(0);
     by = y + std::max(S(60), H - y - barH - 2 * m - S(22)) + m;
     int x = m;
-    int ws[] = {S(110), S(200), S(170), S(180), S(100)};
-    HWND hs[] = {g_cancelBtn, GetDlgItem(g_wnd, IDC_OPENREP), GetDlgItem(g_wnd, IDC_OPENLOG), GetDlgItem(g_wnd, IDC_SAVELOG), GetDlgItem(g_wnd, IDC_CLEAR)};
-    for (int i = 0; i < 5; ++i) { MoveWindow(hs[i], x, by, ws[i], barH - S(4), TRUE); x += ws[i] + gap; }
+    int ws[] = {S(110), S(200), S(170), S(180), S(170), S(100)};
+    HWND hs[] = {g_cancelBtn, GetDlgItem(g_wnd, IDC_OPENREP), GetDlgItem(g_wnd, IDC_OPENLOG), GetDlgItem(g_wnd, IDC_SAVELOG), GetDlgItem(g_wnd, IDC_COPYLOG), GetDlgItem(g_wnd, IDC_CLEAR)};
+    for (int i = 0; i < 6; ++i) { MoveWindow(hs[i], x, by, ws[i], barH - S(4), TRUE); x += ws[i] + gap; }
     MoveWindow(g_prog, x + gap, by + S(6), std::max(S(60), W_ - x - m - gap), S(18), TRUE);
     MoveWindow(g_status, m, H - S(22) - m / 2, W_ - 2 * m, S(20), TRUE);
 }
@@ -349,6 +397,43 @@ void RunJob(JobData* d, const std::string& title) {
     else { delete d; SetRunning(false); }
 }
 
+theme::Cat TabCat(int tab) {
+    switch (tab) {
+        case 0: return theme::Cat::Guide;
+        case 3: case 7: return theme::Cat::Repair;
+        default: return theme::Cat::Diag;
+    }
+}
+
+const wchar_t* CatLabel(theme::Cat c) {
+    switch (c) {
+        case theme::Cat::Diag: return L"Диагностика — только чтение";
+        case theme::Cat::Guide: return L"Мастера и сценарии";
+        case theme::Cat::Repair: return L"Изменяет систему";
+        case theme::Cat::Protect: return L"Защита и сохранение";
+        default: return L"Служебное";
+    }
+}
+
+// id < 0: default hint; otherwise the description of action `id - IDC_ACTION0`
+void ShowDesc(int id) {
+    if (id == g_descId) return;
+    g_descId = id;
+    if (id >= IDC_ACTION0 && id < IDC_ACTION0 + kActionCount) {
+        const Action& a = kActions[id - IDC_ACTION0];
+        std::wstring t = W(U(std::wstring(a.text)));
+        while (!t.empty() && (t.back() == L'…' || t.back() == L'.')) t.pop_back();
+        g_descTitle = t;
+        g_descText = W(U(std::wstring(DescOf(a.name))));
+        g_descCat = CatOfAction(a.name);
+    } else {
+        g_descTitle.clear();
+        g_descText = W(U(std::wstring(L"Наведите курсор на команду — здесь появится описание, что она делает.")));
+        g_descCat = theme::Cat::Info;
+    }
+    if (g_descBox) InvalidateRect(g_descBox, nullptr, FALSE);
+}
+
 void ManageBackups() {
     std::vector<BackupItem> bk = ListBackups();
     if (bk.empty()) { MessageBoxW(g_wnd, L"Резервных копий нет: папка Data\\Backups пуста.", L"Резервные копии", MB_OK | MB_ICONINFORMATION); return; }
@@ -380,6 +465,8 @@ void CheckForeignBackups() {
 }
 
 void StartAction(int idx) {
+    g_lastCmdId = IDC_ACTION0 + idx;
+    ShowDesc(g_lastCmdId);
     const Action& a = kActions[idx];
     if (!a.fn) {
         if (!strcmp(a.name, "open-report")) OpenLastReport();
@@ -410,6 +497,7 @@ void StartAction(int idx) {
         return;
     }
     if (a.confirm && MessageBoxW(g_wnd, a.confirm, L"Подтверждение изменяющего действия", MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) return;
+    if (*DescOf(a.name)) Logger::I().log(Lvl::Info, "Назначение: " + U(std::wstring(DescOf(a.name))));
     RunJob(MakeJob(a.name, a.fn), U(a.text));
 }
 
@@ -443,6 +531,24 @@ void ShowAbout() {
                         "Среда: %s, %s%s\nАдминистратор: %s\nЖурналы и отчёты: %s",
                         kAppName, kAppVersion, e.osName.c_str(), e.arch.c_str(), e.isWinPE ? " (WinPE)" : "", e.isAdmin ? "да" : "нет", DataDir().c_str());
     MessageBoxW(g_wnd, W(t).c_str(), L"О программе", MB_OK | MB_ICONINFORMATION);
+}
+
+void CopyLog() {   // whole log to the clipboard (handy for pasting into a ticket or a message)
+    std::wstring w = GetText(g_log), n;
+    for (size_t i = 0; i < w.size(); ++i) {
+        n += w[i];
+        if (w[i] == L'\r' && (i + 1 >= w.size() || w[i + 1] != L'\n')) n += L'\n';
+    }
+    if (!OpenClipboard(g_wnd)) return;
+    EmptyClipboard();
+    HGLOBAL g = GlobalAlloc(GMEM_MOVEABLE, (n.size() + 1) * sizeof(wchar_t));
+    if (g) {
+        memcpy(GlobalLock(g), n.c_str(), (n.size() + 1) * sizeof(wchar_t));
+        GlobalUnlock(g);
+        if (!SetClipboardData(CF_UNICODETEXT, g)) GlobalFree(g);
+    }
+    CloseClipboard();
+    SetWindowTextW(g_status, L"Журнал скопирован в буфер обмена.");
 }
 
 void SaveLogAs() {
@@ -566,7 +672,8 @@ void CatFindBcd() {
 
 HWND MkC(HWND parent, const wchar_t* cls, const wchar_t* text, DWORD style, int id, DWORD ex = 0) {
     HWND h = CreateWindowExW(ex, cls, text, WS_CHILD | WS_VISIBLE | style, 0, 0, 10, 10, parent, (HMENU)(INT_PTR)id, GetModuleHandleW(nullptr), nullptr);
-    SendMessageW(h, WM_SETFONT, (WPARAM)g_font, TRUE);
+    bool push = !wcscmp(cls, L"BUTTON") && (style & 0xF) <= BS_DEFPUSHBUTTON;   // command buttons of tool windows are bold
+    SendMessageW(h, WM_SETFONT, (WPARAM)(push ? theme::Semi() : g_font), TRUE);
     return h;
 }
 
@@ -681,6 +788,7 @@ void CreateControls() {
     g_refreshBtn = Mk(L"BUTTON", L"Обновить", BS_OWNERDRAW | WS_TABSTOP, IDC_REFRESH);
     g_lbl[1] = Mk(L"STATIC", L"Период, дней:", SS_LEFT, IDC_L2);
     g_hint = Mk(L"STATIC", L"", SS_LEFT, IDC_L6);
+    g_descBox = Mk(L"STATIC", L"", SS_OWNERDRAW, IDC_DESC);
     g_days = Mk(L"EDIT", L"3", ES_NUMBER | WS_TABSTOP, IDC_DAYS, WS_EX_CLIENTEDGE);
     g_ext = Mk(L"BUTTON", L"Расширенный режим (ScanHealth, chkdsk /scan)", BS_AUTOCHECKBOX | WS_TABSTOP, IDC_EXT);
     g_force = Mk(L"BUTTON", L"Точка восстановления: игнорировать лимит 24 ч", BS_AUTOCHECKBOX | WS_TABSTOP, IDC_FORCE);
@@ -690,7 +798,7 @@ void CreateControls() {
     g_port = Mk(L"EDIT", L"443", ES_NUMBER | WS_TABSTOP, IDC_PORT, WS_EX_CLIENTEDGE);
     g_lbl[4] = Mk(L"STATIC", L"Источник DISM (/Source):", SS_LEFT, IDC_L5);
     g_source = Mk(L"EDIT", L"", ES_AUTOHSCROLL | WS_TABSTOP, IDC_SOURCE, WS_EX_CLIENTEDGE);
-    g_tab = Mk(WC_TABCONTROLW, L"", WS_TABSTOP | WS_CLIPSIBLINGS, IDC_TAB);
+    g_tab = Mk(WC_TABCONTROLW, L"", WS_TABSTOP | WS_CLIPSIBLINGS | TCS_OWNERDRAWFIXED, IDC_TAB);
     for (int i = 0; i < (int)(sizeof kTabs / sizeof kTabs[0]); ++i) {
         TCITEMW it{};
         it.mask = TCIF_TEXT;
@@ -717,6 +825,7 @@ void CreateControls() {
     Mk(L"BUTTON", L"Открыть папку отчётов", BS_OWNERDRAW | WS_TABSTOP, IDC_OPENREP);
     Mk(L"BUTTON", L"Открыть лог-файл", BS_OWNERDRAW | WS_TABSTOP, IDC_OPENLOG);
     Mk(L"BUTTON", L"Сохранить журнал…", BS_OWNERDRAW | WS_TABSTOP, IDC_SAVELOG);
+    Mk(L"BUTTON", L"Копировать журнал", BS_OWNERDRAW | WS_TABSTOP, IDC_COPYLOG);
     Mk(L"BUTTON", L"Очистить", BS_OWNERDRAW | WS_TABSTOP, IDC_CLEAR);
     g_prog = Mk(PROGRESS_CLASSW, L"", PBS_MARQUEE, IDC_PROG);
     g_status = Mk(L"STATIC", L"Готово", SS_LEFT, IDC_STATUS);
@@ -727,15 +836,21 @@ void CreateControls() {
     SendMessageW(g_hint, WM_SETFONT, (WPARAM)theme::Small(), TRUE);
     EnableWindow(g_cancelBtn, FALSE);
     ShowWindow(g_prog, SW_HIDE);
-    for (HWND hb : {g_langBtn, g_exitBtn, g_refreshBtn, g_cancelBtn, GetDlgItem(g_wnd, IDC_OPENREP), GetDlgItem(g_wnd, IDC_OPENLOG), GetDlgItem(g_wnd, IDC_SAVELOG), GetDlgItem(g_wnd, IDC_CLEAR)}) theme::AttachHover(hb);
+    for (HWND hb : {g_langBtn, g_exitBtn, g_refreshBtn, g_cancelBtn, GetDlgItem(g_wnd, IDC_OPENREP), GetDlgItem(g_wnd, IDC_OPENLOG), GetDlgItem(g_wnd, IDC_SAVELOG), GetDlgItem(g_wnd, IDC_COPYLOG), GetDlgItem(g_wnd, IDC_CLEAR)}) theme::AttachHover(hb);
     for (int i = 0; i < kActionCount; ++i) theme::AttachHover(g_btn[i]);
     FillTargets();
     ShowTabButtons();
+    ShowDesc(-1);
 }
 
 LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     switch (m) {
         case WM_CREATE: g_wnd = h; return 0;
+        case WM_HOVERCMD:
+            if (!(wp >= IDC_ACTION0 && wp < (WPARAM)(IDC_ACTION0 + kActionCount))) return 0;   // service buttons keep the card as it is
+            if (lp) ShowDesc((int)wp);
+            else ShowDesc(g_lastCmdId);   // pointer left: back to the last command that was started (or the default hint)
+            return 0;
         case WM_SIZE: if (g_tab) Layout(); InvalidateRect(h, nullptr, FALSE); return 0;
         case WM_PAINT: {
             PAINTSTRUCT ps;
@@ -752,6 +867,20 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         }
         case WM_DRAWITEM: {
             auto* di = (DRAWITEMSTRUCT*)lp;
+            if (di->CtlType == ODT_TAB) {
+                wchar_t buf[128] = {0};
+                TCITEMW ti{};
+                ti.mask = TCIF_TEXT;
+                ti.pszText = buf;
+                ti.cchTextMax = 127;
+                TabCtrl_GetItem(g_tab, di->itemID, &ti);
+                theme::DrawTab(di, buf, TabCat((int)di->itemID), (di->itemState & ODS_SELECTED) != 0);
+                return TRUE;
+            }
+            if (di->CtlType == ODT_STATIC && di->CtlID == IDC_DESC) {
+                theme::DrawInfoCard(di, g_descTitle, g_descText, g_descCat, W(U(std::wstring(CatLabel(g_descCat)))));
+                return TRUE;
+            }
             if (di->CtlType != ODT_BUTTON) break;
             int id = (int)di->CtlID;
             theme::Cat c = theme::Cat::Info;
@@ -801,6 +930,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             else if (id == IDC_OPENLOG) OpenPath(Logger::I().path());
             else if (id == IDC_OPENREP) OpenPath(g_lastOut.empty() ? DataDir() + "Reports" : g_lastOut);
             else if (id == IDC_SAVELOG) SaveLogAs();
+            else if (id == IDC_COPYLOG) CopyLog();
             return 0;
         }
         case WM_APP_ASK: {

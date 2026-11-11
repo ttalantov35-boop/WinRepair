@@ -2,6 +2,8 @@
 #include "ui_tools.h"
 #include <commctrl.h>
 #include <commdlg.h>
+#include "ui_theme.h"
+#include <cwchar>
 
 namespace wr {
 
@@ -58,7 +60,8 @@ inline std::wstring GetText(HWND h) {
 }
 inline HWND Mk(HWND parent, const wchar_t* cls, const wchar_t* text, DWORD style, int id, DWORD ex = 0) {
     HWND h = CreateWindowExW(ex, cls, text, WS_CHILD | WS_VISIBLE | style, 0, 0, 10, 10, parent, (HMENU)(INT_PTR)id, GetModuleHandleW(nullptr), nullptr);
-    SendMessageW(h, WM_SETFONT, (WPARAM)g_ui.font, TRUE);
+    bool push = !wcscmp(cls, L"BUTTON") && (style & 0xF) <= BS_DEFPUSHBUTTON;   // command buttons are bold in every tool window
+    SendMessageW(h, WM_SETFONT, (WPARAM)(push ? wr::theme::Semi() : g_ui.font), TRUE);
     return h;
 }
 inline void Place(HWND h, int x, int y, int w, int hgt) { MoveWindow(h, x, y, w, hgt, TRUE); }

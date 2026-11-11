@@ -40,6 +40,10 @@ bool IsHover(HWND button);
 struct Chip { std::wstring text; int kind; };   // kind: 0 neutral, 1 good (green), 2 bad (red)
 void PaintHeader(HDC dc, const RECT& rc, HICON icon, const std::wstring& title, const std::wstring& subtitle, const std::vector<Chip>& chips);
 void PaintTargetPanel(HDC dc, const RECT& rc);
+// Owner-drawn tab: the selected one is filled with its colour, the others show a thin colour line
+void DrawTab(const DRAWITEMSTRUCT* d, const wchar_t* text, Cat c, bool selected);
+// "What does this command do" card: bold title, category label on the right, description below
+void DrawInfoCard(const DRAWITEMSTRUCT* d, const std::wstring& title, const std::wstring& text, Cat c, const std::wstring& catLabel);
 int PaintLegend(HDC dc, int x, int y, int maxWidth);   // returns used height
 
 }  // namespace theme

@@ -33,9 +33,9 @@ bool HasFont(const wchar_t* face) {
     return found;
 }
 
-HFONT MakeFont(const wchar_t* face, int pt, int weight) {
+HFONT MakeFont(const wchar_t* face, int pt10, int weight) {
     LOGFONTW lf{};
-    lf.lfHeight = -MulDiv(pt, g_dpi, 72);
+    lf.lfHeight = -MulDiv(pt10, g_dpi, 720);
     lf.lfWeight = weight;
     lf.lfCharSet = DEFAULT_CHARSET;
     lf.lfQuality = CLEARTYPE_QUALITY;
@@ -53,11 +53,13 @@ LRESULT CALLBACK HoverProc(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR, DWORD
                 TRACKMOUSEEVENT te{sizeof te, TME_LEAVE, h, 0};
                 TrackMouseEvent(&te);
                 InvalidateRect(h, nullptr, FALSE);
+                PostMessageW(GetParent(h), WM_APP + 10, (WPARAM)GetDlgCtrlID(h), 1);
             }
             break;
         case WM_MOUSELEAVE:
             RemovePropW(h, Prop());
             InvalidateRect(h, nullptr, FALSE);
+            PostMessageW(GetParent(h), WM_APP + 10, (WPARAM)GetDlgCtrlID(h), 0);
             break;
         case WM_NCDESTROY:
             RemovePropW(h, Prop());
@@ -73,11 +75,11 @@ COLORREF kBg = RGB(255, 255, 255), kText = RGB(26, 34, 52);
 void Init(int dpi) {
     g_dpi = dpi;
     const wchar_t* face = HasFont(L"Segoe UI") ? L"Segoe UI" : (HasFont(L"Tahoma") ? L"Tahoma" : L"Arial");
-    g_body = MakeFont(face, 9, FW_NORMAL);
-    g_semi = MakeFont(face, 9, FW_SEMIBOLD);
-    g_title = MakeFont(face, 17, FW_SEMIBOLD);
-    g_small = MakeFont(face, 9, FW_NORMAL);
-    g_big = MakeFont(face, 10, FW_SEMIBOLD);
+    g_body = MakeFont(face, 95, FW_NORMAL);
+    g_semi = MakeFont(face, 95, FW_SEMIBOLD);
+    g_title = MakeFont(face, 170, FW_SEMIBOLD);
+    g_small = MakeFont(face, 90, FW_NORMAL);
+    g_big = MakeFont(face, 105, FW_BOLD);
     g_tint = CreateSolidBrush(TintColor());
     g_bg = CreateSolidBrush(kBg);
     g_log = CreateSolidBrush(LogBg());
@@ -291,6 +293,80 @@ int PaintLegend(HDC dc, int x, int y, int maxWidth) {
     }
     SelectObject(dc, of);
     return h;
+}
+
+void DrawTab(const DRAWITEMSTRUCT* d, const wchar_t* text, Cat c, bool selected) {
+    HDC dc = d->hDC;
+    RECT r = d->rcItem;
+    COLORREF acc = Accent(c);
+    int saved = SaveDC(dc);
+    IntersectClipRect(dc, r.left, r.top, r.right, r.bottom);   // the rounded shape must not spill into the page below
+    FillRect(dc, &r, BgBrush());
+    RECT t = r;
+    InflateRect(&t, -S(2), 0);
+    t.top += S(3);
+    t.bottom -= selected ? 0 : S(2);
+    COLORREF fill = selected ? acc : RGB(238, 242, 248);
+    HBRUSH fb = CreateSolidBrush(fill);
+    HPEN pen = CreatePen(PS_SOLID, 1, selected ? acc : RGB(214, 221, 232));
+    HGDIOBJ ob = SelectObject(dc, fb), op = SelectObject(dc, pen);
+    RoundRect(dc, t.left, t.top, t.right, t.bottom + S(10), S(12), S(12));   // bottom corners hidden under the page border
+    SelectObject(dc, ob); SelectObject(dc, op);
+    DeleteObject(fb); DeleteObject(pen);
+    if (!selected) {   // colour hint under inactive tabs
+        RECT u = {t.left + S(12), t.bottom - S(5), t.right - S(12), t.bottom - S(2)};
+        HBRUSH ub = CreateSolidBrush(Blend(RGB(238, 242, 248), acc, 70));
+        FillRect(dc, &u, ub);
+        DeleteObject(ub);
+    }
+    SetBkMode(dc, TRANSPARENT);
+    SetTextColor(dc, selected ? RGB(255, 255, 255) : RGB(40, 52, 74));
+    HGDIOBJ of = SelectObject(dc, selected ? Big() : Semi());
+    RECT tr = t;
+    InflateRect(&tr, -S(4), 0);
+    tr.bottom -= S(4);
+    DrawTextW(dc, text, -1, &tr, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+    SelectObject(dc, of);
+    RestoreDC(dc, saved);
+}
+
+void DrawInfoCard(const DRAWITEMSTRUCT* d, const std::wstring& title, const std::wstring& text, Cat c, const std::wstring& catLabel) {
+    HDC dc = d->hDC;
+    RECT r = d->rcItem;
+    FillRect(dc, &r, BgBrush());
+    COLORREF acc = Accent(c);
+    HBRUSH fb = CreateSolidBrush(TintColor());
+    HPEN pen = CreatePen(PS_SOLID, 1, Blend(TintColor(), acc, 45));
+    HGDIOBJ ob = SelectObject(dc, fb), op = SelectObject(dc, pen);
+    RoundRect(dc, r.left, r.top, r.right - 1, r.bottom - 1, S(12), S(12));
+    SelectObject(dc, ob); SelectObject(dc, op);
+    DeleteObject(fb); DeleteObject(pen);
+    RECT bar = {r.left + S(1), r.top + S(10), r.left + S(6), r.bottom - S(11)};
+    HBRUSH bb = CreateSolidBrush(acc);
+    FillRect(dc, &bar, bb);
+    DeleteObject(bb);
+    SetBkMode(dc, TRANSPARENT);
+    int x = r.left + S(18), right = r.right - S(14), y = r.top + S(8);
+    if (!title.empty()) {
+        HGDIOBJ of = SelectObject(dc, Small());
+        SetTextColor(dc, acc);
+        RECT lm{0, 0, 0, 0};
+        DrawTextW(dc, catLabel.c_str(), -1, &lm, DT_SINGLELINE | DT_CALCRECT | DT_NOPREFIX);
+        int lw = lm.right - lm.left;
+        RECT lr = {right - lw, y + S(3), right, y + S(21)};
+        DrawTextW(dc, catLabel.c_str(), -1, &lr, DT_SINGLELINE | DT_NOPREFIX | DT_RIGHT);
+        SelectObject(dc, Big());
+        SetTextColor(dc, RGB(16, 30, 58));
+        RECT tr = {x, y, right - lw - S(12), y + S(24)};
+        DrawTextW(dc, title.c_str(), -1, &tr, DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+        y += S(26);
+        SelectObject(dc, of);
+    }
+    HGDIOBJ of2 = SelectObject(dc, Body());
+    SetTextColor(dc, title.empty() ? RGB(88, 100, 122) : RGB(34, 44, 64));
+    RECT dr = {x, title.empty() ? r.top + S(28) : y, right, r.bottom - S(6)};
+    DrawTextW(dc, text.c_str(), -1, &dr, DT_WORDBREAK | DT_NOPREFIX | DT_END_ELLIPSIS);
+    SelectObject(dc, of2);
 }
 
 }  // namespace theme
