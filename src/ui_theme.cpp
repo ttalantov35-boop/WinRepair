@@ -323,7 +323,17 @@ void DrawTab(const DRAWITEMSTRUCT* d, const wchar_t* text, Cat c, bool selected)
     RECT tr = t;
     InflateRect(&tr, -S(4), 0);
     tr.bottom -= S(4);
-    DrawTextW(dc, text, -1, &tr, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+    RECT cal = tr;
+    DrawTextW(dc, text, -1, &cal, DT_CALCRECT | DT_SINGLELINE | DT_NOPREFIX);
+    if (cal.right - cal.left <= tr.right - tr.left)
+        DrawTextW(dc, text, -1, &tr, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    else {   // a long caption wraps to two lines instead of being cut off
+        RECT w = tr;
+        DrawTextW(dc, text, -1, &w, DT_CALCRECT | DT_WORDBREAK | DT_CENTER | DT_NOPREFIX);
+        int hgt = w.bottom - w.top;
+        tr.top += std::max(0, (int)((tr.bottom - tr.top - hgt) / 2));
+        DrawTextW(dc, text, -1, &tr, DT_CENTER | DT_WORDBREAK | DT_NOPREFIX | DT_END_ELLIPSIS);
+    }
     SelectObject(dc, of);
     RestoreDC(dc, saved);
 }

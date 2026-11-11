@@ -48,6 +48,8 @@ void ShowAbout();
 void OpenLastReport();
 void OpenCatalog();
 void ChangeLanguage();
+void PutClipboard(const std::wstring& txt);
+LRESULT CALLBACK LogSubProc(HWND, UINT, WPARAM, LPARAM, UINT_PTR, DWORD_PTR);
 void QuickCmd(int no);
 Target CurrentTarget();
 
@@ -310,9 +312,14 @@ void Layout() {
     }
     (void)maxRows;
     int tabHdr = S(50);
-    TabCtrl_SetItemSize(g_tab, std::max(S(90), (W_ - 2 * m - S(8)) / (int)(sizeof kTabs / sizeof kTabs[0])), S(44));
     int tabH = tabHdr + need + S(8);
     MoveWindow(g_tab, m, y, W_ - 2 * m, tabH, TRUE);
+    {   // the tab strip spans the whole width: every tab gets an equal share up to the right edge
+        RECT tc;
+        GetClientRect(g_tab, &tc);
+        int n = (int)(sizeof kTabs / sizeof kTabs[0]);
+        TabCtrl_SetItemSize(g_tab, std::max(S(60), (int)(tc.right - tc.left) / n), S(44));
+    }
     RECT tr = {m, y, W_ - m, y + tabH};
     TabCtrl_AdjustRect(g_tab, FALSE, &tr);
     int bw = std::max(S(150), ((int)(tr.right - tr.left) - S(12) - gap * (cols - 1)) / cols);
@@ -708,8 +715,36 @@ void CatLayout(HWND h) {
     MoveWindow(g_catClose, x + S(160), H - m - S(32), S(110), S(32), TRUE);
 }
 
+void CatContextMenu(HWND h, HWND src, LPARAM lp) {
+    POINT pt{(short)LOWORD(lp), (short)HIWORD(lp)};
+    if (lp == (LPARAM)-1) { RECT r; GetWindowRect(src, &r); pt = {r.left + S(20), r.top + S(20)}; }
+    else if (src == g_catList) {   // right-click selects the item under the pointer
+        POINT c = pt;
+        ScreenToClient(src, &c);
+        DWORD r = (DWORD)SendMessageW(src, LB_ITEMFROMPOINT, 0, MAKELPARAM(c.x, c.y));
+        if (HIWORD(r) == 0 && LOWORD(r) != 0xFFFF) { SendMessageW(src, LB_SETCURSEL, LOWORD(r), 0); CatUpdate(); }
+    }
+    const CmdItem* it = CatSelected();
+    enum { K_RUN = 1, K_NAME, K_CMD, K_CLOSE };
+    HMENU m = CreatePopupMenu();
+    AppendMenuW(m, MF_STRING | (it && !g_running ? 0 : MF_GRAYED), K_RUN, TrW(L"Выполнить выбранную команду").c_str());
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(m, MF_STRING | (it ? 0 : MF_GRAYED), K_NAME, TrW(L"Копировать название").c_str());
+    AppendMenuW(m, MF_STRING | (it ? 0 : MF_GRAYED), K_CMD, TrW(L"Копировать текст команды").c_str());
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(m, MF_STRING, K_CLOSE, TrW(L"Закрыть").c_str());
+    SetForegroundWindow(h);
+    int c = TrackPopupMenu(m, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, h, nullptr);
+    DestroyMenu(m);
+    if (c == K_RUN) CatRun();
+    else if (c == K_NAME && it) PutClipboard(W(fmt("%d  %s", it->no, it->title)));
+    else if (c == K_CMD && it) PutClipboard(W(CmdBuild(*it, ReadParams(), CurrentTarget(), "<папка отчёта>\\scratch", "<временный файл>")));
+    else if (c == K_CLOSE) DestroyWindow(h);
+}
+
 LRESULT CALLBACK CatProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     switch (m) {
+        case WM_CONTEXTMENU: CatContextMenu(h, (HWND)wp, lp); return 0;
         case WM_SIZE: if (g_catClose) CatLayout(h); return 0;
         case WM_GETMINMAXINFO: { auto* mm = (MINMAXINFO*)lp; mm->ptMinTrackSize.x = S(820); mm->ptMinTrackSize.y = S(560); return 0; }
         case WM_COMMAND: {
@@ -807,7 +842,7 @@ void CreateControls() {
     g_port = Mk(L"EDIT", L"443", ES_NUMBER | WS_TABSTOP, IDC_PORT, WS_EX_CLIENTEDGE);
     g_lbl[4] = Mk(L"STATIC", L"Источник DISM (/Source):", SS_LEFT, IDC_L5);
     g_source = Mk(L"EDIT", L"", ES_AUTOHSCROLL | WS_TABSTOP, IDC_SOURCE, WS_EX_CLIENTEDGE);
-    g_tab = Mk(WC_TABCONTROLW, L"", WS_TABSTOP | WS_CLIPSIBLINGS | TCS_OWNERDRAWFIXED, IDC_TAB);
+    g_tab = Mk(WC_TABCONTROLW, L"", WS_TABSTOP | WS_CLIPSIBLINGS | TCS_OWNERDRAWFIXED | TCS_FIXEDWIDTH, IDC_TAB);
     for (int i = 0; i < (int)(sizeof kTabs / sizeof kTabs[0]); ++i) {
         TCITEMW it{};
         it.mask = TCIF_TEXT;
@@ -849,12 +884,148 @@ void CreateControls() {
     for (int i = 0; i < kActionCount; ++i) theme::AttachHover(g_btn[i]);
     FillTargets();
     ShowTabButtons();
+    SetWindowSubclass(g_log, LogSubProc, 7, 0);
     CreateTooltips();
+}
+
+// ---- right-click menus -----------------------------------------------------------------------------------
+std::wstring Tm(const wchar_t* ru) { return TrW(ru); }
+
+std::wstring StripAmp(std::wstring t) {
+    t.erase(std::remove(t.begin(), t.end(), L'&'), t.end());
+    return t;
+}
+
+void PutClipboard(const std::wstring& txt) {
+    if (!OpenClipboard(g_wnd)) return;
+    EmptyClipboard();
+    HGLOBAL g = GlobalAlloc(GMEM_MOVEABLE, (txt.size() + 1) * sizeof(wchar_t));
+    if (g) {
+        memcpy(GlobalLock(g), txt.c_str(), (txt.size() + 1) * sizeof(wchar_t));
+        GlobalUnlock(g);
+        if (!SetClipboardData(CF_UNICODETEXT, g)) GlobalFree(g);
+    }
+    CloseClipboard();
+}
+
+POINT MenuPoint(HWND src, LPARAM lp) {
+    POINT pt{(short)LOWORD(lp), (short)HIWORD(lp)};
+    if (lp == (LPARAM)-1) {   // keyboard (Shift+F10 / menu key): below the control
+        RECT r;
+        GetWindowRect(src, &r);
+        pt = {r.left + S(12), r.top + S(12)};
+    }
+    return pt;
+}
+
+enum { CM_RUN = 1, CM_ABOUT, CM_COPYNAME, CM_COPYDESC, CM_COPYSEL, CM_SELALL, CM_COPYALL, CM_SAVE, CM_OPENLOG, CM_CLEAR, CM_OPENREP,
+       CM_REFRESH, CM_LANG, CM_EXIT, CM_TAB0 = 100 };
+
+// Menu for a command button: run it, read what it does, copy its name or description.
+void CommandMenu(int idx, POINT pt) {
+    const Action& a = kActions[idx];
+    std::wstring name = W(U(std::wstring(a.text)));
+    while (!name.empty() && (name.back() == L'\u2026' || name.back() == L'.')) name.pop_back();
+    std::wstring desc = W(U(std::wstring(DescOf(a.name))));
+    HMENU m = CreatePopupMenu();
+    AppendMenuW(m, MF_STRING | (g_running ? MF_GRAYED : 0), CM_RUN, (Tm(L"Запустить: ") + name).c_str());
+    AppendMenuW(m, MF_STRING | (desc.empty() ? MF_GRAYED : 0), CM_ABOUT, Tm(L"Что делает эта команда…").c_str());
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(m, MF_STRING, CM_COPYNAME, Tm(L"Копировать название").c_str());
+    AppendMenuW(m, MF_STRING | (desc.empty() ? MF_GRAYED : 0), CM_COPYDESC, Tm(L"Копировать описание").c_str());
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(m, MF_STRING, CM_OPENREP, Tm(L"Открыть папку отчётов").c_str());
+    SetForegroundWindow(g_wnd);
+    int c = TrackPopupMenu(m, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, g_wnd, nullptr);
+    DestroyMenu(m);
+    switch (c) {
+        case CM_RUN: if (!g_running) StartAction(idx); break;
+        case CM_ABOUT: MessageBoxW(g_wnd, desc.c_str(), name.c_str(), MB_OK | MB_ICONINFORMATION); break;
+        case CM_COPYNAME: PutClipboard(name); break;
+        case CM_COPYDESC: PutClipboard(desc); break;
+        case CM_OPENREP: SendMessageW(g_wnd, WM_COMMAND, MAKEWPARAM(IDC_OPENREP, 0), 0); break;
+    }
+}
+
+// Menu for the log pane.
+void LogMenu(POINT pt) {
+    DWORD s0 = 0, s1 = 0;
+    SendMessageW(g_log, EM_GETSEL, (WPARAM)&s0, (LPARAM)&s1);
+    bool hasSel = s1 > s0;
+    bool empty = GetWindowTextLengthW(g_log) == 0;
+    HMENU m = CreatePopupMenu();
+    AppendMenuW(m, MF_STRING | (hasSel ? 0 : MF_GRAYED), CM_COPYSEL, Tm(L"Копировать выделенное").c_str());
+    AppendMenuW(m, MF_STRING | (empty ? MF_GRAYED : 0), CM_SELALL, Tm(L"Выделить всё").c_str());
+    AppendMenuW(m, MF_STRING | (empty ? MF_GRAYED : 0), CM_COPYALL, Tm(L"Копировать весь журнал").c_str());
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(m, MF_STRING | (empty ? MF_GRAYED : 0), CM_SAVE, Tm(L"Сохранить журнал…").c_str());
+    AppendMenuW(m, MF_STRING, CM_OPENLOG, Tm(L"Открыть файл журнала").c_str());
+    AppendMenuW(m, MF_STRING, CM_OPENREP, Tm(L"Открыть папку отчётов").c_str());
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(m, MF_STRING | (empty ? MF_GRAYED : 0), CM_CLEAR, Tm(L"Очистить").c_str());
+    SetForegroundWindow(g_wnd);
+    int c = TrackPopupMenu(m, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, g_wnd, nullptr);
+    DestroyMenu(m);
+    switch (c) {
+        case CM_COPYSEL: SendMessageW(g_log, WM_COPY, 0, 0); break;
+        case CM_SELALL: SendMessageW(g_log, EM_SETSEL, 0, -1); break;
+        case CM_COPYALL: CopyLog(); break;
+        case CM_SAVE: SaveLogAs(); break;
+        case CM_OPENLOG: SendMessageW(g_wnd, WM_COMMAND, MAKEWPARAM(IDC_OPENLOG, 0), 0); break;
+        case CM_OPENREP: SendMessageW(g_wnd, WM_COMMAND, MAKEWPARAM(IDC_OPENREP, 0), 0); break;
+        case CM_CLEAR: SetWindowTextW(g_log, L""); break;
+    }
+}
+
+// General menu: any other place of the main window (tab strip, free area, service buttons).
+void GeneralMenu(POINT pt) {
+    HMENU tabs = CreatePopupMenu();
+    int cur = TabCtrl_GetCurSel(g_tab);
+    for (int i = 0; i < (int)(sizeof kTabs / sizeof kTabs[0]); ++i)
+        AppendMenuW(tabs, MF_STRING | (i == cur ? MF_CHECKED : 0), CM_TAB0 + i, TrW(kTabs[i]).c_str());
+    HMENU m = CreatePopupMenu();
+    AppendMenuW(m, MF_POPUP, (UINT_PTR)tabs, Tm(L"Перейти на вкладку").c_str());
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(m, MF_STRING | (g_running ? MF_GRAYED : 0), CM_REFRESH, Tm(L"Обновить список ОС").c_str());
+    AppendMenuW(m, MF_STRING, CM_OPENREP, Tm(L"Открыть папку отчётов").c_str());
+    AppendMenuW(m, MF_STRING, CM_OPENLOG, Tm(L"Открыть файл журнала").c_str());
+    AppendMenuW(m, MF_STRING, CM_COPYALL, Tm(L"Копировать журнал").c_str());
+    AppendMenuW(m, MF_STRING, CM_LANG, Tm(L"Сменить язык (RU / EN)").c_str());
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(m, MF_STRING, CM_EXIT, Tm(L"Выход").c_str());
+    SetForegroundWindow(g_wnd);
+    int c = TrackPopupMenu(m, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, g_wnd, nullptr);
+    DestroyMenu(m);   // also destroys the submenu
+    if (c >= CM_TAB0 && c < CM_TAB0 + 16) { TabCtrl_SetCurSel(g_tab, c - CM_TAB0); ShowTabButtons(); return; }
+    switch (c) {
+        case CM_REFRESH: SendMessageW(g_wnd, WM_COMMAND, MAKEWPARAM(IDC_REFRESH, 0), 0); break;
+        case CM_OPENREP: SendMessageW(g_wnd, WM_COMMAND, MAKEWPARAM(IDC_OPENREP, 0), 0); break;
+        case CM_OPENLOG: SendMessageW(g_wnd, WM_COMMAND, MAKEWPARAM(IDC_OPENLOG, 0), 0); break;
+        case CM_COPYALL: CopyLog(); break;
+        case CM_LANG: SendMessageW(g_wnd, WM_COMMAND, MAKEWPARAM(IDC_LANG, 0), 0); break;
+        case CM_EXIT: SendMessageW(g_wnd, WM_CLOSE, 0, 0); break;
+    }
+}
+
+void OnContextMenu(HWND src, LPARAM lp) {
+    POINT pt = MenuPoint(src, lp);
+    if (src == g_log) { LogMenu(pt); return; }
+    int id = GetDlgCtrlID(src);
+    if (id >= IDC_ACTION0 && id < IDC_ACTION0 + kActionCount) { CommandMenu(id - IDC_ACTION0, pt); return; }
+    GeneralMenu(pt);
+}
+
+// the log (RichEdit) has its own built-in menu; route it to ours so Save / Clear / Open are there too
+LRESULT CALLBACK LogSubProc(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR, DWORD_PTR) {
+    if (m == WM_CONTEXTMENU) { OnContextMenu(h, lp); return 0; }
+    if (m == WM_NCDESTROY) RemoveWindowSubclass(h, LogSubProc, 7);
+    return DefSubclassProc(h, m, wp, lp);
 }
 
 LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     switch (m) {
         case WM_CREATE: g_wnd = h; return 0;
+        case WM_CONTEXTMENU: OnContextMenu((HWND)wp, lp); return 0;
         case WM_SIZE: if (g_tab) Layout(); InvalidateRect(h, nullptr, FALSE); return 0;
         case WM_PAINT: {
             PAINTSTRUCT ps;

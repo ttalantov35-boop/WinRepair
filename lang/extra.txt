@@ -92,3 +92,46 @@ MANIFEST.sha256 не найден (проверка файлов пропуще�
 Каталог команд… ==> Command catalog…
 Копировать журнал ==> Copy log
 Журнал скопирован в буфер обмена. ==> The log was copied to the clipboard.
+Запустить:  ==> Run: 
+Что делает эта команда… ==> What this command does…
+Копировать название ==> Copy name
+Копировать описание ==> Copy description
+Копировать выделенное ==> Copy selection
+Выделить всё ==> Select all
+Копировать весь журнал ==> Copy whole log
+Открыть файл журнала ==> Open log file
+Перейти на вкладку ==> Go to tab
+Обновить список ОС ==> Refresh OS list
+Сменить язык (RU / EN) ==> Switch language (RU / EN)
+Копировать выбранную строку ==> Copy selected row
+Копировать всю таблицу ==> Copy whole table
+Поиск: ==> Search:
+Найти ==> Find
+Имена разделов ==> Key names
+Имена значений ==> Value names
+Данные значений ==> Value data
+Только в выбранном разделе ==> Selected key only
+Текст для поиска (Enter — найти) ==> Text to find (Enter to search)
+Введите, что искать. ==> Enter what to search for.
+Поиск в реестре ==> Registry search
+Сначала загрузите кусты офлайн-Windows (кнопка «Загрузить кусты»). ==> Load the offline Windows hives first (the “Load hives” button).
+Отметьте, где искать: имена разделов, имена значений или данные. ==> Choose where to search: key names, value names or data.
+Результаты поиска в реестре:  ==> Registry search results: 
+Остановить ==> Stop
+Найдено в ==> Found in
+Раздел ==> Key
+Имя значения ==> Value name
+Остановлено.  ==> Stopped. 
+Готово.  ==> Done. 
+Идёт поиск…  ==> Searching… 
+Найдено:  ==> Found: 
+.  Просмотрено разделов:  ==> .  Keys scanned: 
+.  Достигнут предел списка — уточните запрос. ==> .  List limit reached — refine the query.
+Копировать имя значения ==> Copy value name
+Копировать данные ==> Copy data
+Копировать путь раздела ==> Copy key path
+Развернуть / свернуть ==> Expand / collapse
+Найти в этом разделе… ==> Find in this key…
+Обновить дерево ==> Refresh tree
+Выполнить выбранную команду ==> Run the selected command
+Копировать текст команды ==> Copy command text
