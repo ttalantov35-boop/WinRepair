@@ -1,6 +1,7 @@
 // Offline file explorer: browse the files of a non-running Windows, copy / move / rename, delete (to a reversible quarantine by default),
 // take ownership when access is denied, search. Works in WinPE/WinRE without Explorer.
 #include "ui_tools_common.h"
+#include "win/offreg.h"
 #include <shellapi.h>
 #include <shlobj.h>
 #include <cctype>
@@ -740,7 +741,7 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
                     else if (ctrl && k == 'C') CopyToClip(false);
                     else if (ctrl && k == 'X') CopyToClip(true);
                     else if (ctrl && k == 'V') Paste();
-                    else if (ctrl && k == 'A') ListView_SetItemState(E.list, -1, LVIS_SELECTED, LVIS_SELECTED);
+                    else if (ctrl && k == 'A') { ListView_SetItemState(E.list, -1, LVIS_SELECTED, LVIS_SELECTED); }
                     else if (ctrl && k == 'F') SetFocus(E.qf);
                 } else if (nh->code == NM_CUSTOMDRAW) {   // hidden/system items are greyed like in Explorer, quarantine stands out
                     auto* cd = (NMLVCUSTOMDRAW*)lp;
