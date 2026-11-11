@@ -11,10 +11,15 @@ struct HiveInfo {
     std::string mount;  // key name under HKLM while loaded
     std::string owner;  // user name for profile hives
     std::string profileDir;
+    std::string volume;  // drive letter of the Windows it belongs to ("D"), "*" for a hive loaded from an arbitrary file
     bool user = false;
 };
 
 std::vector<HiveInfo> ListHives(const Target& t, bool includeUsers = true);
+// Mount names are unique per Windows installation (WRO_C_SYSTEM, WRO_D_SYSTEM, ...): two offline systems must never share a key.
+std::string HiveMountName(const Target& t, const std::string& hive);         // hive = "SYSTEM", "SOFTWARE", ...
+std::string UserHiveMountName(const Target& t, const std::string& user);     // NTUSER.DAT of a profile
+bool LoadHiveFile(const std::string& file, HiveInfo& outInfo, std::string& err);  // "File -> Load hive" for an arbitrary hive file
 std::vector<std::string> ListDirs(const std::string& dir);  // names of sub-directories
 void EnablePrivilegeByName(const wchar_t* name);
 
@@ -26,6 +31,9 @@ public:
     void unload(const std::string& mount);
     void unloadAll();
     std::vector<std::string> mounts();
+    std::vector<HiveInfo> loadedInfo();             // what is loaded now (label, volume, file)
+    bool info(const std::string& mount, HiveInfo& out);
+    void unloadVolume(const std::string& volume);   // every hive of one Windows installation
     std::string backupDir();
     void pin();    // somebody uses the hives
     void unpin();  // last user gone -> unloadAll()
@@ -33,6 +41,7 @@ public:
 private:
     std::recursive_mutex mu_;
     std::map<std::string, std::string> loaded_;
+    std::map<std::string, HiveInfo> info_;
     std::string backupDir_;
     int pins_ = 0;
 };

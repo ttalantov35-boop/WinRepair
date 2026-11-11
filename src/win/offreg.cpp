@@ -41,6 +41,10 @@ std::vector<std::string> ListDirs(const std::string& dir) {
     return v;
 }
 
+static std::string VolPrefix(const Target& t) { return std::string("WRO_") + (char)toupper((unsigned char)t.letter()) + "_"; }
+std::string HiveMountName(const Target& t, const std::string& hive) { return VolPrefix(t) + hive; }
+std::string UserHiveMountName(const Target& t, const std::string& user) { return VolPrefix(t) + "NU_" + Sanitize(user); }
+
 std::vector<HiveInfo> ListHives(const Target& t, bool includeUsers) {
     std::vector<HiveInfo> v;
     std::string cfg = t.winDir + "\\System32\\config\\";
@@ -49,7 +53,8 @@ std::vector<HiveInfo> ListHives(const Target& t, bool includeUsers) {
         HiveInfo h;
         h.label = n;
         h.file = cfg + n;
-        h.mount = std::string("WRO_") + n;
+        h.mount = HiveMountName(t, n);
+        h.volume = std::string(1, (char)toupper((unsigned char)t.letter()));
         v.push_back(h);
     }
     if (includeUsers) {
@@ -62,7 +67,8 @@ std::vector<HiveInfo> ListHives(const Target& t, bool includeUsers) {
                 HiveInfo h;
                 h.label = "NTUSER (" + u + ")";
                 h.file = prof + "NTUSER.DAT";
-                h.mount = "WRO_NU_" + Sanitize(u);
+                h.mount = UserHiveMountName(t, u);
+                h.volume = std::string(1, (char)toupper((unsigned char)t.letter()));
                 h.owner = u; h.profileDir = prof; h.user = true;
                 v.push_back(h);
             }
@@ -71,7 +77,8 @@ std::vector<HiveInfo> ListHives(const Target& t, bool includeUsers) {
                 HiveInfo h;
                 h.label = "UsrClass (" + u + ")";
                 h.file = uc;
-                h.mount = "WRO_UC_" + Sanitize(u);
+                h.mount = VolPrefix(t) + "UC_" + Sanitize(u);
+                h.volume = std::string(1, (char)toupper((unsigned char)t.letter()));
                 h.owner = u; h.profileDir = prof; h.user = false;
                 v.push_back(h);
             }
@@ -106,7 +113,12 @@ std::vector<std::string> HiveManager::mounts() {
 
 bool HiveManager::load(const HiveInfo& h, std::string& err) {
     std::lock_guard<std::recursive_mutex> g(mu_);
-    if (loaded_.count(h.mount)) return true;
+    auto already = loaded_.find(h.mount);
+    if (already != loaded_.end()) {
+        if (toLowerUtf8(already->second) == toLowerUtf8(h.file)) return true;
+        unload(h.mount);   // the same mount name now points to another file (a disk with a reused letter): never show stale data
+        if (loaded_.count(h.mount)) { err = h.label + ": предыдущий куст под этим именем не выгружается"; return false; }
+    }
     EnablePriv(SE_BACKUP_NAME);
     EnablePriv(SE_RESTORE_NAME);
     backupDir_ = BackupDirFor(h.file, "hives");        // one folder per examined volume
@@ -118,6 +130,7 @@ bool HiveManager::load(const HiveInfo& h, std::string& err) {
     LONG r = RegLoadKeyW(HKEY_LOCAL_MACHINE, WK(h.mount).c_str(), W(h.file).c_str());
     if (r != ERROR_SUCCESS) { err = h.label + ": RegLoadKey — " + ErrMsg((DWORD)r); return false; }
     loaded_[h.mount] = h.file;
+    info_[h.mount] = h;
     Logger::I().log(Lvl::Info, "Загружен куст " + h.label + " -> HKLM\\" + h.mount);
     return true;
 }
@@ -139,8 +152,28 @@ void HiveManager::unload(const std::string& mount) {
         if (r == ERROR_SUCCESS) break;
         Sleep(200);
     }
-    if (r == ERROR_SUCCESS) { loaded_.erase(mount); Logger::I().log(Lvl::Info, "Выгружен куст HKLM\\" + mount); }
+    if (r == ERROR_SUCCESS) { loaded_.erase(mount); info_.erase(mount); Logger::I().log(Lvl::Info, "Выгружен куст HKLM\\" + mount); }
     else Logger::I().log(Lvl::Warn, "Не удалось выгрузить HKLM\\" + mount + ": " + ErrMsg((DWORD)r) + " (закройте окна, использующие реестр)");
+}
+
+std::vector<HiveInfo> HiveManager::loadedInfo() {
+    std::lock_guard<std::recursive_mutex> g(mu_);
+    std::vector<HiveInfo> v;
+    for (auto& p : info_) v.push_back(p.second);
+    return v;
+}
+bool HiveManager::info(const std::string& mount, HiveInfo& out) {
+    std::lock_guard<std::recursive_mutex> g(mu_);
+    auto it = info_.find(mount);
+    if (it == info_.end()) return false;
+    out = it->second;
+    return true;
+}
+void HiveManager::unloadVolume(const std::string& volume) {
+    std::lock_guard<std::recursive_mutex> g(mu_);
+    std::vector<std::string> m;
+    for (auto& p : info_) if (p.second.volume == volume) m.push_back(p.first);
+    for (auto& x : m) unload(x);
 }
 
 void HiveManager::unloadAll() {
@@ -154,6 +187,18 @@ void HiveManager::pin() { std::lock_guard<std::recursive_mutex> g(mu_); ++pins_;
 void HiveManager::unpin() {
     std::lock_guard<std::recursive_mutex> g(mu_);
     if (pins_ > 0 && --pins_ == 0) unloadAll();
+}
+
+bool LoadHiveFile(const std::string& file, HiveInfo& h, std::string& err) {
+    if (!PathExists(file)) { err = "Файл не найден: " + file; return false; }
+    size_t k = file.find_last_of("\\/");
+    std::string leaf = k == std::string::npos ? file : file.substr(k + 1);
+    h = HiveInfo();
+    h.label = leaf;
+    h.file = file;
+    h.volume = "*";
+    h.mount = "WRO_F_" + Sanitize(leaf) + "_" + std::to_string((unsigned)std::hash<std::string>()(toLowerUtf8(file)) % 100000u);
+    return Hives().load(h, err);
 }
 
 // ---- RegCtx ------------------------------------------------------------------------------------------------

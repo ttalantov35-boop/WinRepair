@@ -117,8 +117,8 @@ std::vector<AutoItem> ScanAutoruns(const Target& t, std::string& err) {
     if (!rc.open(t, err)) return out;
     const std::string cv = "Microsoft\\Windows\\CurrentVersion\\";
     const std::string apr = cv + "Explorer\\StartupApproved\\";
-    std::string mSoft = t.online ? "" : "WRO_SOFTWARE";
-    std::string mSys = t.online ? "" : "WRO_SYSTEM";
+    std::string mSoft = HiveMountName(t, "SOFTWARE");
+    std::string mSys = HiveMountName(t, "SYSTEM");
     if (t.online) { err = "Для текущей (онлайн) Windows используйте msconfig/Autoruns; здесь — офлайн-режим."; return out; }
 
     AddRun(out, t, mSoft, rc.software, cv + "Run", "Run (HKLM)", apr + "Run", false, "");
@@ -127,8 +127,7 @@ std::vector<AutoItem> ScanAutoruns(const Target& t, std::string& err) {
     AddRun(out, t, mSoft, rc.software, "WOW6432Node\\" + cv + "Run", "Run (HKLM, 32-бит)", apr + "Run32", false, "");
     AddRun(out, t, mSoft, rc.software, "WOW6432Node\\" + cv + "RunOnce", "RunOnce (HKLM, 32-бит)", "", true, "");
     for (const auto& u : rc.users) {
-        std::string mu = "WRO_NU_";
-        for (unsigned char c : u.name) mu += isalnum(c) ? (char)c : '_';
+        std::string mu = UserHiveMountName(t, u.name);
         std::string ucv = "Software\\" + cv;
         std::string uapr = "Software\\" + apr;
         AddRun(out, t, mu, u.root, ucv + "Run", "Run (" + u.name + ")", uapr + "Run", false, u.profile);

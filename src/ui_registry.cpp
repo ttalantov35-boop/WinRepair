@@ -2,6 +2,11 @@
 #include "ui_tools_common.h"
 #include "win/offreg.h"
 #include <shellapi.h>
+#include <algorithm>
+#include <map>
+#include <set>
+#include <cstring>
+#include <commdlg.h>
 #include <atomic>
 #include <mutex>
 #include <thread>
@@ -13,7 +18,7 @@ namespace {
 
 enum { ID_COMBO = 4001, ID_LOAD, ID_UNLOAD, ID_REGEDIT, ID_TREE, ID_LIST, ID_PATH, ID_NEWVAL, ID_EDIT, ID_DELVAL, ID_NEWKEY, ID_DELKEY, ID_EXPORT, ID_COPY, ID_NOTE };
 enum { ID_SEARCH = 4200, ID_FIND, ID_FKEYS, ID_FNAMES, ID_FDATA, ID_FSEL, ID_SLBL, ID_FLIST, ID_FSTOP, ID_FCLOSE, ID_FSTATUS, ID_ADDR, ID_STATUSBAR };
-enum { IDM_EXIT = ID_COPY + 50, IDM_FINDBOX = 4300, IDM_REFRESH, IDM_RENVAL, IDM_RENKEY, IDM_FAVADD, IDM_FAVDEL, IDM_STATUS, IDM_CPYNAME, IDM_FAV0 = 4400 };
+enum { IDM_EXIT = ID_COPY + 50, IDM_FINDBOX = 4300, IDM_REFRESH, IDM_RENVAL, IDM_RENKEY, IDM_FAVADD, IDM_FAVDEL, IDM_STATUS, IDM_CPYNAME, IDM_LOADFILE, IDM_UNLOADSEL, IDM_UNLOADALL, IDM_FAV0 = 4400, IDM_LOADT0 = 4500, IDM_UNLOADT0 = 4520 };
 
 struct State {
     HWND wnd = nullptr, combo, tree, list, path, note, btn[8], bLoad, bUnload, bRegedit, search = nullptr, bFind = nullptr, lblSearch = nullptr, chk[4] = {}, status = nullptr;
@@ -34,7 +39,35 @@ std::string SelPath() {
     tv.mask = TVIF_PARAM;
     tv.hItem = it;
     TreeView_GetItem(R.tree, &tv);
-    return tv.lParam ? *(std::string*)tv.lParam : "";
+    std::string p = tv.lParam ? *(std::string*)tv.lParam : "";
+    return p.rfind("@@", 0) == 0 ? "" : p;   // "@@D" = the node of a whole Windows installation, not a registry key
+}
+
+// ---- how a path is shown to the user: D:\SYSTEM\ControlSet001 instead of HKLM\WRO_D_SYSTEM\ControlSet001 -------------------
+std::string MountOf(const std::string& full) { size_t k = full.find('\\'); return k == std::string::npos ? full : full.substr(0, k); }
+std::string Display(const std::string& full) {
+    HiveInfo hi;
+    std::string m = MountOf(full);
+    if (!Hives().info(m, hi)) return "HKLM\\" + full;
+    std::string rest = full.size() > m.size() ? full.substr(m.size()) : "";
+    return (hi.volume == "*" ? "[файл] " : hi.volume + ":\\") + hi.label + rest;
+}
+// address typed by the user -> real path under HKLM ("" if it cannot be understood)
+std::string ParseAddress(std::string a) {
+    a = trim(a);
+    auto starts = [&](const std::string& x, const std::string& pre) { return x.size() >= pre.size() && toLowerUtf8(x.substr(0, pre.size())) == toLowerUtf8(pre); };
+    for (const char* pre : {"Компьютер\\", "Computer\\"}) if (starts(a, pre)) a = a.substr(strlen(pre));
+    for (const char* pre : {"HKEY_LOCAL_MACHINE\\", "HKLM\\"}) if (starts(a, pre)) { a = a.substr(strlen(pre)); break; }
+    while (!a.empty() && a.back() == '\\') a.pop_back();
+    if (a.rfind("WRO_", 0) == 0) return a;
+    if (a.size() >= 3 && a[1] == ':' && a[2] == '\\') {
+        std::string vol(1, (char)toupper((unsigned char)a[0])), rest = a.substr(3);
+        for (const auto& hi : Hives().loadedInfo()) {
+            if (hi.volume != vol) continue;
+            if (starts(rest, hi.label) && (rest.size() == hi.label.size() || rest[hi.label.size()] == '\\')) return hi.mount + rest.substr(hi.label.size());
+        }
+    }
+    return "";
 }
 
 HTREEITEM AddNode(HTREEITEM parent, const std::string& text, const std::string& full, bool kids) {
@@ -60,6 +93,7 @@ bool HasSubKeys(const std::string& full) {
 }
 
 void Expand(HTREEITEM it, const std::string& full) {
+    if (full.rfind("@@", 0) == 0) return;   // group node: children are the hives, already added
     HKEY k = nullptr;
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, W(full).c_str(), 0, KEY_READ, &k) != ERROR_SUCCESS) return;
     std::vector<std::string> subs;
@@ -83,8 +117,8 @@ void FillValues() {
     ListView_DeleteAllItems(R.list);
     R.vals.clear();
     std::string p = SelPath();
-    if (GetFocus() != R.path) SetWindowTextW(R.path, p.empty() ? L"" : W("HKLM\\" + p).c_str());
-    if (R.status) SetWindowTextW(R.status, p.empty() ? L"" : (TrW(L"  Компьютер\\") + W("HKEY_LOCAL_MACHINE\\" + p)).c_str());
+    if (GetFocus() != R.path) SetWindowTextW(R.path, p.empty() ? L"" : W(Display(p)).c_str());
+    if (R.status) SetWindowTextW(R.status, p.empty() ? L"" : (TrW(L"  Компьютер\\") + W(Display(p))).c_str());
     if (p.empty()) return;
     HKEY k = nullptr;
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, W(p).c_str(), 0, KEY_READ, &k) != ERROR_SUCCESS) return;
@@ -111,48 +145,78 @@ void BackupPath(const std::string& p, const char* tag) {
     ExportRegKey(k, "HKEY_LOCAL_MACHINE\\" + p, reg);
     RegCloseKey(k);
     std::string f;
-    if (BackupRegText(UiCurrentTarget().root, tag, reg, f)) Logger::I().log(Lvl::Info, "Резервная копия ветки реестра: " + f);
+    HiveInfo hi;
+    std::string root = UiCurrentTarget().root;
+    if (Hives().info(MountOf(p), hi) && hi.file.size() >= 3) root = hi.file.substr(0, 3);   // the backup goes to the volume the key really belongs to
+    if (BackupRegText(root, tag, reg, f)) Logger::I().log(Lvl::Info, "Резервная копия ветки реестра: " + f);
     else Logger::I().log(Lvl::Info, "Копия ветки уже сохранена в этом сеансе (до первого изменения): " + f);
+}
+
+std::string TargetLabel(const std::string& vol) {
+    for (const auto& t : R.targets) if (!t.root.empty() && (char)toupper((unsigned char)t.root[0]) == vol[0]) return t.label;
+    return "";
 }
 
 void RefreshTree() {
     TreeView_DeleteAllItems(R.tree);
     R.paths.clear();
-    for (const auto& m : Hives().mounts()) AddNode(TVI_ROOT, R.labels.count(m) ? R.labels[m] : m, m, HasSubKeys(m));
+    std::map<std::string, std::vector<HiveInfo>> by;
+    for (const auto& hi : Hives().loadedInfo()) by[hi.volume].push_back(hi);
+    for (auto& g : by) {
+        std::sort(g.second.begin(), g.second.end(), [](const HiveInfo& x, const HiveInfo& y) { return x.user != y.user ? !x.user : x.label < y.label; });
+        std::string text = g.first == "*" ? "Кусты из файлов" : g.first + ":\\  " + TargetLabel(g.first) + "  [офлайн]";
+        HTREEITEM grp = AddNode(TVI_ROOT, text, "@@" + g.first, true);
+        for (const auto& hi : g.second) AddNode(grp, hi.label, hi.mount, HasSubKeys(hi.mount));
+        TreeView_Expand(R.tree, grp, TVE_EXPAND);
+    }
     FillValues();
+    size_t vols = by.size();
+    SetWindowTextW(R.note, vols ? (TrW(L"Загружено систем: ") + std::to_wstring(vols) + TrW(L".  Файл → «Загрузить офлайн-реестр диска» добавляет ещё одну систему; «Выгрузить диск» убирает.  Копия каждого куста сохраняется в Data\\Backups перед загрузкой.")).c_str()
+                               : TrW(L"Ни одна система не загружена. Откройте меню Файл → «Загрузить офлайн-реестр диска» и выберите диск (например D:).").c_str());
 }
 
-void LoadHives() {
-    std::wstring wp = GetText(R.combo);
-    std::string p = trim(U(wp));
-    int sel = (int)SendMessageW(R.combo, CB_GETCURSEL, 0, 0);
-    Target t;
-    if (sel >= 0 && sel < (int)R.targets.size() && W(R.targets[(size_t)sel].label) == wp) t = R.targets[(size_t)sel];
-    else {
-        while (!p.empty() && (p.back() == '\\' || p.back() == '/')) p.pop_back();
-        t.winDir = p;
-        t.root = p.size() >= 2 ? p.substr(0, 2) + "\\" : "";
-    }
-    if (t.online) { MessageBoxW(R.wnd, L"Это работающая система: её кусты открыты ядром. Для неё используйте regedit (кнопка справа).", L"Реестр", MB_OK | MB_ICONINFORMATION); return; }
-    if (!PathExists(t.winDir + "\\System32\\config\\SYSTEM")) { MessageBoxW(R.wnd, L"В указанной папке нет System32\\config\\SYSTEM. Укажите папку Windows офлайн-системы (например D:\\Windows).", L"Реестр", MB_OK | MB_ICONWARNING); return; }
+bool LoadTarget(const Target& t) {
+    if (t.online) { MessageBoxW(R.wnd, TrW(L"Это работающая система: её кусты открыты ядром. Для неё используйте regedit (меню Файл).").c_str(), TrW(L"Реестр").c_str(), MB_OK | MB_ICONINFORMATION); return false; }
+    if (!PathExists(t.winDir + "\\System32\\config\\SYSTEM")) { MessageBoxW(R.wnd, TrW(L"В папке Windows этого диска нет System32\\config\\SYSTEM.").c_str(), TrW(L"Реестр").c_str(), MB_OK | MB_ICONWARNING); return false; }
     if (!R.pinned) { Hives().pin(); R.pinned = true; }
     SetCursor(LoadCursor(nullptr, IDC_WAIT));
-    int ok = 0;
+    int ok = 0, bad = 0;
     for (const auto& h : ListHives(t, true)) {
         std::string err;
         if (Hives().load(h, err)) { R.labels[h.mount] = h.label; ++ok; }
-        else Logger::I().log(Lvl::Warn, "Куст не загружен: " + err);
+        else { ++bad; Logger::I().log(Lvl::Warn, "Куст не загружен: " + err); }
     }
     SetCursor(LoadCursor(nullptr, IDC_ARROW));
     RefreshTree();
-    std::wstring note = L"Загружено кустов: " + std::to_wstring(ok) + L". Резервные копии кустов: " + W(Hives().backupDir());
-    RegVal v;
-    HKEY sys = Hives().open("WRO_SYSTEM", KEY_READ);
-    if (sys) {
-        if (QueryVal(sys, "Select", "Current", v) && v.data.size() >= 4) note += L".  CurrentControlSet = ControlSet" + W(fmt("%03lu", (unsigned long)*(DWORD*)v.data.data()));
-        RegCloseKey(sys);
-    }
-    SetWindowTextW(R.note, note.c_str());
+    Logger::I().log(bad ? Lvl::Warn : Lvl::Ok, fmt("Реестр %s: загружено кустов %d, не загружено %d", t.root.c_str(), ok, bad));
+    return ok > 0;
+}
+
+void LoadFromFile() {
+    wchar_t file[MAX_PATH] = L"";
+    OPENFILENAMEW o{};
+    o.lStructSize = sizeof o; o.hwndOwner = R.wnd; o.lpstrFilter = L"Куст реестра (SYSTEM, SOFTWARE, NTUSER.DAT, *.hiv, *.dat)\0*\0"; o.lpstrFile = file; o.nMaxFile = MAX_PATH;
+    o.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY;
+    if (!GetOpenFileNameW(&o)) return;
+    if (!R.pinned) { Hives().pin(); R.pinned = true; }
+    HiveInfo hi;
+    std::string err;
+    if (!LoadHiveFile(U(file), hi, err)) { MessageBoxW(R.wnd, W(err).c_str(), TrW(L"Реестр").c_str(), MB_OK | MB_ICONWARNING); return; }
+    RefreshTree();
+}
+
+void UnloadVolume(const std::string& vol) {
+    Hives().unloadVolume(vol);
+    RefreshTree();
+    for (const auto& hi : Hives().loadedInfo())
+        if (hi.volume == vol) { MessageBoxW(R.wnd, TrW(L"Часть кустов не выгрузилась: их удерживает другая программа или окно. Подробности — в журнале.").c_str(), TrW(L"Реестр").c_str(), MB_OK | MB_ICONWARNING); return; }
+}
+
+void UnloadSelectedHive() {
+    std::string p = SelPath();
+    if (p.empty() || p.find('\\') != std::string::npos) { MessageBoxW(R.wnd, TrW(L"Выберите корень куста (например SYSTEM) в дереве.").c_str(), TrW(L"Реестр").c_str(), MB_OK | MB_ICONINFORMATION); return; }
+    Hives().unload(p);
+    RefreshTree();
 }
 
 bool ConfirmChange(const std::wstring& text) {
@@ -185,7 +249,7 @@ void SetValue(bool isNew) {
     if (!RegParse(type, U(f[2].value), data, err)) { MessageBoxW(R.wnd, W(err).c_str(), L"Ошибка данных", MB_OK | MB_ICONWARNING); return; }
     RegVal nv;
     nv.name = name; nv.type = type; nv.data = data;
-    std::wstring q = L"Раздел: HKLM\\" + W(p) + L"\nЗначение: " + (name.empty() ? L"(По умолчанию)" : W(name)) + L"\nБыло: " + (isNew ? L"(нет)" : W(RegValueText(cur, 200))) + L"\nСтанет: " + W(RegValueText(nv, 200));
+    std::wstring q = L"Раздел: " + W(Display(p)) + L"\nЗначение: " + (name.empty() ? L"(По умолчанию)" : W(name)) + L"\nБыло: " + (isNew ? L"(нет)" : W(RegValueText(cur, 200))) + L"\nСтанет: " + W(RegValueText(nv, 200));
     if (!ConfirmChange(q)) return;
     BackupPath(p, "regedit");
     HKEY k = nullptr;
@@ -201,7 +265,7 @@ void DelValue() {
     int si = SelVal();
     if (p.empty() || si < 0 || si >= (int)R.vals.size()) return;
     const RegVal& v = R.vals[(size_t)si];
-    if (!ConfirmChange(L"Удалить значение «" + (v.name.empty() ? std::wstring(L"(По умолчанию)") : W(v.name)) + L"»\nв HKLM\\" + W(p) + L"\nТекущее: " + W(RegValueText(v, 200)))) return;
+    if (!ConfirmChange(L"Удалить значение «" + (v.name.empty() ? std::wstring(L"(По умолчанию)") : W(v.name)) + L"»\nв " + W(Display(p)) + L"\nТекущее: " + W(RegValueText(v, 200)))) return;
     BackupPath(p, "regedit");
     LONG r = RegDelValue(HKEY_LOCAL_MACHINE, p, v.name);
     if (r != ERROR_SUCCESS) { MessageBoxW(R.wnd, W(ErrMsg((DWORD)r)).c_str(), L"Ошибка", MB_OK | MB_ICONERROR); return; }
@@ -217,7 +281,7 @@ void NewKey() {
     if (!FormDialog(R.wnd, L"Новый раздел", f)) return;
     std::string n = trim(U(f[0].value));
     if (n.empty() || n.find('\\') != std::string::npos) return;
-    if (!ConfirmChange(L"Создать раздел «" + W(n) + L"» в HKLM\\" + W(p))) return;
+    if (!ConfirmChange(L"Создать раздел «" + W(n) + L"» в " + W(Display(p)))) return;
     LONG r = RegMakeKey(HKEY_LOCAL_MACHINE, p + "\\" + n);
     if (r != ERROR_SUCCESS) { MessageBoxW(R.wnd, W(ErrMsg((DWORD)r)).c_str(), L"Ошибка", MB_OK | MB_ICONERROR); return; }
     AuditChange("REG CREATE KEY HKLM\\" + p + "\\" + n);
@@ -228,7 +292,7 @@ void DelKey() {
     std::string p = SelPath();
     if (p.empty()) return;
     if (p.find('\\') == std::string::npos) { MessageBoxW(R.wnd, L"Корень куста удалить нельзя.", L"Реестр", MB_OK | MB_ICONWARNING); return; }
-    if (!ConfirmChange(L"УДАЛИТЬ раздел со всеми вложенными разделами и значениями:\nHKLM\\" + W(p))) return;
+    if (!ConfirmChange(L"УДАЛИТЬ раздел со всеми вложенными разделами и значениями:\n" + W(Display(p)))) return;
     BackupPath(p, "regedit_delkey");
     LONG r = RegDelTree(HKEY_LOCAL_MACHINE, p);
     if (r != ERROR_SUCCESS) { MessageBoxW(R.wnd, W(ErrMsg((DWORD)r)).c_str(), L"Ошибка", MB_OK | MB_ICONERROR); return; }
@@ -266,12 +330,8 @@ void Layout() {
     GetClientRect(R.wnd, &rc);
     int W_ = rc.right, H = rc.bottom, m = S(8);
     int top = m;
-    Place(GetDlgItem(R.wnd, ID_NOTE + 100), m, top + S(3), S(100), S(20));
-    Place(R.combo, m + S(105), top, W_ - 2 * m - S(105) - S(480), S(300));
-    Place(R.bLoad, W_ - m - S(470), top - 1, S(150), S(26));
-    Place(R.bUnload, W_ - m - S(315), top - 1, S(150), S(26));
-    Place(R.bRegedit, W_ - m - S(160), top - 1, S(160), S(26));
-    top += S(32);
+    // system selection lives in the File menu (as in other registry tools); the old combo/buttons stay hidden
+    for (HWND hw : {GetDlgItem(R.wnd, ID_NOTE + 100), R.combo, R.bLoad, R.bUnload, R.bRegedit}) ShowWindow(hw, SW_HIDE);
     Place(R.note, m, top, W_ - 2 * m, S(18));
     top += S(24);
     {   // search row: text + options (regedit-style Ctrl+F, but with results list)
@@ -315,8 +375,12 @@ void NavigateTo(const std::string& full, const std::string& valueName) {
         a = b + 1;
     }
     std::string acc = parts[0];
-    HTREEITEM it = TreeView_GetRoot(R.tree);
-    while (it && ItemPath(it) != acc) it = TreeView_GetNextSibling(R.tree, it);
+    HTREEITEM it = nullptr;
+    for (HTREEITEM g = TreeView_GetRoot(R.tree); g && !it; g = TreeView_GetNextSibling(R.tree, g)) {
+        TreeView_Expand(R.tree, g, TVE_EXPAND);
+        for (HTREEITEM c = TreeView_GetChild(R.tree, g); c; c = TreeView_GetNextSibling(R.tree, c))
+            if (ItemPath(c) == acc) { it = c; break; }
+    }
     if (!it) return;
     for (size_t i = 1; i < parts.size(); ++i) {
         TreeView_Expand(R.tree, it, TVE_EXPAND);   // children are loaded lazily by TVN_ITEMEXPANDING
@@ -401,7 +465,7 @@ void FindPump() {
     int row = ListView_GetItemCount(F->list);
     SendMessageW(F->list, WM_SETREDRAW, FALSE, 0);
     for (const auto& h : fresh) {
-        std::wstring a = TrW(kWhat[h.what]), b = W("HKLM\\" + h.path), c = h.name.empty() && h.what ? TrW(L"(По умолчанию)") : W(h.name), d = W(h.data);
+        std::wstring a = TrW(kWhat[h.what]), b = W(Display(h.path)), c = h.name.empty() && h.what ? TrW(L"(По умолчанию)") : W(h.name), d = W(h.data);
         LVITEMW li{};
         li.mask = LVIF_TEXT;
         li.iItem = row;
@@ -470,7 +534,7 @@ LRESULT CALLBACK FindProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
 void DoFind() {
     std::string q = trim(U(GetText(R.search)));
     if (q.empty()) { MessageBoxW(R.wnd, TrW(L"Введите, что искать.").c_str(), TrW(L"Поиск в реестре").c_str(), MB_OK | MB_ICONINFORMATION); SetFocus(R.search); return; }
-    if (Hives().mounts().empty()) { MessageBoxW(R.wnd, TrW(L"Сначала загрузите кусты офлайн-Windows (кнопка «Загрузить кусты»).").c_str(), TrW(L"Поиск в реестре").c_str(), MB_OK | MB_ICONINFORMATION); return; }
+    if (Hives().mounts().empty()) { MessageBoxW(R.wnd, TrW(L"Сначала загрузите кусты офлайн-Windows (меню Файл → «Загрузить офлайн-реестр диска»).").c_str(), TrW(L"Поиск в реестре").c_str(), MB_OK | MB_ICONINFORMATION); return; }
     bool k = SendMessageW(R.chk[0], BM_GETCHECK, 0, 0) == BST_CHECKED, n = SendMessageW(R.chk[1], BM_GETCHECK, 0, 0) == BST_CHECKED,
          d = SendMessageW(R.chk[2], BM_GETCHECK, 0, 0) == BST_CHECKED, onlySel = SendMessageW(R.chk[3], BM_GETCHECK, 0, 0) == BST_CHECKED;
     if (!k && !n && !d) { MessageBoxW(R.wnd, TrW(L"Отметьте, где искать: имена разделов, имена значений или данные.").c_str(), TrW(L"Поиск в реестре").c_str(), MB_OK | MB_ICONINFORMATION); return; }
@@ -604,14 +668,7 @@ HMENU BuildMenuBar() {
     HMENU bar = CreateMenu();
     auto add = [](HMENU m, UINT id, const wchar_t* t, UINT fl = 0) { AppendMenuW(m, MF_STRING | fl, id, TrW(t).c_str()); };
     HMENU f = CreatePopupMenu();
-    add(f, ID_LOAD, L"Загрузить кусты…");
-    add(f, ID_UNLOAD, L"Выгрузить кусты");
-    AppendMenuW(f, MF_SEPARATOR, 0, nullptr);
-    add(f, ID_EXPORT, L"Экспорт ветки .reg…");
-    AppendMenuW(f, MF_SEPARATOR, 0, nullptr);
-    add(f, ID_REGEDIT, L"regedit текущей ОС");
-    add(f, IDM_EXIT, L"Выход");
-    AppendMenuW(bar, MF_POPUP, (UINT_PTR)f, TrW(L"Файл").c_str());
+    AppendMenuW(bar, MF_POPUP, (UINT_PTR)f, TrW(L"Файл").c_str());   // filled in WM_INITMENUPOPUP
     HMENU e = CreatePopupMenu();
     add(e, ID_EDIT, L"Изменить…\tEnter");
     HMENU nw = CreatePopupMenu();
@@ -635,6 +692,34 @@ HMENU BuildMenuBar() {
     HMENU fv = CreatePopupMenu();   // rebuilt in WM_INITMENUPOPUP
     AppendMenuW(bar, MF_POPUP, (UINT_PTR)fv, TrW(L"Избранное").c_str());
     return bar;
+}
+
+void RebuildFileMenu(HMENU m) {
+    while (GetMenuItemCount(m) > 0) DeleteMenu(m, 0, MF_BYPOSITION);
+    auto add = [&](HMENU mm, UINT id, const std::wstring& t, UINT fl = 0) { AppendMenuW(mm, MF_STRING | fl, id, t.c_str()); };
+    std::set<std::string> loaded;
+    for (const auto& hi : Hives().loadedInfo()) loaded.insert(hi.volume);
+    HMENU ld = CreatePopupMenu(), ul = CreatePopupMenu();
+    for (size_t i = 0; i < R.targets.size() && i < 20; ++i) {
+        const auto& t = R.targets[i];
+        std::string v(1, (char)toupper((unsigned char)t.root[0]));
+        bool on = loaded.count(v) > 0;
+        add(ld, (UINT)(IDM_LOADT0 + i), W(t.label) + (on ? TrW(L"   (загружен — обновить)") : L""), on ? MF_CHECKED : 0);
+        if (on) add(ul, (UINT)(IDM_UNLOADT0 + i), W(t.label));
+    }
+    if (R.targets.empty()) add(ld, 0, TrW(L"(офлайн-системы не найдены)"), MF_GRAYED);
+    if (loaded.empty() || (loaded.size() == 1 && loaded.count("*"))) add(ul, 0, TrW(L"(ничего не загружено)"), MF_GRAYED);
+    AppendMenuW(m, MF_POPUP, (UINT_PTR)ld, TrW(L"Загрузить офлайн-реестр диска").c_str());
+    AppendMenuW(m, MF_POPUP, (UINT_PTR)ul, TrW(L"Выгрузить диск").c_str());
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    add(m, IDM_LOADFILE, TrW(L"Загрузить куст из файла…"));
+    add(m, IDM_UNLOADSEL, TrW(L"Выгрузить выбранный куст"));
+    add(m, IDM_UNLOADALL, TrW(L"Выгрузить всё"), Hives().loadedInfo().empty() ? MF_GRAYED : 0);
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    add(m, ID_EXPORT, TrW(L"Экспорт ветки .reg…"));
+    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
+    add(m, ID_REGEDIT, TrW(L"regedit текущей ОС"));
+    add(m, IDM_EXIT, TrW(L"Выход"));
 }
 
 void RebuildFavMenu(HMENU m) {
@@ -670,13 +755,8 @@ void DeleteFavorite() {
 
 // address bar: HKLM\WRO_SYSTEM\... (also HKEY_LOCAL_MACHINE\, "Компьютер\" prefixes)
 void GoToAddress() {
-    std::string a = trim(U(GetText(R.path)));
-    for (const char* pre : {"Компьютер\\", "Computer\\", "HKEY_LOCAL_MACHINE\\", "HKLM\\"}) {
-        std::string pr = pre;
-        if (a.size() >= pr.size() && toLowerUtf8(a.substr(0, pr.size())) == toLowerUtf8(pr)) { a = a.substr(pr.size()); }
-    }
-    while (!a.empty() && a.back() == '\\') a.pop_back();
-    if (a.empty()) return;
+    std::string a = ParseAddress(U(GetText(R.path)));
+    if (a.empty()) { MessageBoxW(R.wnd, TrW(L"Адрес не распознан. Пример: D:\\SYSTEM\\ControlSet001\\Services (диск должен быть загружен через меню Файл).").c_str(), TrW(L"Реестр").c_str(), MB_OK | MB_ICONINFORMATION); return; }
     NavigateTo(a, "");
     SetFocus(R.tree);
 }
@@ -684,7 +764,7 @@ void GoToAddress() {
 LRESULT CALLBACK AddrProc(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR, DWORD_PTR) {
     if (m == WM_KEYDOWN && wp == VK_RETURN) { GoToAddress(); return 0; }
     if (m == WM_CHAR && wp == VK_RETURN) return 0;
-    if (m == WM_KILLFOCUS) { std::string sp = SelPath(); SetWindowTextW(h, sp.empty() ? L"" : W("HKLM\\" + sp).c_str()); }   // unfinished text -> path of the selected key
+    if (m == WM_KILLFOCUS) { std::string sp = SelPath(); SetWindowTextW(h, sp.empty() ? L"" : W(Display(sp)).c_str()); }   // unfinished text -> path of the selected key
     if (m == WM_NCDESTROY) RemoveWindowSubclass(h, AddrProc, 2);
     return DefSubclassProc(h, m, wp, lp);
 }
@@ -701,7 +781,7 @@ void RenameValue() {
     if (!FormDialog(R.wnd, L"Переименовать значение", f)) return;
     std::string nn = U(f[0].value);
     if (nn.empty() || nn == cur.name) return;
-    if (!ConfirmChange(L"Переименовать значение «" + W(cur.name) + L"» → «" + W(nn) + L"»\nв HKLM\\" + W(p))) return;
+    if (!ConfirmChange(L"Переименовать значение «" + W(cur.name) + L"» → «" + W(nn) + L"»\nв " + W(Display(p)))) return;
     BackupPath(p, "regedit");
     HKEY k = nullptr;
     LONG r = RegOpenKeyExW(HKEY_LOCAL_MACHINE, W(p).c_str(), 0, KEY_SET_VALUE, &k);
@@ -722,7 +802,7 @@ void RenameKey() {
     if (!FormDialog(R.wnd, L"Переименовать раздел", f)) return;
     std::string nn = trim(U(f[0].value));
     if (nn.empty() || nn == leaf || nn.find('\\') != std::string::npos) return;
-    if (!ConfirmChange(L"Переименовать раздел «" + W(leaf) + L"» → «" + W(nn) + L"»\nв HKLM\\" + W(parent))) return;
+    if (!ConfirmChange(L"Переименовать раздел «" + W(leaf) + L"» → «" + W(nn) + L"»\nв " + W(Display(parent)))) return;
     BackupPath(p, "regedit_renkey");
     HKEY pk = nullptr;
     LONG r = RegOpenKeyExW(HKEY_LOCAL_MACHINE, W(parent).c_str(), 0, KEY_READ | KEY_WRITE, &pk);
@@ -745,6 +825,7 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             HMENU mp = (HMENU)wp;
             HMENU bar = GetMenu(h);
             if (bar && GetMenuItemCount(bar) == 4 && GetSubMenu(bar, 3) == mp) RebuildFavMenu(mp);
+            else if (bar && GetSubMenu(bar, 0) == mp) RebuildFileMenu(mp);
             break;
         }
         case WM_CONTEXTMENU: return RegContextMenu((HWND)wp, lp) ? 1 : 0;
@@ -752,8 +833,9 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         case WM_GETMINMAXINFO: { auto* mm = (MINMAXINFO*)lp; mm->ptMinTrackSize.x = S(900); mm->ptMinTrackSize.y = S(520); return 0; }
         case WM_COMMAND:
             switch (LOWORD(wp)) {
-                case ID_LOAD: LoadHives(); break;
-                case ID_UNLOAD: TreeView_DeleteAllItems(R.tree); R.paths.clear(); ListView_DeleteAllItems(R.list); R.vals.clear(); Hives().unloadAll(); R.labels.clear(); break;
+                case IDM_LOADFILE: LoadFromFile(); break;
+                case IDM_UNLOADSEL: UnloadSelectedHive(); break;
+                case IDM_UNLOADALL: Hives().unloadAll(); R.labels.clear(); RefreshTree(); break;
                 case IDM_EXIT: DestroyWindow(h); break;
                 case ID_REGEDIT: ShellExecuteW(h, L"open", L"regedit.exe", nullptr, nullptr, SW_SHOWNORMAL); break;
                 case ID_NEWVAL: SetValue(true); break;
@@ -773,6 +855,17 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
                 case IDM_FAVDEL: DeleteFavorite(); break;
                 case IDM_STATUS: R.showStatus = !R.showStatus; CheckMenuItem(GetMenu(h), IDM_STATUS, MF_BYCOMMAND | (R.showStatus ? MF_CHECKED : MF_UNCHECKED)); Layout(); break;
                 default:
+                    if (LOWORD(wp) >= IDM_LOADT0 && LOWORD(wp) < IDM_LOADT0 + 20 && (size_t)(LOWORD(wp) - IDM_LOADT0) < R.targets.size()) {
+                        const Target& t = R.targets[(size_t)(LOWORD(wp) - IDM_LOADT0)];
+                        std::string v(1, (char)toupper((unsigned char)t.root[0]));
+                        Hives().unloadVolume(v);   // reload = fresh data
+                        LoadTarget(t);
+                        break;
+                    }
+                    if (LOWORD(wp) >= IDM_UNLOADT0 && LOWORD(wp) < IDM_UNLOADT0 + 20 && (size_t)(LOWORD(wp) - IDM_UNLOADT0) < R.targets.size()) {
+                        UnloadVolume(std::string(1, (char)toupper((unsigned char)R.targets[(size_t)(LOWORD(wp) - IDM_UNLOADT0)].root[0])));
+                        break;
+                    }
                     if (LOWORD(wp) >= IDM_FAV0 && LOWORD(wp) < IDM_FAV0 + 40 && (size_t)(LOWORD(wp) - IDM_FAV0) < R.favs.size()) NavigateTo(R.favs[(size_t)(LOWORD(wp) - IDM_FAV0)], "");
                     break;
             }
@@ -832,7 +925,7 @@ void OpenRegistryEditorImpl() {
     R.bLoad = Mk(h, L"BUTTON", L"Загрузить кусты", BS_PUSHBUTTON | WS_TABSTOP, ID_LOAD);
     R.bUnload = Mk(h, L"BUTTON", L"Выгрузить кусты", BS_PUSHBUTTON | WS_TABSTOP, ID_UNLOAD);
     R.bRegedit = Mk(h, L"BUTTON", L"regedit (текущая ОС)", BS_PUSHBUTTON | WS_TABSTOP, ID_REGEDIT);
-    R.note = Mk(h, L"STATIC", L"Введите путь вида D:\\Windows или выберите из списка, затем «Загрузить кусты». Перед загрузкой копия каждого куста сохраняется в Data\\Backups.", SS_LEFT, ID_NOTE);
+    R.note = Mk(h, L"STATIC", L"", SS_LEFT, ID_NOTE);
     R.lblSearch = Mk(h, L"STATIC", L"Поиск:", SS_LEFT, ID_SLBL);
     R.search = Mk(h, L"EDIT", L"", ES_AUTOHSCROLL | WS_TABSTOP, ID_SEARCH, WS_EX_CLIENTEDGE);
     SetWindowSubclass(R.search, SearchEditProc, 1, 0);
@@ -843,7 +936,7 @@ void OpenRegistryEditorImpl() {
     R.tree = Mk(h, WC_TREEVIEWW, L"", TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_SHOWSELALWAYS | WS_TABSTOP, ID_TREE, WS_EX_CLIENTEDGE);
     R.path = Mk(h, L"EDIT", L"", ES_AUTOHSCROLL | WS_TABSTOP, ID_ADDR, WS_EX_CLIENTEDGE);
     SetWindowSubclass(R.path, AddrProc, 2, 0);
-    SendMessageW(R.path, EM_SETCUEBANNER, TRUE, (LPARAM)TrW(L"Адрес раздела: HKLM\\WRO_SYSTEM\\… (Enter — перейти)").c_str());
+    SendMessageW(R.path, EM_SETCUEBANNER, TRUE, (LPARAM)TrW(L"Адрес раздела: D:\\SYSTEM\\ControlSet001\\… (Enter — перейти)").c_str());
     R.status = Mk(h, L"STATIC", L"", SS_LEFT | SS_CENTERIMAGE | SS_SUNKEN, ID_STATUSBAR);
     LoadFavs();
     SetMenu(h, BuildMenuBar());
@@ -858,6 +951,12 @@ void OpenRegistryEditorImpl() {
     SetWindowLongPtrW(R.btn[7], GWLP_ID, ID_COPY + 50);
     Layout();
     ShowWindow(h, SW_SHOW);
+    {   // the system chosen in the main window is loaded at once; others are added from File menu
+        Target cur = UiCurrentTarget();
+        bool done = false;
+        if (!cur.online) done = LoadTarget(cur);
+        if (!done) RefreshTree();
+    }
 }
 
 }  // namespace ui

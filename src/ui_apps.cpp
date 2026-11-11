@@ -286,7 +286,7 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         case WM_GETMINMAXINFO: { auto* mm = (MINMAXINFO*)lp; mm->ptMinTrackSize.x = S(980); mm->ptMinTrackSize.y = S(540); return 0; }
         case WM_COMMAND: {
             int id = LOWORD(wp);
-            if (id == ID_SCAN) Scan();
+            if (id == ID_SCAN || (id == ID_TARGET && HIWORD(wp) == CBN_SELCHANGE)) Scan();
             else if (id == ID_QF) { if (HIWORD(wp) == EN_CHANGE) Fill(); }
             else if (id == ID_HIDEUPD || id == ID_ONLYAV) Fill();
             else if (id >= ID_B0 && id < ID_B0 + NB) {

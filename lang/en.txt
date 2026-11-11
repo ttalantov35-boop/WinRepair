@@ -1776,3 +1776,27 @@ HKLM (32-бит) ==> HKLM (32-bit)
   В буфере: {} ({}) ==>   In clipboard: {} ({})
 Выберите программу. ==> Select a program.
 Выделить всё\tCtrl+A ==> Select all\tCtrl+A
+Выгрузить всё ==> Unload all
+Выгрузить диск ==> Unload disk
+Кусты из файлов ==> Hives from files
+{}  [офлайн] ==> {}  [offline]
+Загружено систем:  ==> Systems loaded: 
+(ничего не загружено) ==> (nothing loaded)
+   (загружен — обновить) ==>    (loaded — reload)
+Выгрузить выбранный куст ==> Unload selected hive
+Загрузить куст из файла… ==> Load hive from file…
+(офлайн-системы не найдены) ==> (no offline systems found)
+Загрузить офлайн-реестр диска ==> Load offline registry of a disk
+Реестр {}: загружено кустов {}, не загружено {} ==> Registry {}: hives loaded {}, failed {}
+Выберите корень куста (например SYSTEM) в дереве. ==> Select a hive root (e.g. SYSTEM) in the tree.
+В папке Windows этого диска нет System32\\config\\SYSTEM. ==> This disk's Windows folder has no System32\\config\\SYSTEM.
+Адрес раздела: D:\\SYSTEM\\ControlSet001\\… (Enter — перейти) ==> Key address: D:\\SYSTEM\\ControlSet001\\… (Enter to go)
+Сначала загрузите кусты офлайн-Windows (меню Файл → «Загрузить офлайн-реестр диска»). ==> Load the offline Windows hives first (File → "Load offline registry of a disk").
+Это работающая система: её кусты открыты ядром. Для неё используйте regedit (меню Файл). ==> This is the running system: its hives are held by the kernel. Use regedit (File menu).
+Часть кустов не выгрузилась: их удерживает другая программа или окно. Подробности — в журнале. ==> Some hives were not unloaded: another program or window holds them. See the log.
+Адрес не распознан. Пример: D:\\SYSTEM\\ControlSet001\\Services (диск должен быть загружен через меню Файл). ==> Address not recognised. Example: D:\\SYSTEM\\ControlSet001\\Services (the disk must be loaded via the File menu).
+Ни одна система не загружена. Откройте меню Файл → «Загрузить офлайн-реестр диска» и выберите диск (например D:). ==> No system is loaded. Open File → "Load offline registry of a disk" and pick a disk (e.g. D:).
+.  Файл → «Загрузить офлайн-реестр диска» добавляет ещё одну систему; «Выгрузить диск» убирает.  Копия каждого куста сохраняется в Data\\Backups перед загрузкой. ==> .  File → "Load offline registry of a disk" adds another system; "Unload disk" removes it.  A copy of each hive is saved to Data\\Backups before loading.
+{}: предыдущий куст под этим именем не выгружается ==> {}: the previous hive under this name could not be unloaded
+УДАЛИТЬ раздел со всеми вложенными разделами и значениями:\n{} ==> DELETE the key with all subkeys and values:\n{}
+Куст реестра (SYSTEM, SOFTWARE, NTUSER.DAT, *.hiv, *.dat)\\0*\\0 ==> Registry hive (SYSTEM, SOFTWARE, NTUSER.DAT, *.hiv, *.dat)\\0*\\0
