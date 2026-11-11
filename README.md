@@ -9,7 +9,7 @@
 * Тесты ядра (SMBIOS, дамп-заголовок, оценка, JSON): `./run_tests.sh` (любой g++).
 Результат: `build\WinRepair.exe` (статическая CRT, внешних DLL кроме системных нет).
 
-## Использование
+## Использование для диагностики и ремонта на рабочем и офлайн Windows 10, 11
 Запуск `WinRepair.exe` → вкладки с кнопками. Журнал показывается в окне и пишется в `Data\Logs\WinRepair_<дата>.log`
 (если папка программы только для чтения — в `%TEMP%\WinRepair\`). Отчёты — `Data\Reports\<время>_<модуль>\`.
 Без UI: `WinRepair.exe /full [/out:папка]` — полная диагностика + HTML.
@@ -95,7 +95,7 @@ Get-Service и Get-CimInstance Win32_OperatingSystem в офлайн-режим�
 * **Офлайн-проводник** — просмотр файлов выбранной системы, копирование, перенос в карантин, удаление, владелец/права, поиск.
 
 ## GitHub
-Пошаговая инструкция публикации — `docs/GITHUB_GUIDE.md`. Автосборка и выпуск: `.github/workflows`. Участие — `CONTRIBUTING.md`.
+ Автосборка и выпуск: `.github/workflows`. Участие — `CONTRIBUTING.md`.
 
 ## Выпуск и пакет для флешки
 `make_package.bat x64` / `make_package.bat x86` собирают `dist\WinRepair\` (exe обеих архитектур, `Run-WinRepair.cmd`, `Playbooks`, `Tools`, `README_RU.txt`, примеры автозапуска, `SHA256.txt`).
