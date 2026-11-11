@@ -8,6 +8,10 @@
 namespace wr {
 namespace theme {
 
+// Posted to the parent by buttons with AttachHover: wParam = control id, lParam = 1 pointer entered / 0 left.
+// Must not collide with the WM_APP_* values in main.cpp (WM_APP+1 .. WM_APP+13).
+constexpr UINT kWmHover = WM_APP + 40;
+
 enum class Cat {
     Diag,     // blue    - diagnostics, read-only
     Guide,    // teal    - wizards and playbooks (guided work)

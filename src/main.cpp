@@ -92,7 +92,7 @@ const int kActionCount = (int)(sizeof kActions / sizeof kActions[0]);
 
 HWND g_wnd, g_tab, g_log, g_target, g_days, g_ext, g_force, g_host, g_port, g_source, g_prog, g_status, g_banner;
 HWND g_btn[32], g_cancelBtn, g_refreshBtn, g_lbl[6], g_hint, g_descBox;
-constexpr UINT WM_HOVERCMD = WM_APP + 10;   // posted by theme::AttachHover: wParam = control id, lParam = 1 enter / 0 leave
+constexpr UINT WM_HOVERCMD = theme::kWmHover;   // posted by theme::AttachHover: wParam = control id, lParam = 1 enter / 0 leave
 std::wstring g_descTitle, g_descText;
 theme::Cat g_descCat = theme::Cat::Info;
 int g_descId = -2, g_lastCmdId = -1;
