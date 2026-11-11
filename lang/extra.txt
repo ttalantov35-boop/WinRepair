@@ -145,3 +145,20 @@ MANIFEST.sha256 не найден (проверка файлов пропуще�
 Копировать строку ==> Copy row
 Отключить запись… ==> Disable entry…
 Включить запись… ==> Enable entry…
+Всё ==> Everything
+Вход и автозапуск ==> Logon
+Службы ==> Services
+Планировщик ==> Scheduled Tasks
+Прочее (перехват) ==> Other (hijack points)
+Фильтр: ==> Filter:
+Текст в любом столбце (Ctrl+F) ==> Text in any column (Ctrl+F)
+Удалить\tDel ==> Delete\tDel
+Перейти к записи…\tCtrl+J ==> Jump to…\tCtrl+J
+Поиск в интернете… ==> Search online…
+Свойства файла… ==> Properties…
+Копировать\tCtrl+C ==> Copy\tCtrl+C
+Путь записи скопирован в буфер обмена:\n ==> Entry path copied to the clipboard:\n
+\n\nВ окне реестра загрузите кусты и найдите запись через поиск. ==> \n\nIn the registry window load the hives and find the entry with the search.
+Перейти к записи ==> Jump to entry
+У записи нет существующего файла. ==> The entry has no existing file.
+Свойства ==> Properties

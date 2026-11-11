@@ -1,21 +1,22 @@
 // Offline Autoruns + msconfig (services/startup) window.
 #include "ui_tools_common.h"
 #include "modules/autoruns.h"
+#include <shellapi.h>
+#include <cctype>
 
 namespace wr {
 namespace ui {
 
 namespace {
 
-enum { ID_TARGET = 6001, ID_SCAN, ID_HIDESYS, ID_ONLYFLAG, ID_LIST, ID_DISABLE, ID_ENABLE, ID_DELETE, ID_EDITCMD, ID_CLEAN, ID_REVERT, ID_CSV, ID_BCD, ID_REG, ID_CLOSE, ID_INFO };
+enum { ID_TARGET = 6001, ID_SCAN, ID_HIDESYS, ID_ONLYFLAG, ID_LIST, ID_DISABLE, ID_ENABLE, ID_DELETE, ID_EDITCMD, ID_CLEAN, ID_REVERT, ID_CSV, ID_BCD, ID_REG, ID_CLOSE, ID_INFO, ID_CATTAB, ID_QF, ID_QFLBL };
 
 struct State {
-    HWND wnd = nullptr, combo, list, hideSys, onlyFlag, info, btn[10];
+    HWND wnd = nullptr, combo, list, hideSys, onlyFlag, info, btn[10], cat = nullptr, qf = nullptr;
     std::vector<Target> targets;
     std::vector<AutoItem> items;
     std::vector<int> view;  // indices into items
     bool pinned = false;
-    std::map<int, std::string> flt;   // column -> exact value shown only (like an Excel column filter)
 };
 State A;
 
@@ -35,20 +36,22 @@ bool PassBase(const AutoItem& it) {
     return true;
 }
 
-bool PassFilters(const std::string c[kNCols], int skipCol) {
-    for (const auto& f : A.flt) if (f.first != skipCol && c[f.first] != f.second) return false;
-    return true;
+// Categories of the tab strip, as in Sysinternals Autoruns: Everything, Logon, Services, Drivers, Scheduled Tasks, Other (hijack points).
+const wchar_t* kCats[] = {L"Всё", L"Вход и автозапуск", L"Службы", L"Драйверы", L"Планировщик", L"Прочее (перехват)"};
+int CatOf(const AutoItem& it) {
+    if (it.kind == "Служба") return 2;
+    if (it.kind == "Драйвер") return 3;
+    if (it.kind.rfind("Планировщик", 0) == 0) return 4;
+    if (it.op == AOp::Ifeo || it.op == AOp::MoveValue || it.op == AOp::EditOnly) return 5;
+    return 1;
 }
 
-void MarkHeaders() {   // a filtered column carries a marker in its caption
-    for (int i = 0; i < kNCols; ++i) {
-        std::wstring t = TrW(kCols[i]);
-        if (A.flt.count(i)) t += L"  [\u25BC]";
-        LVCOLUMNW c{};
-        c.mask = LVCF_TEXT;
-        c.pszText = (LPWSTR)t.c_str();
-        SendMessageW(A.list, LVM_SETCOLUMNW, (WPARAM)i, (LPARAM)&c);
-    }
+bool PassQuick(const std::string c[kNCols]) {   // quick filter: the text may be in any column (case-insensitive), like the Filter box of Autoruns
+    std::string q = trim(U(GetText(A.qf)));
+    if (q.empty()) return true;
+    q = toLowerUtf8(q);
+    for (int i = 0; i < kNCols; ++i) if (toLowerUtf8(c[i]).find(q) != std::string::npos) return true;
+    return false;
 }
 
 void Fill() {
@@ -59,7 +62,9 @@ void Fill() {
         if (!PassBase(it)) continue;
         std::string c[kNCols];
         Cells(it, c);
-        if (!PassFilters(c, -1)) continue;
+        int cs = A.cat ? TabCtrl_GetCurSel(A.cat) : 0;
+        if (cs > 0 && CatOf(it) != cs) continue;
+        if (!PassQuick(c)) continue;
         int row = (int)A.view.size();
         A.view.push_back((int)i);
         std::wstring st = W(c[0]);
@@ -70,11 +75,9 @@ void Fill() {
         ListView_InsertItem(A.list, &li);
         for (int k = 1; k < kNCols; ++k) ListView_SetItemText(A.list, row, k, (LPWSTR)W(c[k]).c_str());
     }
-    MarkHeaders();
     int nflag = 0;
     for (auto& i : A.items) if (!i.flag.empty()) ++nflag;
-    std::string extra = A.flt.empty() ? "" : fmt("  Фильтров по столбцам: %zu (правая кнопка на таблице — сбросить).", A.flt.size());
-    SetWindowTextW(A.info, W(fmt("Записей: %zu, показано: %zu, с пометками: %d.  Отключение — обратимо (StartupApproved / Start=4 с резервным значением).", A.items.size(), A.view.size(), nflag) + extra).c_str());
+    SetWindowTextW(A.info, W(fmt("Записей: %zu, показано: %zu, с пометками: %d.  Розовый — подозрительная запись, жёлтый — файл не найден, серый — отключено.  Отключение обратимо.", A.items.size(), A.view.size(), nflag)).c_str());
 }
 
 int Target_() { return (int)SendMessageW(A.combo, CB_GETCURSEL, 0, 0); }
@@ -156,100 +159,94 @@ void SaveCsv() {
     if (WriteText(U(file), AutorunsCsv(A.items))) Logger::I().log(Lvl::Ok, "Автозагрузка сохранена: " + U(file));
 }
 
-// Excel-style column filter: lists the values of the column (with counts) and keeps only the rows with the chosen one.
-void FilterMenu(int col, POINT pt) {
-    std::map<std::string, int> cnt;
-    for (const auto& it : A.items) {
-        if (!PassBase(it)) continue;
-        std::string c[kNCols];
-        Cells(it, c);
-        if (PassFilters(c, col)) ++cnt[c[col]];
+std::wstring UrlEncode(const std::string& u8) {
+    std::wstring o;
+    for (unsigned char ch : u8) {
+        if (isalnum(ch) || ch == '-' || ch == '.' || ch == '_') o += (wchar_t)ch;
+        else o += W(fmt("%%%02X", ch));
     }
-    std::vector<std::string> vals;
-    for (const auto& kv : cnt) vals.push_back(kv.first);
-    HMENU m = CreatePopupMenu();
-    AppendMenuW(m, MF_STRING | (A.flt.count(col) ? 0 : MF_GRAYED), 1, (TrW(L"Показать все значения столбца «") + TrW(kCols[col]) + L"»").c_str());
-    AppendMenuW(m, MF_STRING | (A.flt.empty() ? MF_GRAYED : 0), 2, TrW(L"Сбросить все фильтры").c_str());
-    AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
-    const size_t kMax = 60;
-    for (size_t i = 0; i < vals.size() && i < kMax; ++i) {
-        std::wstring t = vals[i].empty() ? TrW(L"(пусто)") : TrW(W(vals[i]));
-        if (t.size() > 70) t = t.substr(0, 67) + L"…";
-        for (size_t p = 0; (p = t.find(L'&', p)) != std::wstring::npos; p += 2) t.insert(p, 1, L'&');   // literal ampersand
-        t += L"   (" + std::to_wstring(cnt[vals[i]]) + L")";
-        UINT fl = MF_STRING | ((A.flt.count(col) && A.flt[col] == vals[i]) ? MF_CHECKED : 0);
-        AppendMenuW(m, fl, (UINT_PTR)(100 + i), t.c_str());
-    }
-    if (vals.size() > kMax) AppendMenuW(m, MF_STRING | MF_GRAYED, 9999, (TrW(L"… показаны первые ") + std::to_wstring(kMax) + TrW(L" значений")).c_str());
-    SetForegroundWindow(A.wnd);
-    int c = TrackPopupMenu(m, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, A.wnd, nullptr);
-    DestroyMenu(m);
-    if (c == 1) A.flt.erase(col);
-    else if (c == 2) A.flt.clear();
-    else if (c >= 100 && c < 100 + (int)std::min(vals.size(), kMax)) A.flt[col] = vals[(size_t)(c - 100)];
-    else return;
-    Fill();
+    return o;
 }
 
-int ColumnAt(POINT screen) {   // column under a screen point inside the table (header or cell); -1 if none
-    HWND hdr = ListView_GetHeader(A.list);
-    POINT hp = screen;
-    ScreenToClient(hdr, &hp);
-    HDHITTESTINFO hh{};
-    hh.pt = hp;
-    SendMessageW(hdr, HDM_HITTEST, 0, (LPARAM)&hh);
-    return hh.iItem >= 0 && hh.iItem < kNCols ? hh.iItem : -1;
+std::string BaseName(const std::string& p) {
+    size_t k = p.find_last_of("\\/");
+    return k == std::string::npos ? p : p.substr(k + 1);
 }
 
-// Right-click on the table: filter by the column under the pointer, copy, and the row commands. Outside the table: nothing.
+// Entry commands (the same set the Autoruns entry menu has): jump to, search online, properties, copy, delete.
+void JumpTo(const AutoItem& it) {
+    if (!it.file.empty() && it.fileExists) {
+        std::wstring a = L"/select,\"" + W(it.file) + L"\"";
+        ShellExecuteW(A.wnd, L"open", L"explorer.exe", a.c_str(), nullptr, SW_SHOWNORMAL);
+    } else {   // a registry entry: put its path on the clipboard and open the offline registry editor
+        ClipText(A.wnd, W(it.location));
+        MessageBoxW(A.wnd, (TrW(L"Путь записи скопирован в буфер обмена:\n") + W(it.location) + TrW(L"\n\nВ окне реестра загрузите кусты и найдите запись через поиск.")).c_str(),
+                    TrW(L"Перейти к записи").c_str(), MB_OK | MB_ICONINFORMATION);
+        OpenRegistryEditor();
+    }
+}
+
+void SearchOnline(const AutoItem& it) {
+    std::string q = !it.file.empty() ? BaseName(it.file) : it.name;
+    std::wstring url = L"https://www.google.com/search?q=" + UrlEncode(q);
+    ShellExecuteW(A.wnd, L"open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+}
+
+void FileProps(const AutoItem& it) {
+    if (it.file.empty() || !it.fileExists) { MessageBoxW(A.wnd, TrW(L"У записи нет существующего файла.").c_str(), TrW(L"Свойства").c_str(), MB_OK | MB_ICONINFORMATION); return; }
+    std::wstring f = W(it.file);
+    SHELLEXECUTEINFOW e{sizeof e};
+    e.fMask = SEE_MASK_INVOKEIDLIST;
+    e.hwnd = A.wnd;
+    e.lpVerb = L"properties";
+    e.lpFile = f.c_str();
+    e.nShow = SW_SHOW;
+    ShellExecuteExW(&e);
+}
+
+void CopyRow() { int si = ListView_GetNextItem(A.list, -1, LVNI_SELECTED); if (si >= 0) ClipText(A.wnd, ListRowText(A.list, si)); }
+
+// Right-click on an entry: Autoruns-style menu. Outside the table: nothing.
 bool ListContextMenu(HWND src, LPARAM lp) {
-    HWND hdr = ListView_GetHeader(A.list);
-    if (src != A.list && src != hdr) return false;
+    if (src != A.list) return false;
     POINT pt{(short)LOWORD(lp), (short)HIWORD(lp)};
     if (lp == (LPARAM)-1) { RECT r; GetWindowRect(A.list, &r); pt = {r.left + S(20), r.top + S(20)}; }
-    int col = lp == (LPARAM)-1 ? 0 : ColumnAt(pt);
-    bool onHeader = src == hdr;
-    int row = -1;
-    if (!onHeader && lp != (LPARAM)-1) {
+    else {
         POINT c = pt;
         ScreenToClient(A.list, &c);
         LVHITTESTINFO hi{};
         hi.pt = c;
-        ListView_SubItemHitTest(A.list, &hi);
-        row = hi.iItem;
-        if (hi.iSubItem >= 0 && hi.iSubItem < kNCols) col = hi.iSubItem;
+        int row = ListView_HitTest(A.list, &hi);
         if (row >= 0) ListView_SetItemState(A.list, row, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
     }
-    if (col < 0) col = 0;
-    if (onHeader) { FilterMenu(col, pt); return true; }
     const AutoItem* it = Sel();
-    enum { M_FILTER = 1, M_RESET, M_CELL, M_ROW, M_ALL, M_OFF, M_ON, M_DEL, M_EDIT };
+    if (!it) return true;   // empty area of the table: nothing to act on
+    bool off = it->state == "Отключено";
+    enum { M_TOGGLE = 1, M_EDIT, M_DEL, M_JUMP, M_WEB, M_PROPS, M_COPY, M_ALL };
     HMENU m = CreatePopupMenu();
-    AppendMenuW(m, MF_STRING, M_FILTER, (TrW(L"Фильтр по столбцу «") + TrW(kCols[col]) + L"»…").c_str());
-    AppendMenuW(m, MF_STRING | (A.flt.empty() ? MF_GRAYED : 0), M_RESET, TrW(L"Сбросить все фильтры").c_str());
+    AppendMenuW(m, MF_STRING, M_TOGGLE, TrW(off ? L"Включить запись…" : L"Отключить запись…").c_str());
+    AppendMenuW(m, MF_STRING, M_EDIT, TrW(L"Изменить команду…").c_str());
+    AppendMenuW(m, MF_STRING, M_DEL, TrW(L"Удалить\tDel").c_str());
     AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(m, MF_STRING | (it ? 0 : MF_GRAYED), M_CELL, TrW(L"Копировать ячейку").c_str());
-    AppendMenuW(m, MF_STRING | (it ? 0 : MF_GRAYED), M_ROW, TrW(L"Копировать строку").c_str());
-    AppendMenuW(m, MF_STRING | (A.view.empty() ? MF_GRAYED : 0), M_ALL, TrW(L"Копировать всю таблицу").c_str());
+    AppendMenuW(m, MF_STRING, M_JUMP, TrW(L"Перейти к записи…\tCtrl+J").c_str());
+    AppendMenuW(m, MF_STRING, M_WEB, TrW(L"Поиск в интернете…").c_str());
+    AppendMenuW(m, MF_STRING, M_PROPS, TrW(L"Свойства файла…").c_str());
     AppendMenuW(m, MF_SEPARATOR, 0, nullptr);
-    AppendMenuW(m, MF_STRING | (it ? 0 : MF_GRAYED), M_OFF, TrW(L"Отключить запись…").c_str());
-    AppendMenuW(m, MF_STRING | (it ? 0 : MF_GRAYED), M_ON, TrW(L"Включить запись…").c_str());
-    AppendMenuW(m, MF_STRING | (it ? 0 : MF_GRAYED), M_EDIT, TrW(L"Изменить команду…").c_str());
-    AppendMenuW(m, MF_STRING | (it ? 0 : MF_GRAYED), M_DEL, TrW(L"Удалить запись…").c_str());
+    AppendMenuW(m, MF_STRING, M_COPY, TrW(L"Копировать\tCtrl+C").c_str());
+    AppendMenuW(m, MF_STRING, M_ALL, TrW(L"Копировать всю таблицу").c_str());
     SetForegroundWindow(A.wnd);
     int c = TrackPopupMenu(m, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, A.wnd, nullptr);
     DestroyMenu(m);
-    int si = ListView_GetNextItem(A.list, -1, LVNI_SELECTED);
+    AutoItem cp = *it;
     switch (c) {
-        case M_FILTER: FilterMenu(col, pt); break;
-        case M_RESET: A.flt.clear(); Fill(); break;
-        case M_CELL: if (si >= 0) { wchar_t b[2048] = L""; ListView_GetItemText(A.list, si, col, b, 2048); ClipText(A.wnd, b); } break;
-        case M_ROW: if (si >= 0) ClipText(A.wnd, ListRowText(A.list, si)); break;
-        case M_ALL: { std::wstring all; for (int i = 0, n = ListView_GetItemCount(A.list); i < n; ++i) all += ListRowText(A.list, i) + L"\r\n"; ClipText(A.wnd, all); break; }
-        case M_OFF: DoOne(0); break;
-        case M_ON: DoOne(1); break;
+        case M_TOGGLE: DoOne(off ? 1 : 0); break;
         case M_EDIT: DoOne(3); break;
         case M_DEL: DoOne(2); break;
+        case M_JUMP: JumpTo(cp); break;
+        case M_WEB: SearchOnline(cp); break;
+        case M_PROPS: FileProps(cp); break;
+        case M_COPY: CopyRow(); break;
+        case M_ALL: { std::wstring all; for (int i = 0, n = ListView_GetItemCount(A.list); i < n; ++i) all += ListRowText(A.list, i) + L"\r\n"; ClipText(A.wnd, all); break; }
     }
     return true;
 }
@@ -261,6 +258,11 @@ void Layout() {
     Place(GetDlgItem(A.wnd, 6900), m, y + S(3), S(100), S(20));
     Place(A.combo, m + S(105), y, W_ - 2 * m - S(105) - S(130), S(300));
     Place(GetDlgItem(A.wnd, ID_SCAN), W_ - m - S(120), y - 1, S(120), S(26));
+    y += S(32);
+    Place(A.cat, m, y, W_ - 2 * m, S(30));
+    y += S(34);
+    Place(GetDlgItem(A.wnd, ID_QFLBL), m, y + S(4), S(70), S(20));
+    Place(A.qf, m + S(75), y, std::min(S(420), W_ - 2 * m - S(75)), S(26));
     y += S(32);
     Place(A.hideSys, m, y, S(330), S(20));
     Place(A.onlyFlag, m + S(340), y, S(380), S(20));
@@ -284,6 +286,7 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             switch (LOWORD(wp)) {
                 case ID_SCAN: Scan(); break;
                 case ID_HIDESYS: case ID_ONLYFLAG: Fill(); break;
+                case ID_QF: if (HIWORD(wp) == EN_CHANGE) Fill(); break;
                 case ID_DISABLE: DoOne(0); break;
                 case ID_ENABLE: DoOne(1); break;
                 case ID_DELETE: DoOne(2); break;
@@ -299,10 +302,29 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         case WM_NOTIFY: {
             auto* nh = (NMHDR*)lp;
             if (nh->hwndFrom == A.list && nh->code == NM_DBLCLK) DoOne(3);
-            else if (nh->hwndFrom == A.list && nh->code == LVN_COLUMNCLICK) {   // click on a column caption = value filter of that column
-                POINT pt;
-                GetCursorPos(&pt);
-                FilterMenu(((NMLISTVIEW*)lp)->iSubItem, pt);
+            else if (nh->hwndFrom == A.cat && nh->code == TCN_SELCHANGE) Fill();
+            else if (nh->hwndFrom == A.list && nh->code == LVN_KEYDOWN) {
+                WORD k = ((NMLVKEYDOWN*)lp)->wVKey;
+                bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+                if (k == VK_DELETE) DoOne(2);
+                else if (k == VK_F5) Scan();
+                else if (ctrl && k == 'C') CopyRow();
+                else if (ctrl && k == 'J') { const AutoItem* it = Sel(); if (it) { AutoItem cp = *it; JumpTo(cp); } }
+                else if (ctrl && k == 'F') SetFocus(A.qf);
+            } else if (nh->hwndFrom == A.list && nh->code == NM_CUSTOMDRAW) {   // row colours as in Autoruns
+                auto* cd = (NMLVCUSTOMDRAW*)lp;
+                if (cd->nmcd.dwDrawStage == CDDS_PREPAINT) return CDRF_NOTIFYITEMDRAW;
+                if (cd->nmcd.dwDrawStage == CDDS_ITEMPREPAINT) {
+                    size_t r = (size_t)cd->nmcd.dwItemSpec;
+                    if (r < A.view.size() && !(ListView_GetItemState(A.list, (int)r, LVIS_SELECTED) & LVIS_SELECTED)) {
+                        const AutoItem& it = A.items[(size_t)A.view[r]];
+                        if (!it.file.empty() && !it.fileExists) cd->clrTextBk = RGB(255, 255, 170);   // file not found: yellow
+                        else if (!it.flag.empty()) cd->clrTextBk = RGB(255, 205, 205);               // suspicious: pink
+                        if (it.state == "Отключено") cd->clrText = RGB(125, 125, 125);                // disabled: grey
+                    }
+                    return CDRF_NEWFONT;
+                }
+                return CDRF_DODEFAULT;
             }
             return 0;
         }
@@ -327,6 +349,11 @@ void OpenAutorunsImpl() {
     A.combo = Mk(h, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, ID_TARGET);
     A.targets = FillTargetCombo(A.combo, true);
     Mk(h, L"BUTTON", L"Сканировать", BS_PUSHBUTTON | WS_TABSTOP, ID_SCAN);
+    A.cat = Mk(h, WC_TABCONTROLW, L"", WS_TABSTOP, ID_CATTAB);
+    for (int i = 0; i < 6; ++i) { TCITEMW ti{}; ti.mask = TCIF_TEXT; ti.pszText = (LPWSTR)kCats[i]; TabCtrl_InsertItem(A.cat, i, &ti); }
+    Mk(h, L"STATIC", L"Фильтр:", SS_LEFT, ID_QFLBL);
+    A.qf = Mk(h, L"EDIT", L"", ES_AUTOHSCROLL | WS_TABSTOP, ID_QF, WS_EX_CLIENTEDGE);
+    SendMessageW(A.qf, EM_SETCUEBANNER, TRUE, (LPARAM)TrW(L"Текст в любом столбце (Ctrl+F)").c_str());
     A.hideSys = Mk(h, L"BUTTON", L"Скрыть системные службы и драйверы (как «Не показывать службы Microsoft»)", BS_AUTOCHECKBOX | WS_TABSTOP, ID_HIDESYS);
     SendMessageW(A.hideSys, BM_SETCHECK, BST_CHECKED, 0);
     A.onlyFlag = Mk(h, L"BUTTON", L"Только записи с пометками (подозрительные / файл не найден)", BS_AUTOCHECKBOX | WS_TABSTOP, ID_ONLYFLAG);
