@@ -6,3 +6,13 @@ Data/
 *.pdb
 *.pfx
 *.snk
+*.zip
+*.log
+.vs/
+*.user
+*.o
+*.exe
+*.ilk
+*.exp
+*.lib
+__pycache__/

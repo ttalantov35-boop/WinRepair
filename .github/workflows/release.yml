@@ -1,0 +1,35 @@
+name: Release
+# Runs when you push a tag like v1.0.0 : builds x64 + x86 and attaches the package to a GitHub Release.
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Package x64
+        shell: cmd
+        run: make_package.bat x64
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+      - name: Package x86
+        shell: cmd
+        run: make_package.bat x86
+      - name: Zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist\WinRepair -DestinationPath "WinRepair-${{ github.ref_name }}.zip"
+          (Get-FileHash "WinRepair-${{ github.ref_name }}.zip" -Algorithm SHA256).Hash | Out-File "WinRepair-${{ github.ref_name }}.zip.sha256" -Encoding ascii
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            WinRepair-${{ github.ref_name }}.zip
+            WinRepair-${{ github.ref_name }}.zip.sha256
+          generate_release_notes: true

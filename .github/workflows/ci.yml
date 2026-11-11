@@ -1,0 +1,27 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  core-tests:
+    name: Core tests (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./run_tests.sh
+  build-windows:
+    name: Build WinRepair.exe (MSVC x64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Build
+        shell: cmd
+        run: build_msvc.bat
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WinRepair-x64-${{ github.sha }}
+          path: build/WinRepair.exe
