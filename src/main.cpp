@@ -91,11 +91,7 @@ Action kActions[] = {
 const int kActionCount = (int)(sizeof kActions / sizeof kActions[0]);
 
 HWND g_wnd, g_tab, g_log, g_target, g_days, g_ext, g_force, g_host, g_port, g_source, g_prog, g_status, g_banner;
-HWND g_btn[32], g_cancelBtn, g_refreshBtn, g_lbl[6], g_hint, g_descBox;
-constexpr UINT WM_HOVERCMD = theme::kWmHover;   // posted by theme::AttachHover: wParam = control id, lParam = 1 enter / 0 leave
-std::wstring g_descTitle, g_descText;
-theme::Cat g_descCat = theme::Cat::Info;
-int g_descId = -2, g_lastCmdId = -1;
+HWND g_btn[32], g_cancelBtn, g_refreshBtn, g_lbl[6], g_hint;
 HWND g_langBtn = nullptr, g_exitBtn = nullptr;
 HICON g_icon = nullptr;
 bool g_logRich = false;
@@ -327,8 +323,7 @@ void Layout() {
     }
     PlaceOptions(tr, cnt, cols, bh, gap);
     y += tabH + S(6);
-    MoveWindow(g_descBox, m, y, W_ - 2 * m, S(88), TRUE);
-    y += S(88) + m;
+    y += m;
     int barH = S(34);
     MoveWindow(g_log, m, y, W_ - 2 * m, std::max(S(60), H - y - barH - 2 * m - S(22)), TRUE);
     int by = H - barH - S(22) - m + S(0);
@@ -415,23 +410,40 @@ const wchar_t* CatLabel(theme::Cat c) {
     }
 }
 
-// id < 0: default hint; otherwise the description of action `id - IDC_ACTION0`
-void ShowDesc(int id) {
-    if (id == g_descId) return;
-    g_descId = id;
-    if (id >= IDC_ACTION0 && id < IDC_ACTION0 + kActionCount) {
-        const Action& a = kActions[id - IDC_ACTION0];
-        std::wstring t = W(U(std::wstring(a.text)));
-        while (!t.empty() && (t.back() == L'…' || t.back() == L'.')) t.pop_back();
-        g_descTitle = t;
-        g_descText = W(U(std::wstring(DescOf(a.name))));
-        g_descCat = CatOfAction(a.name);
-    } else {
-        g_descTitle.clear();
-        g_descText = W(U(std::wstring(L"Наведите курсор на команду — здесь появится описание, что она делает.")));
-        g_descCat = theme::Cat::Info;
+// Hover tooltip for every command button: title + what the command does.
+HWND g_tip = nullptr;
+std::wstring g_tipText;
+
+void CreateTooltips() {
+    g_tip = CreateWindowExW(WS_EX_TOPMOST, TOOLTIPS_CLASSW, nullptr, WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX,
+                            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, g_wnd, nullptr, GetModuleHandleW(nullptr), nullptr);
+    if (!g_tip) return;
+    SendMessageW(g_tip, TTM_SETMAXTIPWIDTH, 0, S(420));
+    SendMessageW(g_tip, TTM_SETDELAYTIME, TTDT_INITIAL, 350);
+    SendMessageW(g_tip, TTM_SETDELAYTIME, TTDT_AUTOPOP, 30000);
+    SendMessageW(g_tip, TTM_SETDELAYTIME, TTDT_RESHOW, 100);
+    for (int i = 0; i < kActionCount; ++i) {
+        TOOLINFOW ti{};
+        ti.cbSize = sizeof ti;
+        ti.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
+        ti.hwnd = g_wnd;
+        ti.uId = (UINT_PTR)g_btn[i];
+        ti.lpszText = LPSTR_TEXTCALLBACKW;
+        SendMessageW(g_tip, TTM_ADDTOOLW, 0, (LPARAM)&ti);
     }
-    if (g_descBox) InvalidateRect(g_descBox, nullptr, FALSE);
+}
+
+// TTN_GETDISPINFO: title and text for the button under the pointer
+void TooltipNeedText(NMTTDISPINFOW* di) {
+    int id = GetDlgCtrlID((HWND)di->hdr.idFrom);
+    if (id < IDC_ACTION0 || id >= IDC_ACTION0 + kActionCount) return;
+    const Action& a = kActions[id - IDC_ACTION0];
+    std::wstring t = W(U(std::wstring(a.text)));
+    while (!t.empty() && (t.back() == L'…' || t.back() == L'.')) t.pop_back();
+    g_tipText = W(U(std::wstring(DescOf(a.name))));
+    if (g_tipText.empty()) g_tipText = t;
+    SendMessageW(g_tip, TTM_SETTITLEW, TTI_INFO, (LPARAM)t.c_str());
+    di->lpszText = const_cast<wchar_t*>(g_tipText.c_str());
 }
 
 void ManageBackups() {
@@ -465,8 +477,6 @@ void CheckForeignBackups() {
 }
 
 void StartAction(int idx) {
-    g_lastCmdId = IDC_ACTION0 + idx;
-    ShowDesc(g_lastCmdId);
     const Action& a = kActions[idx];
     if (!a.fn) {
         if (!strcmp(a.name, "open-report")) OpenLastReport();
@@ -788,7 +798,6 @@ void CreateControls() {
     g_refreshBtn = Mk(L"BUTTON", L"Обновить", BS_OWNERDRAW | WS_TABSTOP, IDC_REFRESH);
     g_lbl[1] = Mk(L"STATIC", L"Период, дней:", SS_LEFT, IDC_L2);
     g_hint = Mk(L"STATIC", L"", SS_LEFT, IDC_L6);
-    g_descBox = Mk(L"STATIC", L"", SS_OWNERDRAW, IDC_DESC);
     g_days = Mk(L"EDIT", L"3", ES_NUMBER | WS_TABSTOP, IDC_DAYS, WS_EX_CLIENTEDGE);
     g_ext = Mk(L"BUTTON", L"Расширенный режим (ScanHealth, chkdsk /scan)", BS_AUTOCHECKBOX | WS_TABSTOP, IDC_EXT);
     g_force = Mk(L"BUTTON", L"Точка восстановления: игнорировать лимит 24 ч", BS_AUTOCHECKBOX | WS_TABSTOP, IDC_FORCE);
@@ -840,17 +849,12 @@ void CreateControls() {
     for (int i = 0; i < kActionCount; ++i) theme::AttachHover(g_btn[i]);
     FillTargets();
     ShowTabButtons();
-    ShowDesc(-1);
+    CreateTooltips();
 }
 
 LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     switch (m) {
         case WM_CREATE: g_wnd = h; return 0;
-        case WM_HOVERCMD:
-            if (!(wp >= IDC_ACTION0 && wp < (WPARAM)(IDC_ACTION0 + kActionCount))) return 0;   // service buttons keep the card as it is
-            if (lp) ShowDesc((int)wp);
-            else ShowDesc(g_lastCmdId);   // pointer left: back to the last command that was started (or the default hint)
-            return 0;
         case WM_SIZE: if (g_tab) Layout(); InvalidateRect(h, nullptr, FALSE); return 0;
         case WM_PAINT: {
             PAINTSTRUCT ps;
@@ -875,10 +879,6 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
                 ti.cchTextMax = 127;
                 TabCtrl_GetItem(g_tab, di->itemID, &ti);
                 theme::DrawTab(di, buf, TabCat((int)di->itemID), (di->itemState & ODS_SELECTED) != 0);
-                return TRUE;
-            }
-            if (di->CtlType == ODT_STATIC && di->CtlID == IDC_DESC) {
-                theme::DrawInfoCard(di, g_descTitle, g_descText, g_descCat, W(U(std::wstring(CatLabel(g_descCat)))));
                 return TRUE;
             }
             if (di->CtlType != ODT_BUTTON) break;
@@ -916,6 +916,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         }
         case WM_NOTIFY: {
             auto* nh = (NMHDR*)lp;
+            if (nh->code == TTN_GETDISPINFOW && nh->hwndFrom == g_tip) { TooltipNeedText((NMTTDISPINFOW*)lp); return 0; }
             if (nh->hwndFrom == g_tab && nh->code == TCN_SELCHANGE) ShowTabButtons();
             return 0;
         }

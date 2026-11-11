@@ -53,13 +53,11 @@ LRESULT CALLBACK HoverProc(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR, DWORD
                 TRACKMOUSEEVENT te{sizeof te, TME_LEAVE, h, 0};
                 TrackMouseEvent(&te);
                 InvalidateRect(h, nullptr, FALSE);
-                PostMessageW(GetParent(h), kWmHover, (WPARAM)GetDlgCtrlID(h), 1);
             }
             break;
         case WM_MOUSELEAVE:
             RemovePropW(h, Prop());
             InvalidateRect(h, nullptr, FALSE);
-            PostMessageW(GetParent(h), kWmHover, (WPARAM)GetDlgCtrlID(h), 0);
             break;
         case WM_NCDESTROY:
             RemovePropW(h, Prop());

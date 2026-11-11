@@ -1515,7 +1515,6 @@ MANIFEST.sha256 не найден (проверка файлов пропуще�
 Показывает резервные копии кустов реестра, BCD и файлов, сделанные перед изменениями: размер и расположение. Можно удалить все копии или открыть папку. Хранится одна копия на систему. ==> Shows the backups of registry hives, BCD and files made before changes: size and location. You can delete all copies or open the folder. One copy is kept per system.
 Проверка Secure Boot: включён ли он и есть ли в KEK и db сертификаты 2023 года взамен истекающих в 2026. Только чтение. ==> Secure Boot check: whether it is on and whether KEK and db contain the 2023 certificates that replace those expiring in 2026. Read-only.
 Если диск не виден или синий экран 0x7B: поиск томов, заблокированных BitLocker (разблокировка ключом), устройств без драйвера хранилища (Intel VMD/RST, NVMe, RAID) и загрузка драйвера. ==> If a disk is not visible or blue screen 0x7B: finds BitLocker-locked volumes (unlock with a key), devices without a storage driver (Intel VMD/RST, NVMe, RAID) and loads a driver.
-Наведите курсор на команду — здесь появится описание, что она делает. ==> Point at a command: its description will appear here.
 Диагностика — только чтение ==> Diagnostics — read-only
 Изменяет систему ==> Changes the system
 Служебное ==> Service
