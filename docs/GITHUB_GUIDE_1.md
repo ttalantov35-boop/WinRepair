@@ -1,4 +1,4 @@
-[English](GITHUB_GUIDE.md) · [Русский](GITHUB_GUIDE.ru.md)
+
 
 # Publishing WinRepair on GitHub — step by step
 
