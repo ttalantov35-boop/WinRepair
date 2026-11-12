@@ -112,8 +112,8 @@ inline void ShowCommandsMenu(HWND wnd, HWND clicked, LPARAM lp) {
     int sel = ListView_GetNextItem(clicked, -1, LVNI_SELECTED);
     enum { C_ROW = 1, C_ALL };
     HMENU m = CreatePopupMenu();
-    AppendMenuW(m, MF_STRING | (sel < 0 ? MF_GRAYED : 0), C_ROW, TrW(L"Копировать выбранную строку").c_str());
-    AppendMenuW(m, MF_STRING | (ListView_GetItemCount(clicked) == 0 ? MF_GRAYED : 0), C_ALL, TrW(L"Копировать всю таблицу").c_str());
+    AppendMenuW(m, MF_STRING | (sel < 0 ? MF_GRAYED : 0), C_ROW, TrW(L"РљРѕРїРёСЂРѕРІР°С‚СЊ РІС‹Р±СЂР°РЅРЅСѓСЋ СЃС‚СЂРѕРєСѓ").c_str());
+    AppendMenuW(m, MF_STRING | (ListView_GetItemCount(clicked) == 0 ? MF_GRAYED : 0), C_ALL, TrW(L"РљРѕРїРёСЂРѕРІР°С‚СЊ РІСЃСЋ С‚Р°Р±Р»РёС†Сѓ").c_str());
     SetForegroundWindow(wnd);
     int c = TrackPopupMenu(m, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, wnd, nullptr);
     DestroyMenu(m);
@@ -167,6 +167,7 @@ bool FormDialog(HWND owner, const std::wstring& title, std::vector<FormField>& f
 
 // fill a combo with targets; returns them
 std::vector<Target> FillTargetCombo(HWND combo, bool offlineOnly);
+bool RefreshTargetCombo(HWND combo, std::vector<Target>& list, bool offlineOnly);   // true if the list changed
 
 void OpenRegistryEditorImpl();
 void OpenAppsImpl();
