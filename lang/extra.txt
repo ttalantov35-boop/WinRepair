@@ -369,3 +369,8 @@ HKLM (32-бит) ==> HKLM (32-bit)
 {}: предыдущий куст под этим именем не выгружается ==> {}: the previous hive under this name could not be unloaded
 УДАЛИТЬ раздел со всеми вложенными разделами и значениями:\n{} ==> DELETE the key with all subkeys and values:\n{}
 Куст реестра (SYSTEM, SOFTWARE, NTUSER.DAT, *.hiv, *.dat)\\0*\\0 ==> Registry hive (SYSTEM, SOFTWARE, NTUSER.DAT, *.hiv, *.dat)\\0*\\0
+Автозагрузка и службы: текущая и офлайн-Windows (Autoruns + msconfig)… ==> Startup and services: current and offline Windows (Autoruns + msconfig)…
+Установленные приложения: текущая и офлайн-Windows (удалить программу)… ==> Installed applications: current and offline Windows (remove a program)…
+Установленные приложения текущей и офлайн-Windows — найти и принудительно удалить программу, мешающую загрузке ==> Installed applications of the current and offline Windows — find and force-remove a program that blocks the boot
+Автозагрузка и службы текущей и офлайн-Windows (Autoruns + msconfig) ==> Startup and services of the current and offline Windows (Autoruns + msconfig)
+Текущую Windows можно просмотреть в окне «Автозагрузка и службы» (выберите её в списке «Целевая ОС»). ==> The current Windows can be viewed in the "Startup and services" window (pick it in the "Target OS" list).
