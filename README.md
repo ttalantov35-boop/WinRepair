@@ -2,7 +2,6 @@
 
 # WinRepair Toolkit — offline Windows diagnostics and repair
 
-**English** · [Русский](README.ru.md)
 
 A single `WinRepair.exe`, no installation: diagnose and repair a Windows that will not boot — from WinPE, WinRE, or straight from a running system.
 It works with several installed systems at once (C:, D:…) and needs **no** .NET, PowerShell or VC++ Redistributable.
