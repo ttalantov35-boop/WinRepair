@@ -343,12 +343,12 @@ void OpenAutorunsImpl() {
     if (A.wnd) { ShowWindow(A.wnd, SW_RESTORE); SetForegroundWindow(A.wnd); return; }
     RegisterOnce(L"WRAutoruns", Proc);
     A = State();
-    A.wnd = CreateWindowExW(0, L"WRAutoruns", L"Автозагрузка и службы офлайн-Windows (Autoruns + msconfig)", WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, S(1200), S(720),
+    A.wnd = CreateWindowExW(0, L"WRAutoruns", L"Автозагрузка и службы текущей и офлайн-Windows (Autoruns + msconfig)", WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, S(1200), S(720),
                             g_ui.main, nullptr, GetModuleHandleW(nullptr), nullptr);
     HWND h = A.wnd;
     Mk(h, L"STATIC", L"Целевая ОС:", SS_LEFT, 6900);
     A.combo = Mk(h, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, ID_TARGET);
-    A.targets = FillTargetCombo(A.combo, true);
+    A.targets = FillTargetCombo(A.combo, false);
     Mk(h, L"BUTTON", L"Сканировать", BS_PUSHBUTTON | WS_TABSTOP, ID_SCAN);
     A.cat = Mk(h, WC_TABCONTROLW, L"", WS_TABSTOP, ID_CATTAB);
     for (int i = 0; i < 6; ++i) { TCITEMW ti{}; ti.mask = TCIF_TEXT; ti.pszText = (LPWSTR)kCats[i]; TabCtrl_InsertItem(A.cat, i, &ti); }
