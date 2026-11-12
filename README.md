@@ -1,6 +1,6 @@
 <p align="center"><img src="docs/branding/logo-256.png" width="128" alt="WinRepair Toolkit"></p>
 
-# WinRepair Toolkit — диагностика и офлайн-ремонт Windows
+# WinRepair Toolkit — диагностика онлайн и офлайн-ремонт Windows
 
 Один файл `WinRepair.exe` без установки: диагностика и ремонт Windows, которая не загружается, — из WinPE, WinRE или прямо из работающей системы.
 Работает сразу с несколькими установленными системами (C:, D:…) и **не требует** .NET, PowerShell или VC++ Redistributable.
