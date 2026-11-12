@@ -2,7 +2,9 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore: ['**.md', 'docs/**', '.github/ISSUE_TEMPLATE/**']
   pull_request:
+    paths-ignore: ['**.md', 'docs/**']
 jobs:
   core-tests:
     name: Core tests (Linux)
