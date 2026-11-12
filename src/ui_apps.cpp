@@ -286,7 +286,8 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         case WM_GETMINMAXINFO: { auto* mm = (MINMAXINFO*)lp; mm->ptMinTrackSize.x = S(980); mm->ptMinTrackSize.y = S(540); return 0; }
         case WM_COMMAND: {
             int id = LOWORD(wp);
-            if (id == ID_SCAN || (id == ID_TARGET && HIWORD(wp) == CBN_SELCHANGE)) Scan();
+            if (id == ID_TARGET && HIWORD(wp) == CBN_DROPDOWN) RefreshTargetCombo(A.combo, A.targets, false);
+            else if (id == ID_SCAN || (id == ID_TARGET && HIWORD(wp) == CBN_SELCHANGE)) Scan();
             else if (id == ID_QF) { if (HIWORD(wp) == EN_CHANGE) Fill(); }
             else if (id == ID_HIDEUPD || id == ID_ONLYAV) Fill();
             else if (id >= ID_B0 && id < ID_B0 + NB) {
@@ -368,6 +369,8 @@ void OpenAppsImpl() {
     for (int i = 0; i < NB; ++i) A.btn[i] = Mk(h, L"BUTTON", bt[i], BS_PUSHBUTTON | WS_TABSTOP, ID_B0 + i);
     Layout();
     ShowWindow(h, SW_SHOW);
+    UpdateWindow(h);
+    Scan();   // show the selected system's programs at once
     if (!A.targets.empty()) PostMessageW(h, WM_COMMAND, MAKEWPARAM(ID_SCAN, BN_CLICKED), 0);
 }
 
