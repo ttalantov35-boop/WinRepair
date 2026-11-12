@@ -297,7 +297,7 @@ void PEvents(Ctx& c) {
 
 void PPersistence(Ctx& c) {
     if (!c.target.valid) return;
-    if (c.target.online) { AddF(c, Sev::Info, "Автозагрузка работающей ОС", "Для текущей Windows используйте Autoruns/msconfig; офлайн-анализ доступен для системы на другом диске.", AWin("autoruns", "Открыть автозагрузку")); return; }
+    if (c.target.online) { AddF(c, Sev::Info, "Автозагрузка работающей ОС", "Текущую Windows можно просмотреть в окне «Автозагрузка и службы» (выберите её в списке «Целевая ОС»).", AWin("autoruns", "Открыть автозагрузку")); return; }
     std::string err;
     auto items = ScanAutoruns(c.target, err);
     if (!err.empty()) { AddF(c, Sev::Info, "Автозагрузка не прочитана", err); return; }
