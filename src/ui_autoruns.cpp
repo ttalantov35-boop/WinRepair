@@ -285,7 +285,10 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         case WM_COMMAND:
             switch (LOWORD(wp)) {
                 case ID_SCAN: Scan(); break;
-                case ID_TARGET: if (HIWORD(wp) == CBN_SELCHANGE) Scan(); break;   // another Windows chosen -> its own data at once
+                case ID_TARGET:
+                    if (HIWORD(wp) == CBN_DROPDOWN) RefreshTargetCombo(A.combo, A.targets, false);
+                    else if (HIWORD(wp) == CBN_SELCHANGE) Scan();
+                    break;   // another Windows chosen -> its own data at once
                 case ID_HIDESYS: case ID_ONLYFLAG: Fill(); break;
                 case ID_QF: if (HIWORD(wp) == EN_CHANGE) Fill(); break;
                 case ID_DISABLE: DoOne(0); break;
@@ -369,6 +372,8 @@ void OpenAutorunsImpl() {
     for (int i = 0; i < 10; ++i) A.btn[i] = Mk(h, L"BUTTON", bt[i], BS_PUSHBUTTON | WS_TABSTOP, ids[i]);
     Layout();
     ShowWindow(h, SW_SHOW);
+    UpdateWindow(h);
+    Scan();   // show the selected system's entries at once
     if (!A.targets.empty()) Scan();
     else SetWindowTextW(A.info, L"Офлайн-системы не найдены. В WinPE подключите диск с Windows и обновите список в главном окне.");
 }
