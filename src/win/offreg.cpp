@@ -42,7 +42,7 @@ std::vector<std::string> ListDirs(const std::string& dir) {
 }
 
 static std::string VolPrefix(const Target& t) { return std::string("WRO_") + (char)toupper((unsigned char)t.letter()) + "_"; }
-std::string HiveMountName(const Target& t, const std::string& hive) { return VolPrefix(t) + hive; }
+std::string HiveMountName(const Target& t, const std::string& hive) { return t.online ? hive : VolPrefix(t) + hive; }   // online: the live HKLM\SOFTWARE / HKLM\SYSTEM
 std::string UserHiveMountName(const Target& t, const std::string& user) { return VolPrefix(t) + "NU_" + Sanitize(user); }
 
 std::vector<HiveInfo> ListHives(const Target& t, bool includeUsers) {
@@ -117,26 +117,31 @@ bool HiveManager::load(const HiveInfo& h, std::string& err) {
     if (already != loaded_.end()) {
         if (toLowerUtf8(already->second) == toLowerUtf8(h.file)) return true;
         unload(h.mount);   // the same mount name now points to another file (a disk with a reused letter): never show stale data
-        if (loaded_.count(h.mount)) { err = h.label + ": предыдущий куст под этим именем не выгружается"; return false; }
+        if (loaded_.count(h.mount)) { err = h.label + ": РїСЂРµРґС‹РґСѓС‰РёР№ РєСѓСЃС‚ РїРѕРґ СЌС‚РёРј РёРјРµРЅРµРј РЅРµ РІС‹РіСЂСѓР¶Р°РµС‚СЃСЏ"; return false; }
     }
     EnablePriv(SE_BACKUP_NAME);
     EnablePriv(SE_RESTORE_NAME);
     backupDir_ = BackupDirFor(h.file, "hives");        // one folder per examined volume
     std::string bk = backupDir_ + h.mount + ".hiv";    // copy BEFORE the registry locks the file
-    if (!BackupOncePerSession("hive:" + bk)) Logger::I().log(Lvl::Info, "Копия куста уже сохранена в этом сеансе: " + bk);
-    else if (!CopyFileW(W(h.file).c_str(), W(bk).c_str(), FALSE)) Logger::I().log(Lvl::Warn, "Не удалось сделать копию куста " + h.file + ": " + ErrMsg(GetLastError()));
-    else Logger::I().log(Lvl::Info, "Резервная копия куста (одна на систему, заменяет прежнюю): " + bk);
+    if (!BackupOncePerSession("hive:" + bk)) Logger::I().log(Lvl::Info, "РљРѕРїРёСЏ РєСѓСЃС‚Р° СѓР¶Рµ СЃРѕС…СЂР°РЅРµРЅР° РІ СЌС‚РѕРј СЃРµР°РЅСЃРµ: " + bk);
+    else if (!CopyFileW(W(h.file).c_str(), W(bk).c_str(), FALSE)) Logger::I().log(Lvl::Warn, "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРґРµР»Р°С‚СЊ РєРѕРїРёСЋ РєСѓСЃС‚Р° " + h.file + ": " + ErrMsg(GetLastError()));
+    else Logger::I().log(Lvl::Info, "Р РµР·РµСЂРІРЅР°СЏ РєРѕРїРёСЏ РєСѓСЃС‚Р° (РѕРґРЅР° РЅР° СЃРёСЃС‚РµРјСѓ, Р·Р°РјРµРЅСЏРµС‚ РїСЂРµР¶РЅСЋСЋ): " + bk);
     RegUnLoadKeyW(HKEY_LOCAL_MACHINE, WK(h.mount).c_str());  // stale mount from a previous crash
     LONG r = RegLoadKeyW(HKEY_LOCAL_MACHINE, WK(h.mount).c_str(), W(h.file).c_str());
-    if (r != ERROR_SUCCESS) { err = h.label + ": RegLoadKey — " + ErrMsg((DWORD)r); return false; }
+    if (r != ERROR_SUCCESS) { err = h.label + ": RegLoadKey вЂ” " + ErrMsg((DWORD)r); return false; }
     loaded_[h.mount] = h.file;
     info_[h.mount] = h;
-    Logger::I().log(Lvl::Info, "Загружен куст " + h.label + " -> HKLM\\" + h.mount);
+    Logger::I().log(Lvl::Info, "Р—Р°РіСЂСѓР¶РµРЅ РєСѓСЃС‚ " + h.label + " -> HKLM\\" + h.mount);
     return true;
 }
 
 HKEY HiveManager::open(const std::string& mount, REGSAM acc) {
     HKEY k = nullptr;
+    if (mount.rfind("@HKU\\", 0) == 0) {   // a user hive of the RUNNING system: HKEY_USERS\<SID>
+        std::wstring sub = W(mount.substr(5));
+        if (RegOpenKeyExW(HKEY_USERS, sub.c_str(), 0, acc, &k) != ERROR_SUCCESS && RegOpenKeyExW(HKEY_USERS, sub.c_str(), 0, KEY_READ, &k) != ERROR_SUCCESS) return nullptr;
+        return k;
+    }
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, WK(mount).c_str(), 0, acc, &k) != ERROR_SUCCESS) {
         if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, WK(mount).c_str(), 0, KEY_READ, &k) != ERROR_SUCCESS) return nullptr;
     }
@@ -152,8 +157,8 @@ void HiveManager::unload(const std::string& mount) {
         if (r == ERROR_SUCCESS) break;
         Sleep(200);
     }
-    if (r == ERROR_SUCCESS) { loaded_.erase(mount); info_.erase(mount); Logger::I().log(Lvl::Info, "Выгружен куст HKLM\\" + mount); }
-    else Logger::I().log(Lvl::Warn, "Не удалось выгрузить HKLM\\" + mount + ": " + ErrMsg((DWORD)r) + " (закройте окна, использующие реестр)");
+    if (r == ERROR_SUCCESS) { loaded_.erase(mount); info_.erase(mount); Logger::I().log(Lvl::Info, "Р’С‹РіСЂСѓР¶РµРЅ РєСѓСЃС‚ HKLM\\" + mount); }
+    else Logger::I().log(Lvl::Warn, "РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹РіСЂСѓР·РёС‚СЊ HKLM\\" + mount + ": " + ErrMsg((DWORD)r) + " (Р·Р°РєСЂРѕР№С‚Рµ РѕРєРЅР°, РёСЃРїРѕР»СЊР·СѓСЋС‰РёРµ СЂРµРµСЃС‚СЂ)");
 }
 
 std::vector<HiveInfo> HiveManager::loadedInfo() {
@@ -190,7 +195,7 @@ void HiveManager::unpin() {
 }
 
 bool LoadHiveFile(const std::string& file, HiveInfo& h, std::string& err) {
-    if (!PathExists(file)) { err = "Файл не найден: " + file; return false; }
+    if (!PathExists(file)) { err = "Р¤Р°Р№Р» РЅРµ РЅР°Р№РґРµРЅ: " + file; return false; }
     size_t k = file.find_last_of("\\/");
     std::string leaf = k == std::string::npos ? file : file.substr(k + 1);
     h = HiveInfo();
@@ -206,13 +211,34 @@ bool RegCtx::open(const Target& t, std::string& err) {
     online = t.online;
     if (online) {
         if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE", 0, KEY_READ | KEY_WRITE, &software) != ERROR_SUCCESS ||
-            RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SYSTEM", 0, KEY_READ | KEY_WRITE, &system) != ERROR_SUCCESS) { err = "Не удалось открыть HKLM\\SOFTWARE/SYSTEM"; return false; }
+            RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SYSTEM", 0, KEY_READ | KEY_WRITE, &system) != ERROR_SUCCESS) { err = "РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ HKLM\\SOFTWARE/SYSTEM"; return false; }
         opened_.push_back(software); opened_.push_back(system);
         cs = "CurrentControlSet";
-        UserRoot u;
-        u.name = GetEnv().computer;
-        u.profile = EnvVar("USERPROFILE") + "\\";
-        if (RegOpenKeyExW(HKEY_CURRENT_USER, L"", 0, KEY_READ | KEY_WRITE, &u.root) == ERROR_SUCCESS) { opened_.push_back(u.root); users.push_back(u); }
+        // every user hive loaded in the running system (HKEY_USERS\S-1-5-21-вЂ¦), named after the profile folder
+        std::vector<std::string> sids;
+        HKEY hu = HKEY_USERS;
+        EnumSubKeys(hu, sids);
+        for (const auto& sid : sids) {
+            if (sid.rfind("S-1-5-21-", 0) != 0 || (sid.size() > 8 && sid.compare(sid.size() - 8, 8, "_Classes") == 0)) continue;
+            UserRoot u;
+            u.mount = "@HKU\\" + sid;
+            u.root = Hives().open(u.mount);
+            if (!u.root) continue;
+            RegVal pv;
+            std::string prof = QueryVal(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\" + sid, "ProfileImagePath", pv) ? RegText(pv) : "";
+            u.profile = prof.empty() ? "" : prof + "\\";
+            size_t sl = prof.find_last_of('\\');
+            u.name = sl == std::string::npos ? sid : prof.substr(sl + 1);
+            opened_.push_back(u.root);
+            users.push_back(u);
+        }
+        if (users.empty()) {
+            UserRoot u;
+            u.name = GetEnv().computer;
+            u.profile = EnvVar("USERPROFILE") + "\\";
+            u.mount = "@HKU\\.DEFAULT";
+            if (RegOpenKeyExW(HKEY_CURRENT_USER, L"", 0, KEY_READ | KEY_WRITE, &u.root) == ERROR_SUCCESS) { opened_.push_back(u.root); users.push_back(u); }
+        }
         return true;
     }
     Hives().pin();
@@ -229,7 +255,7 @@ bool RegCtx::open(const Target& t, std::string& err) {
         else if (h.label == "SOFTWARE") software = k;
         else { UserRoot u; u.name = h.owner; u.profile = h.profileDir; u.root = k; users.push_back(u); }
     }
-    if (!system || !software) { err = "Кусты SYSTEM/SOFTWARE не найдены в " + t.winDir; return false; }
+    if (!system || !software) { err = "РљСѓСЃС‚С‹ SYSTEM/SOFTWARE РЅРµ РЅР°Р№РґРµРЅС‹ РІ " + t.winDir; return false; }
     RegVal v;
     if (QueryVal(system, "Select", "Current", v) && v.type == REG_DWORD && v.data.size() >= 4) cs = fmt("ControlSet%03lu", (unsigned long)*(DWORD*)v.data.data());
     return true;
@@ -340,7 +366,7 @@ std::string RegValueText(const RegVal& v, size_t maxLen) {
         }
         default:
             for (size_t i = 0; i < v.data.size() && i < 64; ++i) s += fmt("%02X ", v.data[i]);
-            if (v.data.size() > 64) s += fmt("… (%zu байт)", v.data.size());
+            if (v.data.size() > 64) s += fmt("вЂ¦ (%zu Р±Р°Р№С‚)", v.data.size());
     }
     return truncUtf8(s, maxLen);
 }
@@ -360,12 +386,12 @@ bool RegParse(DWORD type, const std::string& text, std::vector<uint8_t>& out, st
         case REG_DWORD:
         case REG_QWORD: {
             std::string t = trim(text);
-            if (t.empty()) { err = "Пустое число"; return false; }
+            if (t.empty()) { err = "РџСѓСЃС‚РѕРµ С‡РёСЃР»Рѕ"; return false; }
             char* e = nullptr;
             int base = (t.size() > 2 && t[0] == '0' && (t[1] == 'x' || t[1] == 'X')) ? 16 : 10;
             unsigned long long v = strtoull(t.c_str(), &e, base);
-            if (e == t.c_str() || *e) { err = "Некорректное число (десятичное или 0x…)"; return false; }
-            if (type == REG_DWORD) { if (v > 0xFFFFFFFFULL) { err = "Значение больше DWORD"; return false; } DWORD d = (DWORD)v; out.assign((uint8_t*)&d, (uint8_t*)&d + 4); }
+            if (e == t.c_str() || *e) { err = "РќРµРєРѕСЂСЂРµРєС‚РЅРѕРµ С‡РёСЃР»Рѕ (РґРµСЃСЏС‚РёС‡РЅРѕРµ РёР»Рё 0xвЂ¦)"; return false; }
+            if (type == REG_DWORD) { if (v > 0xFFFFFFFFULL) { err = "Р—РЅР°С‡РµРЅРёРµ Р±РѕР»СЊС€Рµ DWORD"; return false; } DWORD d = (DWORD)v; out.assign((uint8_t*)&d, (uint8_t*)&d + 4); }
             else out.assign((uint8_t*)&v, (uint8_t*)&v + 8);
             return true;
         }
@@ -386,7 +412,7 @@ bool RegParse(DWORD type, const std::string& text, std::vector<uint8_t>& out, st
         default: {  // binary: hex bytes
             std::string hex;
             for (char c : text) if (isxdigit((unsigned char)c)) hex += c;
-            if (hex.size() % 2) { err = "Нечётное число hex-цифр"; return false; }
+            if (hex.size() % 2) { err = "РќРµС‡С‘С‚РЅРѕРµ С‡РёСЃР»Рѕ hex-С†РёС„СЂ"; return false; }
             for (size_t i = 0; i < hex.size(); i += 2) out.push_back((uint8_t)strtoul(hex.substr(i, 2).c_str(), nullptr, 16));
             return true;
         }
@@ -475,7 +501,7 @@ void AuditChange(const std::string& what) {
         WriteFile(h, l.data(), (DWORD)l.size(), &w, nullptr);
         CloseHandle(h);
     }
-    Logger::I().log(Lvl::Warn, "ИЗМЕНЕНИЕ: " + what);
+    Logger::I().log(Lvl::Warn, "РР—РњР•РќР•РќРР•: " + what);
 }
 
 std::string FileBackup(const std::string& path, const std::string& tag) {
