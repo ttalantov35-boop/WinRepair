@@ -79,7 +79,7 @@ bool FormDialog(HWND owner, const std::wstring& title, std::vector<FormField>& f
         y += (f.kind == 1 ? S(110) : S(28)) + S(8);
     }
     HWND ok = Mk(h, L"BUTTON", L"OK", BS_DEFPUSHBUTTON | WS_TABSTOP, IDOK);
-    HWND cn = Mk(h, L"BUTTON", L"Отмена", BS_PUSHBUTTON | WS_TABSTOP, IDCANCEL);
+    HWND cn = Mk(h, L"BUTTON", L"РћС‚РјРµРЅР°", BS_PUSHBUTTON | WS_TABSTOP, IDCANCEL);
     Place(ok, cw + pad - S(190), y + S(4), S(90), S(28));
     Place(cn, cw + pad - S(92), y + S(4), S(90), S(28));
     EnableWindow(owner, FALSE);
@@ -101,8 +101,27 @@ std::vector<Target> FillTargetCombo(HWND combo, bool offlineOnly) {
     std::vector<Target> all = UiTargets(), out;
     for (auto& t : all) if (!offlineOnly || !t.online) out.push_back(t);
     for (auto& t : out) SendMessageW(combo, CB_ADDSTRING, 0, (LPARAM)W(t.label).c_str());
-    SendMessageW(combo, CB_SETCURSEL, 0, 0);
+    // preselect the system chosen in the main window (otherwise the first one)
+    size_t pick = 0;
+    Target cur = UiCurrentTarget();
+    if (cur.valid)
+        for (size_t i = 0; i < out.size(); ++i)
+            if (out[i].online == cur.online && toLowerUtf8(out[i].winDir) == toLowerUtf8(cur.winDir)) { pick = i; break; }
+    SendMessageW(combo, CB_SETCURSEL, (WPARAM)pick, 0);
     return out;
+}
+
+// The main window may have re-scanned the disks since this tool window was opened: refill the list, keep the user's choice.
+bool RefreshTargetCombo(HWND combo, std::vector<Target>& list, bool offlineOnly) {
+    size_t n = 0;
+    for (auto& t : UiTargets()) if (!offlineOnly || !t.online) ++n;
+    if (n == list.size()) return false;
+    int sel = (int)SendMessageW(combo, CB_GETCURSEL, 0, 0);
+    std::string keep = (sel >= 0 && sel < (int)list.size()) ? list[(size_t)sel].winDir : "";
+    list = FillTargetCombo(combo, offlineOnly);
+    for (size_t i = 0; i < list.size(); ++i)
+        if (!keep.empty() && list[i].winDir == keep) { SendMessageW(combo, CB_SETCURSEL, (WPARAM)i, 0); break; }
+    return true;
 }
 
 }  // namespace ui
