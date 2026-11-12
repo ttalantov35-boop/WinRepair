@@ -49,7 +49,7 @@ HiveManager& Hives();
 
 // Registry access to one Windows installation: live HKLM (online) or loaded hives (offline).
 struct RegCtx {
-    struct UserRoot { std::string name, profile; HKEY root = nullptr; };
+    struct UserRoot { std::string name, profile; HKEY root = nullptr; std::string mount; };   // mount: name usable with Hives().open() (online: "@HKU\\<SID>")
     bool online = false;
     HKEY software = nullptr, system = nullptr;
     std::string cs = "ControlSet001";  // control set name usable under `system`
