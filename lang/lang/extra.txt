@@ -1,0 +1,376 @@
+# Hand-added dictionary entries (`Russian ==> English`); appended to lang/en.txt by tools/i18n_merge.py
+Целостность:  ==> Integrity: 
+; подпись:  ==> ; signature: 
+действительна ==> valid
+НАРУШЕНА ==> BROKEN
+не удалось проверить ==> could not be verified
+; сам exe — совпадает ==> ; the exe itself — matches
+; сам exe — НЕ совпадает ==> ; the exe itself — DOES NOT match
+WinRepair — целостность ==> WinRepair — integrity
+Файл изменён относительно MANIFEST.sha256: {} ==> File differs from MANIFEST.sha256: {}
+MANIFEST.sha256 не найден (проверка файлов пропущена) ==> MANIFEST.sha256 not found (file check skipped)
+проверено файлов: {}, изменённых программ: {}, изменённых данных: {}, отсутствующих: {} ==> files checked: {}, modified programs: {}, modified data: {}, missing: {}
+Обнаружено нарушение целостности программы (см. журнал).\nФайлы могли быть изменены или повреждены. Используйте программу только если доверяете источнику. ==> Program integrity violation detected (see the log).\nFiles may have been modified or corrupted. Use the program only if you trust its source.
+Сценариев ремонта: {}. Сценарии встроены в программу; дополнительные *.wrp читаются из Playbooks рядом с программой (и на уровень выше) и из {} — они заменяют встроенные с тем же id.\r\nФормат описан в docs\\PLAYBOOKS.md. ==> Repair playbooks: {}. Playbooks are built into the program; extra *.wrp files are read from Playbooks next to the program (and one level up) and from {} — they override built-in ones with the same id.\r\nFormat: docs\\PLAYBOOKS.md.
+[встроенный #{}] ==> [built-in #{}]
+[встроен в программу] ==> [built into the program]
+Сценарии (playbooks): всего {} (встроенных файлов {}, с диска: {}; ошибок разбора {}) ==> Playbooks: {} total (built-in files {}, from disk: {}; parse errors {})
+Резервные копии ==> Backups
+ (старый формат) ==>  (old format)
+Мастера и сценарии ==> Wizards and playbooks
+Защита и сохранение ==> Protection and saving
+Диагностика (только чтение) ==> Diagnostics (read-only)
+Изменяет систему (с подтверждением) ==> Changes the system (asks first)
+Резервные копии: просмотр и очистка… ==> Backups: view and clean up…
+{} — диагностика и ремонт Windows ==> {} — Windows diagnostics and repair
+Не удалось удалить: {} ==> Could not delete: {}
+Удалена резервная копия: {} ==> Backup deleted: {}
+Удалено резервных копий: {} ==> Backups deleted: {}
+Удалено резервных копий других систем: {} ==> Backups of other systems deleted: {}
+Резервные копии других систем ==> Backups of other systems
+Резервные копии других систем оставлены по выбору пользователя. ==> Backups of other systems kept at the user's choice.
+Резервные копии WinRepair для тома {} ==> WinRepair backups for volume {}
+{} (метка: {} ==> {} (label: {}
+{})\r\nСоздано: {} ==> {})\r\nCreated: {}
+\r\nПолитика: одна копия на том; обновляется один раз за сеанс перед первым изменением. Удалить можно в программе («Резервные копии…») или вручную.\r\n ==> \r\nPolicy: one copy per volume, refreshed once per session before the first change. Delete it in the program ("Backups…") or by hand.\r\n
+Папка: {}\nЭлементов: {}, общий размер: {}\n ==> Folder: {}\nItems: {}, total size: {}\n
+Копия куста уже сохранена в этом сеансе: {} ==> Hive copy already saved in this session: {}
+Резервных копий нет: папка Data\\Backups пуста. ==> No backups: the Data\\Backups folder is empty.
+Резервная копия куста (одна на систему, заменяет прежнюю): {} ==> Hive backup (one per system, replaces the previous one): {}
+Копия ветки уже сохранена в этом сеансе (до первого изменения): {} ==> Key copy already saved in this session (pre-change state): {}
+Удалить все резервные копии? Вернуть изменённые системные файлы из них после этого будет нельзя. ==> Delete all backups? You will not be able to restore changed system files from them afterwards.
+Резервные копии хранятся по одной на систему и не накапливаются.\n\n{}\nДа — удалить все копии.\nНет — открыть папку с копиями.\nОтмена — закрыть окно. ==> Backups are kept as one per system and do not pile up.\n\n{}\nYes — delete all backups.\nNo — open the backups folder.\nCancel — close this window.
+В папке Data\\Backups найдены резервные копии от других систем или старого формата.\nСейчас здесь должны быть только копии проверяемых вами систем.\n\n{}\nУдалить эти копии? ==> Data\\Backups contains backups from other systems or in an old format.\nOnly copies of the systems you are checking should be here.\n\n{}\nDelete these copies?
+На диске остались резервные копии состояния проверенных систем (кусты реестра, BCD).\n\n{}\nДа — удалить копии сейчас.\nНет — оставить (удалить можно позже кнопкой «Резервные копии…»; при запуске на другом ПК копии чужих систем будут предложены к удалению).\nОтмена — не выходить. ==> Backups of the checked systems (registry hives, BCD) are left on disk.\n\n{}\nYes — delete the backups now.\nNo — keep them (delete later with the "Backups…" button; on another PC, copies of foreign systems will be offered for deletion at start).\nCancel — do not exit.
+Администратор: да ==> Administrator: yes
+БЕЗ прав администратора ==> NO administrator rights
+Хост для проверки: ==> Host to test:
+Источник DISM (/Source): ==> DISM source (/Source):
+Мастер исправлений после заражений… ==> Post-infection repair wizard…
+Мастер исправлений после заражений — онлайн и офлайн ==> Post-infection repair wizard — online and offline
+Расширенный режим: chkdsk /scan (дольше) ==> Extended mode: chkdsk /scan (slower)
+Расширенный режим: DISM /ScanHealth (дольше) ==> Extended mode: DISM /ScanHealth (slower)
+Период — за сколько последних дней показывать ошибки и предупреждения из журналов System и Application. ==> Period — how many recent days of errors and warnings to show from the System and Application logs.
+Хост и порт для проверки связи: пинг, разрешение имени (DNS) и подключение к TCP-порту (443 — HTTPS, 80 — HTTP). Подойдёт любой доступный сайт или адрес. ==> Host and port for the connectivity test: ping, name resolution (DNS) and a TCP port connection (443 — HTTPS, 80 — HTTP). Any reachable site or address will do.
+Период — за сколько последних дней искать ошибки дисков и файловой системы в журнале событий. Расширенный режим добавляет проверку chkdsk /scan (занимает больше времени). ==> Period — how many recent days to search the event log for disk and file system errors. Extended mode adds a chkdsk /scan check (takes longer).
+Источник DISM (/Source) нужен, если Windows Update недоступен: укажите папку с файлами, например D:\\sources\\sxs, или WIM:D:\\sources\\install.wim:1. Пусто — обычный источник. Точка восстановления обычно создаётся не чаще раза в 24 часа; галка отключает это ограничение. ==> A DISM source (/Source) is needed when Windows Update is unavailable: give a folder with the files, e.g. D:\\sources\\sxs, or WIM:D:\\sources\\install.wim:1. Empty — the normal source. A restore point is normally created at most once per 24 hours; the checkbox lifts that limit.
+Выберите, что случилось (не загружается, синий экран, медленно работает, нет сети и т. д.). Программа выполнит набор проверок только на чтение, покажет найденные проблемы по важности и предложит действие для каждой. ==> Choose what happened (will not boot, blue screen, slow, no network, etc.). The program runs a set of read-only checks, lists the problems found by importance and suggests an action for each.
+Готовые пошаговые сценарии ремонта: ошибка 0x7B, зацикленное обновление, ремонт загрузки UEFI и другие. Перед запуском показывается весь план, каждый шаг, меняющий систему, подтверждается отдельно. ==> Ready-made step-by-step repair playbooks: error 0x7B, update loop, UEFI boot repair and others. The whole plan is shown first, and every step that changes the system is confirmed separately.
+Запускает 9 диагностических модулей подряд, выставляет оценку состояния системы и сохраняет HTML-отчёт в папку отчётов. Ничего не изменяет. ==> Runs 9 diagnostic modules in a row, rates the system state and saves an HTML report to the reports folder. Changes nothing.
+Открывает в браузере последний сохранённый HTML-отчёт полной диагностики. ==> Opens the last saved full-diagnostics HTML report in the browser.
+Каталог из 83 команд Windows (winver, systeminfo, sfc, DISM, bcdedit, diskpart, netsh и др.) с описанием, уровнем риска и точной командной строкой. Каждый запуск подтверждается отдельно. ==> A catalog of 83 Windows commands (winver, systeminfo, sfc, DISM, bcdedit, diskpart, netsh and more) with a description, risk level and the exact command line. Every run is confirmed separately.
+Версия программы, среда запуска, права, расположение журналов и отчётов, результат проверки целостности. ==> Program version, launch environment, rights, location of logs and reports, integrity check result.
+Снимок системы: версия и сборка Windows, имя и состояние компьютера, процессор, память, BIOS и плата, TPM, Secure Boot, диски. Только чтение. ==> System snapshot: Windows version and build, computer name and state, processor, memory, BIOS and board, TPM, Secure Boot, disks. Read-only.
+Модули памяти по данным SMBIOS (объём, тип, скорость, слоты) и результаты диагностики памяти Windows, если она запускалась. Даёт рекомендации при подозрении на неисправное ОЗУ. Только чтение. ==> Memory modules from SMBIOS (size, type, speed, slots) and Windows Memory Diagnostic results if it was run. Gives advice when faulty RAM is suspected. Read-only.
+Состояние загрузки выбранной ОС: хранилище BCD, записи загрузки, схема дисков (GPT/MBR), системный раздел ESP и среда WinRE. Показывает замечания, например отсутствующую запись. Только чтение. ==> Boot state of the selected OS: BCD store, boot entries, disk layout (GPT/MBR), the ESP system partition and WinRE. Lists findings such as a missing entry. Read-only.
+Состояние дисков: SMART и здоровье, тома и свободное место, ошибки файловой системы из журнала событий за выбранный период. В расширенном режиме добавляется chkdsk /scan. Ничего не меняет. ==> Disk state: SMART and health, volumes and free space, file system errors from the event log for the chosen period. Extended mode adds chkdsk /scan. Changes nothing.
+Проверяет целостность системных файлов и хранилища компонентов Windows (DISM, SFC) только в режиме проверки: ничего не исправляет, показывает, есть ли нарушения. ==> Checks the integrity of Windows system files and the component store (DISM, SFC) in verify-only mode: fixes nothing, only shows whether there are violations.
+ИСПРАВЛЯЕТ целостность: DISM /RestoreHealth, затем sfc /scannow на выбранной ОС. Может занять десятки минут. Перед запуском создайте точку восстановления и сохраните данные. Потребуется подтверждение. ==> REPAIRS integrity: DISM /RestoreHealth, then sfc /scannow on the selected OS. May take tens of minutes. Create a restore point and save your data first. Confirmation is required.
+Создаёт точку восстановления Windows, чтобы можно было откатить изменения. Обычно система разрешает не чаще одной точки в 24 часа: галка рядом снимает это ограничение. ==> Creates a Windows restore point so that changes can be rolled back. Windows normally allows one point per 24 hours; the checkbox next to it lifts that limit.
+Устройства с ошибками драйверов (код проблемы, ИД оборудования) и список установленных пакетов драйверов. Помогает найти устройство без драйвера. Только чтение. ==> Devices with driver errors (problem code, hardware ID) and the list of installed driver packages. Helps to find a device without a driver. Read-only.
+События BugCheck за выбранный период и найденные файлы дампов (Minidump, MEMORY.DMP). Код синего экрана — категория, а не диагноз. Только чтение. ==> BugCheck events for the chosen period and the dump files found (Minidump, MEMORY.DMP). A blue screen code is a category, not a diagnosis. Read-only.
+Разбор файлов дампов: заголовок и коды остановки; если в папке Tools есть cdb.exe, выполняется подробный анализ. Только чтение. ==> Dump file analysis: header and stop codes; if cdb.exe is in the Tools folder, a detailed analysis is performed. Read-only.
+Ошибки и критические события из журналов System и Application за выбранный период. Только чтение. ==> Errors and critical events from the System and Application logs for the chosen period. Read-only.
+Сетевая диагностика: адаптеры, настройки IP, шлюз, DNS, проверка связи с указанным хостом и портом. Только чтение. ==> Network diagnostics: adapters, IP settings, gateway, DNS, connectivity test to the given host and port. Read-only.
+Офлайн-редактор реестра выбранной Windows: просмотр и правка кустов (SYSTEM, SOFTWARE, профили пользователей). Перед изменением сохраняется копия ветки; правки подтверждаются и пишутся в журнал. ==> Offline registry editor for the selected Windows: view and edit hives (SYSTEM, SOFTWARE, user profiles). A copy of the key is saved before a change; edits are confirmed and logged.
+Менеджер загрузки: просмотр и правка записей BCD, режимы безопасной загрузки при следующем запуске, создание загрузочных файлов (bcdboot). Перед изменением делается копия хранилища. ==> Boot manager: view and edit BCD entries, safe-mode boot options for the next start, creating boot files (bcdboot). A copy of the store is made before a change.
+Автозагрузка и службы выбранной (в том числе офлайн) Windows: ключи Run, задачи, службы, драйверы. Подозрительные записи можно отключить, режим запуска служб менять (аналог msconfig). Отключение обратимо. ==> Autoruns and services of the selected (including offline) Windows: Run keys, tasks, services, drivers. Suspicious entries can be disabled and service start modes changed (like msconfig). Disabling is reversible.
+Обратимые исправления после заражения: Winlogon Shell/Userinit, IFEO, AppInit_DLLs, политики, прокси, файл hosts и др. Каждое исправление описано, подтверждается и записывается в журнал. ==> Reversible fixes after an infection: Winlogon Shell/Userinit, IFEO, AppInit_DLLs, policies, proxy, the hosts file and more. Each fix is described, confirmed and logged.
+Запускает мастер восстановления системы (rstrui.exe) для отката к точке восстановления, если она есть. Меняет систему, потребуется подтверждение. ==> Starts the System Restore wizard (rstrui.exe) to roll back to a restore point, if one exists. Changes the system; confirmation is required.
+Показывает, какие точки восстановления есть в системе, их дату и описание. Только чтение. ==> Shows which restore points exist in the system, with their date and description. Read-only.
+Среда восстановления Windows (WinRE): состояние, вход в неё при следующей загрузке или сразу, создание образа WinRE с этой утилитой и его удаление. ==> Windows Recovery Environment (WinRE): state, entering it on next boot or immediately, creating a WinRE image that includes this tool and removing it.
+Из WinRE выходит в штатное меню среды восстановления (Поиск и устранение неисправностей, Командная строка и др.). Работает только внутри WinRE. ==> From WinRE, goes to the standard recovery menu (Troubleshoot, Command Prompt, etc.). Works only inside WinRE.
+Копирует журналы и отчёты на выбранный диск: оперативный диск WinPE/WinRE очищается при перезагрузке, и результаты иначе потеряются. ==> Copies logs and reports to a chosen drive: the WinPE/WinRE RAM disk is wiped on reboot and the results would otherwise be lost.
+Показывает резервные копии кустов реестра, BCD и файлов, сделанные перед изменениями: размер и расположение. Можно удалить все копии или открыть папку. Хранится одна копия на систему. ==> Shows the backups of registry hives, BCD and files made before changes: size and location. You can delete all copies or open the folder. One copy is kept per system.
+Проверка Secure Boot: включён ли он и есть ли в KEK и db сертификаты 2023 года взамен истекающих в 2026. Только чтение. ==> Secure Boot check: whether it is on and whether KEK and db contain the 2023 certificates that replace those expiring in 2026. Read-only.
+Если диск не виден или синий экран 0x7B: поиск томов, заблокированных BitLocker (разблокировка ключом), устройств без драйвера хранилища (Intel VMD/RST, NVMe, RAID) и загрузка драйвера. ==> If a disk is not visible or blue screen 0x7B: finds BitLocker-locked volumes (unlock with a key), devices without a storage driver (Intel VMD/RST, NVMe, RAID) and loads a driver.
+Диагностика — только чтение ==> Diagnostics — read-only
+Изменяет систему ==> Changes the system
+Служебное ==> Service
+Назначение:  ==> Purpose: 
+Назначение: {} ==> Purpose: {}
+Каталог команд… ==> Command catalog…
+Копировать журнал ==> Copy log
+Журнал скопирован в буфер обмена. ==> The log was copied to the clipboard.
+Запустить:  ==> Run: 
+Что делает эта команда… ==> What this command does…
+Копировать название ==> Copy name
+Копировать описание ==> Copy description
+Копировать выделенное ==> Copy selection
+Выделить всё ==> Select all
+Копировать весь журнал ==> Copy whole log
+Открыть файл журнала ==> Open log file
+Перейти на вкладку ==> Go to tab
+Обновить список ОС ==> Refresh OS list
+Сменить язык (RU / EN) ==> Switch language (RU / EN)
+Копировать выбранную строку ==> Copy selected row
+Копировать всю таблицу ==> Copy whole table
+Поиск: ==> Search:
+Найти ==> Find
+Имена разделов ==> Key names
+Имена значений ==> Value names
+Данные значений ==> Value data
+Только в выбранном разделе ==> Selected key only
+Текст для поиска (Enter — найти) ==> Text to find (Enter to search)
+Введите, что искать. ==> Enter what to search for.
+Поиск в реестре ==> Registry search
+Сначала загрузите кусты офлайн-Windows (кнопка «Загрузить кусты»). ==> Load the offline Windows hives first (the “Load hives” button).
+Отметьте, где искать: имена разделов, имена значений или данные. ==> Choose where to search: key names, value names or data.
+Результаты поиска в реестре:  ==> Registry search results: 
+Остановить ==> Stop
+Найдено в ==> Found in
+Раздел ==> Key
+Имя значения ==> Value name
+Остановлено.  ==> Stopped. 
+Готово.  ==> Done. 
+Идёт поиск…  ==> Searching… 
+Найдено:  ==> Found: 
+.  Просмотрено разделов:  ==> .  Keys scanned: 
+.  Достигнут предел списка — уточните запрос. ==> .  List limit reached — refine the query.
+Копировать имя значения ==> Copy value name
+Копировать данные ==> Copy data
+Копировать путь раздела ==> Copy key path
+Развернуть / свернуть ==> Expand / collapse
+Найти в этом разделе… ==> Find in this key…
+Обновить дерево ==> Refresh tree
+Выполнить выбранную команду ==> Run the selected command
+Копировать текст команды ==> Copy command text
+Показать все значения столбца « ==> Show all values of column “
+Сбросить все фильтры ==> Reset all filters
+(пусто) ==> (empty)
+… показаны первые  ==> … first 
+ значений ==>  values shown
+Фильтр по столбцу « ==> Filter by column “
+Копировать ячейку ==> Copy cell
+Копировать строку ==> Copy row
+Отключить запись… ==> Disable entry…
+Включить запись… ==> Enable entry…
+Всё ==> Everything
+Вход и автозапуск ==> Logon
+Службы ==> Services
+Планировщик ==> Scheduled Tasks
+Прочее (перехват) ==> Other (hijack points)
+Фильтр: ==> Filter:
+Текст в любом столбце (Ctrl+F) ==> Text in any column (Ctrl+F)
+Удалить\tDel ==> Delete\tDel
+Перейти к записи…\tCtrl+J ==> Jump to…\tCtrl+J
+Поиск в интернете… ==> Search online…
+Свойства файла… ==> Properties…
+Копировать\tCtrl+C ==> Copy\tCtrl+C
+Путь записи скопирован в буфер обмена:\n ==> Entry path copied to the clipboard:\n
+\n\nВ окне реестра загрузите кусты и найдите запись через поиск. ==> \n\nIn the registry window load the hives and find the entry with the search.
+Перейти к записи ==> Jump to entry
+У записи нет существующего файла. ==> The entry has no existing file.
+Свойства ==> Properties
+Хранилище BCD ==> BCD store
+где лежит загрузчик выбранной Windows (ESP монтируется автоматически) ==> where the boot loader of the selected Windows lives (ESP is mounted automatically)
+Режим следующей загрузки ==> Next boot mode
+как в msconfig / F8 — для выбранной записи ==> as in msconfig / F8 — for the selected entry
+Загрузить кусты… ==> Load hives…
+Экспорт ветки .reg… ==> Export branch .reg…
+regedit текущей ОС ==> regedit of the current OS
+Правка ==> Edit
+Вид ==> View
+Избранное ==> Favorites
+Изменить…\tEnter ==> Modify…\tEnter
+Создать ==> New
+Значение… ==> Value…
+Удалить значение\tDel ==> Delete value\tDel
+Переименовать значение\tF2 ==> Rename value\tF2
+Переименовать раздел ==> Rename key
+Копировать имя раздела ==> Copy key name
+Найти…\tCtrl+F ==> Find…\tCtrl+F
+Найти далее\tF3 ==> Find next\tF3
+Строка состояния ==> Status bar
+Обновить\tF5 ==> Refresh\tF5
+Добавить в избранное ==> Add to favorites
+Удалить из избранного… ==> Remove from favorites…
+Адрес раздела: HKLM\WRO_SYSTEM\… (Enter — перейти) ==> Key address: HKLM\WRO_SYSTEM\… (Enter to go)
+  Компьютер\ ==>   Computer\
+Значение «По умолчанию» переименовать нельзя. ==> The (Default) value cannot be renamed.
+Корень куста переименовать нельзя. ==> A hive root cannot be renamed.
+Новое имя значения ==> New value name
+Новое имя раздела ==> New key name
+Переименовать значение ==> Rename value
+Какую запись удалить из избранного ==> Which favorite to remove
+Папка в проводнике… ==> Folder in explorer…
+Системный компонент ==> System component
+УДАЛИТЬ НАВСЕГДА:\n\n ==> DELETE PERMANENTLY:\n\n
+  Папка не найдена:  ==>   Folder not found: 
+Отключить (обратимо) ==> Disable (reversible)
+Файлы не тронуты: {} ==> Files left untouched: {}
+Копировать путь папки ==> Copy folder path
+Снять атрибуты R/H/S… ==> Clear R/H/S attributes…
+Подтверждение удаления ==> Confirm deletion
+Службы и автозагрузка… ==> Services and startup…
+Удалить в карантин\tDel ==> Move to quarantine\tDel
+Удалить только запись… ==> Delete entry only…
+  Размер: {} ({} байт)\n ==>   Size: {} ({} bytes)\n
+Владелец и права папки… ==> Folder owner and permissions…
+Запись в списке программ ==> Entry in the programs list
+Отключить только запуск… ==> Disable startup only…
+Переименовать раздел «{} ==> Rename key “{}
+Принудительное удаление… ==> Force removal…
+Установленные приложения ==> Installed applications
+Что связано с программой ==> What belongs to the program
+НЕ УДАЛОСЬ отключить: [{} ==> FAILED to disable: [{}
+Что связано с программой… ==> What belongs to the program…
+Не удалось переместить: {} ==> Could not move: {}
+Переименовать значение «{} ==> Rename value “{}
+Только антивирусы и защита ==> Antivirus and security only
+Удалить навсегда\tShift+Del ==> Delete permanently\tShift+Del
+Выполнено с замечаниями: {} ==> Completed with warnings: {}
+Куст пользователя не найден ==> User hive not found
+  Папок: {}, файлов: {} ({}) ==>   Folders: {}, files: {} ({})
+Корень диска удалять нельзя. ==> The root of a drive cannot be deleted.
+Список программ сохранён: {} ==> Programs list saved: {}
+НЕ УДАЛОСЬ удалить запись: {} ==> FAILED to delete the entry: {}
+Удаление программы офлайн: {} ==> Offline program removal: {}
+  Введите путь вида D:\\Windows ==>   Enter a path like D:\\Windows
+Папка удалена не полностью: {} ==> Folder was not deleted completely: {}
+НЕ УДАЛОСЬ переместить папку: {} ==> FAILED to move the folder: {}
+Удалить (копия .reg сохраняется) ==> Delete (a .reg copy is kept)
+Удалить только запись из списка… ==> Delete only the list entry…
+Открыть папку в офлайн-проводнике ==> Open folder in the offline explorer
+Принудительное удаление программы ==> Force removal of a program
+удалить запись из списка программ ==> delete the entry from the programs list
+папку программы УДАЛИТЬ НАВСЕГДА:  ==> DELETE the program folder PERMANENTLY: 
+Название, издатель, папка… (Ctrl+F) ==> Name, publisher, folder… (Ctrl+F)
+Команда удаления (на живой системе):  ==> Uninstall command (on a live system): 
+Службы, драйверы, автозапуск программы ==> Services, drivers, startup of the program
+отключить службы/драйверы/автозапуск:  ==> disable services/drivers/startup: 
+папку программы переместить в карантин:  ==> move the program folder to quarantine: 
+Проводник: {} — успешно {}, с ошибками {} ==> Explorer: {} — succeeded {}, failed {}
+Связанные службы, драйверы и автозапуск:  ==> Related services, drivers and startup: 
+Фильтр / поиск (Enter — в подпапках, * ?) ==> Filter / search (Enter — in subfolders, * ?)
+Офлайн-проводник: файлы выбранной Windows… ==> Offline explorer: files of the selected Windows…
+У программы не определена папка установки. ==> The program has no known install folder.
+  (кнопка «Владелец и права…» может помочь) ==>   (the “Owner and permissions…” button may help)
+Выберите целевую ОС и нажмите «Сканировать». ==> Choose the target OS and press “Scan”.
+Папка не находится на диске целевой системы. ==> The folder is not on the target system's drive.
+Папка программы не найдена — файлы не тронуты. ==> Program folder not found — files left untouched.
+Папка перемещена в карантин (можно вернуть): {} ==> Folder moved to quarantine (can be restored): {}
+Скрыть обновления Windows и системные компоненты ==> Hide Windows updates and system components
+Это общая системная папка, а не папка программы. ==> This is a shared system folder, not a program folder.
+Адрес раздела: HKLM\\WRO_SYSTEM\\… (Enter — перейти) ==> Key address: HKLM\\WRO_SYSTEM\\… (Enter to go)
+Переместить в карантин WinRepair_Removed (обратимо) ==> Move to the WinRepair_Removed quarantine (reversible)
+Введите имя или маску (например *.log) в поле поиска. ==> Enter a name or mask (for example *.log) in the search box.
+Отключить только запуск (службы, драйверы, автозапуск)… ==> Disable startup only (services, drivers, autorun)…
+Запись удалена из списка программ (копия .reg сохранена). ==> Entry removed from the programs list (.reg copy saved).
+Это нужно, если Windows отказывает в доступе. Продолжить? ==> Needed when Windows denies access. Continue?
+Снять атрибуты «только чтение», «скрытый», «системный» у:\n\n ==> Clear the read-only, hidden and system attributes of:\n\n
+Установленные приложения офлайн (удалить мешающую программу)… ==> Installed applications offline (remove a program that blocks boot)…
+Папка внутри каталога Windows — системные файлы удалять нельзя. ==> The folder is inside the Windows directory — system files must not be deleted.
+Слишком короткий путь — похоже на корневую или системную папку. ==> Path is too short — looks like a root or system folder.
+Файлы программы будут удалены БЕЗ возможности вернуть.\n\nУверены? ==> The program files will be deleted with NO way back.\n\nAre you sure?
+  Размер: {} (файлов {}, папок {}; подсчёт ограничен 8 секундами)\n ==>   Size: {} (files {}, folders {}; counting limited to 8 seconds)\n
+Переместить в карантин WinRepair_Removed (на этом же диске, обратимо):\n\n ==> Move to the WinRepair_Removed quarantine (same drive, reversible):\n\n
+Офлайн-проводник — файлы выбранной Windows: просмотр, копирование, удаление ==> Offline explorer — files of the selected Windows: browse, copy, delete
+Все изменения записываются в журнал, ветки реестра сохраняются в Backups. Продолжить? ==> All changes are logged, registry branches are saved to Backups. Continue?
+Стать владельцем и выдать группе «Администраторы» полный доступ (takeown + icacls):\n\n ==> Take ownership and give the Administrators group full access (takeown + icacls):\n\n
+ВНИМАНИЕ: это файлы каталога Windows. Удаление нужных системных файлов сломает загрузку.\n ==> WARNING: these are files of the Windows directory. Deleting needed system files will break the boot.\n
+План (принудительное удаление «офлайн»: деинсталлятор без работающей Windows не запустить) ==> Plan (offline force removal: an uninstaller cannot run without a working Windows)
+Это важная системная папка целиком — удалять её нельзя (содержимое можно, с подтверждением). ==> This is an important system folder as a whole and cannot be deleted (its contents can, with confirmation).
+Установленные приложения офлайн-Windows — найти и принудительно удалить программу, мешающую загрузке ==> Installed applications of offline Windows — find and force-remove a program that blocks the boot
+Записей: {}, показано: {}, с пометками: {}.  Розовый — подозрительная запись, жёлтый — файл не найден, серый — отключено.  Отключение обратимо. ==> Entries: {}, shown: {}, flagged: {}.  Pink — suspicious entry, yellow — file not found, grey — disabled.  Disabling is reversible.
+Программ в реестре: {}, показано: {}, антивирусов/защиты: {}.  Оранжевым выделены антивирусы и средства защиты — чаще всего именно они мешают загрузке. ==> Programs in the registry: {}, shown: {}, antivirus/security: {}.  Antivirus and security tools are highlighted in orange — they are the most frequent cause of boot problems.
+Удаление по умолчанию — в карантин X:\\WinRepair_Removed (обратимо). «Удалить навсегда» и файлы Windows требуют повторного подтверждения. Все изменения пишутся в журнал. ==> Deletion goes to the X:\\WinRepair_Removed quarantine by default (reversible). “Delete permanently” and Windows files need a second confirmation. All changes are logged.
+Автономный проводник для файлов выбранной (в том числе неработающей) Windows: дерево дисков, копирование, перемещение, переименование, поиск. Удаление по умолчанию — в карантин WinRepair_Removed (обратимо), есть окончательное удаление и получение прав владельца, если доступ запрещён. ==> A standalone explorer for the files of the selected (including non-working) Windows: drive tree, copy, move, rename, search. Deletion goes to the WinRepair_Removed quarantine by default (reversible); permanent deletion and taking ownership when access is denied are available.
+Список программ офлайн-Windows из реестра (машина и пользователи) с выделением антивирусов и средств защиты. Для программы, из-за которой Windows не запускается: отключить её службы, драйверы и автозапуск, переместить папку в карантин (обратимо) и убрать запись из списка. Деинсталлятор без работающей Windows не запустить — это принудительное удаление. ==> The programs list of an offline Windows from the registry (machine and users), with antivirus and security tools highlighted. For a program that stops Windows from starting: disable its services, drivers and autorun, move its folder to quarantine (reversible) and remove the list entry. An uninstaller cannot run without a working Windows — this is a forced removal.
+Дата ==> Date
+Папка ==> Folder
+Поиск ==> Search
+Версия ==> Version
+{}-файл ==> {} file
+Изменён ==> Modified
+Открыть ==> Open
+Папка:  ==> Folder: 
+Перейти ==> Go
+Атрибуты ==> Attributes
+Вставить ==> Paste
+Вырезать ==> Cut
+Издатель ==> Publisher
+Источник ==> Source
+Название ==> Name
+Оставить ==> Keep
+Категория ==> Category
+Новое имя ==> New name
+Программа ==> Program
+Готово: {} ==> Done: {}
+Копировать ==> Copy
+Не трогать ==> Leave alone
+Обновление ==> Update
+Нет данных. ==> No data.
+Новая папка ==> New folder
+Программа:  ==> Program: 
+Продолжить? ==> Continue?
+  Создан: {} ==>   Created: {}
+Новая папка… ==> New folder…
+Целевая ОС:  ==> Target OS: 
+Что связано… ==> Related…
+  Найдено: {} ==>   Found: {}
+  … и ещё {}\n ==>   … and {} more\n
+HKLM (32-бит) ==> HKLM (32-bit)
+Открыть\tEnter ==> Open\tEnter
+Переименовать ==> Rename
+Создать папку ==> Create folder
+Обновить ветку ==> Refresh branch
+Отключено: [{} ==> Disabled: [{}
+Папка (ссылка) ==> Folder (link)
+Переименовать… ==> Rename…
+Свойства папки ==> Folder properties
+  Нет доступа:  ==>   No access: 
+(не определена) ==> (not determined)
+Вверх\tBackspace ==> Up\tBackspace
+Вставить\tCtrl+V ==> Paste\tCtrl+V
+Вырезать\tCtrl+X ==> Cut\tCtrl+X
+Имя новой папки ==> New folder name
+Папка программы ==> Program folder
+Папка установки ==> Install folder
+Пользователь {} ==> User {}
+  (нет на диске) ==>   (not on disk)
+Будет выполнено: ==> Will be done:
+Владелец и права ==> Owner and permissions
+Переименовать\tF2 ==> Rename\tF2
+Удалить навсегда ==> Delete permanently
+Владелец и права… ==> Owner and permissions…
+Драйвер / утилита ==> Driver / utility
+Нечего выполнять. ==> Nothing to do.
+Папка удалена: {} ==> Folder deleted: {}
+Удалить навсегда… ==> Delete permanently…
+Антивирус / защита ==> Antivirus / security
+Открыть в Блокноте ==> Open in Notepad
+Удаление запрещено ==> Deletion forbidden
+Удалить в карантин ==> Move to quarantine
+  В буфере: {} ({}) ==>   In clipboard: {} ({})
+Выберите программу. ==> Select a program.
+Выделить всё\tCtrl+A ==> Select all\tCtrl+A
+Выгрузить всё ==> Unload all
+Выгрузить диск ==> Unload disk
+Кусты из файлов ==> Hives from files
+{}  [офлайн] ==> {}  [offline]
+Загружено систем:  ==> Systems loaded: 
+(ничего не загружено) ==> (nothing loaded)
+   (загружен — обновить) ==>    (loaded — reload)
+Выгрузить выбранный куст ==> Unload selected hive
+Загрузить куст из файла… ==> Load hive from file…
+(офлайн-системы не найдены) ==> (no offline systems found)
+Загрузить офлайн-реестр диска ==> Load offline registry of a disk
+Реестр {}: загружено кустов {}, не загружено {} ==> Registry {}: hives loaded {}, failed {}
+Выберите корень куста (например SYSTEM) в дереве. ==> Select a hive root (e.g. SYSTEM) in the tree.
+В папке Windows этого диска нет System32\\config\\SYSTEM. ==> This disk's Windows folder has no System32\\config\\SYSTEM.
+Адрес раздела: D:\\SYSTEM\\ControlSet001\\… (Enter — перейти) ==> Key address: D:\\SYSTEM\\ControlSet001\\… (Enter to go)
+Сначала загрузите кусты офлайн-Windows (меню Файл → «Загрузить офлайн-реестр диска»). ==> Load the offline Windows hives first (File → "Load offline registry of a disk").
+Это работающая система: её кусты открыты ядром. Для неё используйте regedit (меню Файл). ==> This is the running system: its hives are held by the kernel. Use regedit (File menu).
+Часть кустов не выгрузилась: их удерживает другая программа или окно. Подробности — в журнале. ==> Some hives were not unloaded: another program or window holds them. See the log.
+Адрес не распознан. Пример: D:\\SYSTEM\\ControlSet001\\Services (диск должен быть загружен через меню Файл). ==> Address not recognised. Example: D:\\SYSTEM\\ControlSet001\\Services (the disk must be loaded via the File menu).
+Ни одна система не загружена. Откройте меню Файл → «Загрузить офлайн-реестр диска» и выберите диск (например D:). ==> No system is loaded. Open File → "Load offline registry of a disk" and pick a disk (e.g. D:).
+.  Файл → «Загрузить офлайн-реестр диска» добавляет ещё одну систему; «Выгрузить диск» убирает.  Копия каждого куста сохраняется в Data\\Backups перед загрузкой. ==> .  File → "Load offline registry of a disk" adds another system; "Unload disk" removes it.  A copy of each hive is saved to Data\\Backups before loading.
+{}: предыдущий куст под этим именем не выгружается ==> {}: the previous hive under this name could not be unloaded
+УДАЛИТЬ раздел со всеми вложенными разделами и значениями:\n{} ==> DELETE the key with all subkeys and values:\n{}
+Куст реестра (SYSTEM, SOFTWARE, NTUSER.DAT, *.hiv, *.dat)\\0*\\0 ==> Registry hive (SYSTEM, SOFTWARE, NTUSER.DAT, *.hiv, *.dat)\\0*\\0
+Автозагрузка и службы: текущая и офлайн-Windows (Autoruns + msconfig)… ==> Startup and services: current and offline Windows (Autoruns + msconfig)…
+Установленные приложения: текущая и офлайн-Windows (удалить программу)… ==> Installed applications: current and offline Windows (remove a program)…
+Установленные приложения текущей и офлайн-Windows — найти и принудительно удалить программу, мешающую загрузке ==> Installed applications of the current and offline Windows — find and force-remove a program that blocks the boot
+Автозагрузка и службы текущей и офлайн-Windows (Autoruns + msconfig) ==> Startup and services of the current and offline Windows (Autoruns + msconfig)
+Текущую Windows можно просмотреть в окне «Автозагрузка и службы» (выберите её в списке «Целевая ОС»). ==> The current Windows can be viewed in the "Startup and services" window (pick it in the "Target OS" list).
