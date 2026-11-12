@@ -346,12 +346,12 @@ void OpenAppsImpl() {
     if (A.wnd) { ShowWindow(A.wnd, SW_RESTORE); SetForegroundWindow(A.wnd); return; }
     RegisterOnce(L"WRApps", Proc);
     A = State();
-    A.wnd = CreateWindowExW(0, L"WRApps", L"Установленные приложения офлайн-Windows — найти и принудительно удалить программу, мешающую загрузке", WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, S(1240), S(720),
+    A.wnd = CreateWindowExW(0, L"WRApps", L"Установленные приложения текущей и офлайн-Windows — найти и принудительно удалить программу, мешающую загрузке", WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, CW_USEDEFAULT, CW_USEDEFAULT, S(1240), S(720),
                             g_ui.main, nullptr, GetModuleHandleW(nullptr), nullptr);
     HWND h = A.wnd;
     Mk(h, L"STATIC", L"Целевая ОС:", SS_LEFT, 7900);
     A.combo = Mk(h, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, ID_TARGET);
-    A.targets = FillTargetCombo(A.combo, true);
+    A.targets = FillTargetCombo(A.combo, false);
     Mk(h, L"BUTTON", L"Сканировать", BS_PUSHBUTTON | WS_TABSTOP, ID_SCAN);
     Mk(h, L"STATIC", L"Фильтр:", SS_LEFT, ID_QFLBL);
     A.qf = Mk(h, L"EDIT", L"", ES_AUTOHSCROLL | WS_TABSTOP, ID_QF, WS_EX_CLIENTEDGE);
