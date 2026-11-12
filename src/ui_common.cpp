@@ -79,7 +79,7 @@ bool FormDialog(HWND owner, const std::wstring& title, std::vector<FormField>& f
         y += (f.kind == 1 ? S(110) : S(28)) + S(8);
     }
     HWND ok = Mk(h, L"BUTTON", L"OK", BS_DEFPUSHBUTTON | WS_TABSTOP, IDOK);
-    HWND cn = Mk(h, L"BUTTON", L"РћС‚РјРµРЅР°", BS_PUSHBUTTON | WS_TABSTOP, IDCANCEL);
+    HWND cn = Mk(h, L"BUTTON", L"Отмена", BS_PUSHBUTTON | WS_TABSTOP, IDCANCEL);
     Place(ok, cw + pad - S(190), y + S(4), S(90), S(28));
     Place(cn, cw + pad - S(92), y + S(4), S(90), S(28));
     EnableWindow(owner, FALSE);

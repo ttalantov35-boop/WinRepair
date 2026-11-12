@@ -42,9 +42,9 @@ bool IsSystemPath(const std::string& cmd) {
 
 std::string Flag(const AutoItem& it) {
     std::string l = toLowerUtf8(it.command);
-    if (!it.file.empty() && !it.fileExists && it.op != AOp::EditOnly) return "Р¤РђР™Р› РќР• РќРђР™Р”Р•Рќ";
-    if (containsAny(l, {"mshta", "wscript", "cscript", "powershell", "-enc", "http://", "https://", "javascript:", "cmd /c", "cmd.exe /c", "\\users\\public\\"})) return "РџРћР”РћР—Р РРўР•Р›Р¬РќРћ";
-    if (containsAny(l, {"\\appdata\\", "\\temp\\", "\\programdata\\"}) ) return "РїСЂРѕРІРµСЂРёС‚СЊ";
+    if (!it.file.empty() && !it.fileExists && it.op != AOp::EditOnly) return "ФАЙЛ НЕ НАЙДЕН";
+    if (containsAny(l, {"mshta", "wscript", "cscript", "powershell", "-enc", "http://", "https://", "javascript:", "cmd /c", "cmd.exe /c", "\\users\\public\\"})) return "ПОДОЗРИТЕЛЬНО";
+    if (containsAny(l, {"\\appdata\\", "\\temp\\", "\\programdata\\"}) ) return "проверить";
     return "";
 }
 
@@ -74,7 +74,7 @@ void AddRun(std::vector<AutoItem>& out, const Target& t, const std::string& moun
         AutoItem it;
         it.kind = kind; it.name = v.name; it.command = RegText(v); it.location = (mount.rfind("@HKU\\", 0) == 0 ? "HKU\\" + mount.substr(5) : "HKLM\\" + mount) + "\\" + sub; it.once = once;
         it.op = AOp::RunValue; it.mount = mount; it.sub = sub; it.value = v.name; it.approvedSub = once ? "" : approved;
-        it.state = ApprovedDisabled(root, approved, v.name) ? "РћС‚РєР»СЋС‡РµРЅРѕ" : "Р’РєР»СЋС‡РµРЅРѕ";
+        it.state = ApprovedDisabled(root, approved, v.name) ? "Отключено" : "Включено";
         Finish(it, t, profile);
         out.push_back(it);
     }
@@ -122,8 +122,8 @@ std::vector<AutoItem> ScanAutoruns(const Target& t, std::string& err) {
     AddRun(out, t, mSoft, rc.software, cv + "Run", "Run (HKLM)", apr + "Run", false, "");
     AddRun(out, t, mSoft, rc.software, cv + "RunOnce", "RunOnce (HKLM)", "", true, "");
     AddRun(out, t, mSoft, rc.software, cv + "Policies\\Explorer\\Run", "Policies\\Explorer\\Run", "", true, "");
-    AddRun(out, t, mSoft, rc.software, "WOW6432Node\\" + cv + "Run", "Run (HKLM, 32-Р±РёС‚)", apr + "Run32", false, "");
-    AddRun(out, t, mSoft, rc.software, "WOW6432Node\\" + cv + "RunOnce", "RunOnce (HKLM, 32-Р±РёС‚)", "", true, "");
+    AddRun(out, t, mSoft, rc.software, "WOW6432Node\\" + cv + "Run", "Run (HKLM, 32-бит)", apr + "Run32", false, "");
+    AddRun(out, t, mSoft, rc.software, "WOW6432Node\\" + cv + "RunOnce", "RunOnce (HKLM, 32-бит)", "", true, "");
     for (const auto& u : rc.users) {
         std::string mu = u.mount.empty() ? UserHiveMountName(t, u.name) : u.mount;
         std::string ucv = "Software\\" + cv;
@@ -136,9 +136,9 @@ std::vector<AutoItem> ScanAutoruns(const Target& t, std::string& err) {
         for (const auto& f : ListFiles(sf, "*")) {
             if (toLowerUtf8(f) == "desktop.ini") continue;
             AutoItem it;
-            it.kind = "РџР°РїРєР° В«РђРІС‚РѕР·Р°РіСЂСѓР·РєР°В» (" + u.name + ")"; it.name = f; it.command = sf + f; it.location = sf; it.op = AOp::StartupFile;
+            it.kind = "Папка «Автозагрузка» (" + u.name + ")"; it.name = f; it.command = sf + f; it.location = sf; it.op = AOp::StartupFile;
             it.mount = mu; it.value = f; it.path = sf + f; it.approvedSub = "Software\\" + apr + "StartupFolder";
-            it.state = ApprovedDisabled(u.root, it.approvedSub, f) ? "РћС‚РєР»СЋС‡РµРЅРѕ" : "Р’РєР»СЋС‡РµРЅРѕ";
+            it.state = ApprovedDisabled(u.root, it.approvedSub, f) ? "Отключено" : "Включено";
             it.file = it.path; it.fileExists = true; it.flag = Flag(it);
             out.push_back(it);
         }
@@ -148,9 +148,9 @@ std::vector<AutoItem> ScanAutoruns(const Target& t, std::string& err) {
         for (const auto& f : ListFiles(sf, "*")) {
             if (toLowerUtf8(f) == "desktop.ini") continue;
             AutoItem it;
-            it.kind = "РџР°РїРєР° В«РђРІС‚РѕР·Р°РіСЂСѓР·РєР°В» (РІСЃРµ)"; it.name = f; it.command = sf + f; it.location = sf; it.op = AOp::StartupFile;
+            it.kind = "Папка «Автозагрузка» (все)"; it.name = f; it.command = sf + f; it.location = sf; it.op = AOp::StartupFile;
             it.mount = mSoft; it.value = f; it.path = sf + f; it.approvedSub = apr + "StartupFolder";
-            it.state = ApprovedDisabled(rc.software, it.approvedSub, f) ? "РћС‚РєР»СЋС‡РµРЅРѕ" : "Р’РєР»СЋС‡РµРЅРѕ";
+            it.state = ApprovedDisabled(rc.software, it.approvedSub, f) ? "Отключено" : "Включено";
             it.file = it.path; it.fileExists = true; it.flag = Flag(it);
             out.push_back(it);
         }
@@ -163,11 +163,11 @@ std::vector<AutoItem> ScanAutoruns(const Target& t, std::string& err) {
             if (!QueryVal(rc.software, sub, n, v)) continue;
             AutoItem it;
             it.kind = "Winlogon"; it.name = n; it.command = RegText(v); it.location = "HKLM\\" + mSoft + "\\" + sub; it.op = AOp::EditOnly;
-            it.mount = mSoft; it.sub = sub; it.value = n; it.state = "Р’РєР»СЋС‡РµРЅРѕ";
+            it.mount = mSoft; it.sub = sub; it.value = n; it.state = "Включено";
             Finish(it, t, "");
             std::string lc = toLowerUtf8(it.command);
-            if (it.name == "Shell" && lc != "explorer.exe") it.flag = "РџРћР”РћР—Р РРўР•Р›Р¬РќРћ (РѕР¶РёРґР°РµС‚СЃСЏ explorer.exe)";
-            if (it.name == "Userinit" && lc.find("userinit.exe") == std::string::npos) it.flag = "РџРћР”РћР—Р РРўР•Р›Р¬РќРћ";
+            if (it.name == "Shell" && lc != "explorer.exe") it.flag = "ПОДОЗРИТЕЛЬНО (ожидается explorer.exe)";
+            if (it.name == "Userinit" && lc.find("userinit.exe") == std::string::npos) it.flag = "ПОДОЗРИТЕЛЬНО";
             out.push_back(it);
         }
     }
@@ -184,9 +184,9 @@ std::vector<AutoItem> ScanAutoruns(const Target& t, std::string& err) {
                 if (!QueryVal(k, s, "Debugger", v)) { if (!QueryVal(k, s, "Debugger.WRDisabled", v)) continue; dis = true; }
                 AutoItem it;
                 it.kind = "Image File Execution Options"; it.name = s; it.command = RegText(v); it.location = "HKLM\\" + mSoft + "\\" + sub + "\\" + s;
-                it.op = AOp::Ifeo; it.mount = mSoft; it.sub = sub + "\\" + s; it.state = dis ? "РћС‚РєР»СЋС‡РµРЅРѕ" : "Р’РєР»СЋС‡РµРЅРѕ";
+                it.op = AOp::Ifeo; it.mount = mSoft; it.sub = sub + "\\" + s; it.state = dis ? "Отключено" : "Включено";
                 Finish(it, t, "");
-                if (it.flag.empty() && !dis) it.flag = "РїСЂРѕРІРµСЂРёС‚СЊ (РїРѕРґРјРµРЅР° Р·Р°РїСѓСЃРєР° РїСЂРѕРіСЂР°РјРјС‹)";
+                if (it.flag.empty() && !dis) it.flag = "проверить (подмена запуска программы)";
                 out.push_back(it);
             }
             RegCloseKey(k);
@@ -200,7 +200,7 @@ std::vector<AutoItem> ScanAutoruns(const Target& t, std::string& err) {
         if (trim(RegText(v)).empty()) continue;
         AutoItem it;
         it.kind = "AppInit_DLLs"; it.name = "AppInit_DLLs"; it.command = RegText(v); it.location = "HKLM\\" + mSoft + "\\" + base; it.op = AOp::MoveValue;
-        it.mount = mSoft; it.sub = base; it.value = "AppInit_DLLs"; it.state = dis ? "РћС‚РєР»СЋС‡РµРЅРѕ" : "Р’РєР»СЋС‡РµРЅРѕ";
+        it.mount = mSoft; it.sub = base; it.value = "AppInit_DLLs"; it.state = dis ? "Отключено" : "Включено";
         Finish(it, t, "");
         out.push_back(it);
     }
@@ -214,7 +214,7 @@ std::vector<AutoItem> ScanAutoruns(const Target& t, std::string& err) {
             if (txt.empty() || toLowerUtf8(txt) == "autocheck autochk *") continue;
             AutoItem it;
             it.kind = "Session Manager"; it.name = n; it.command = txt; it.location = "HKLM\\" + mSys + "\\" + sub; it.op = AOp::EditOnly; it.mount = mSys; it.sub = sub; it.value = n;
-            it.state = "Р’РєР»СЋС‡РµРЅРѕ"; it.flag = "РїСЂРѕРІРµСЂРёС‚СЊ (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ: autocheck autochk *)";
+            it.state = "Включено"; it.flag = "проверить (по умолчанию: autocheck autochk *)";
             out.push_back(it);
         }
     }
@@ -235,15 +235,15 @@ std::vector<AutoItem> ScanAutoruns(const Target& t, std::string& err) {
                 QueryVal(k, n, "ImagePath", ip);
                 QueryVal(k, n, "DisplayName", dn);
                 AutoItem it;
-                it.kind = (type & 3) ? "Р”СЂР°Р№РІРµСЂ" : "РЎР»СѓР¶Р±Р°";
+                it.kind = (type & 3) ? "Драйвер" : "Служба";
                 it.name = n;
                 std::string disp = RegText(dn);
                 if (!disp.empty() && disp[0] != '@') it.name = n + " (" + disp + ")";
                 it.command = RegText(ip);
                 it.location = "HKLM\\" + mSys + "\\" + sub + "\\" + n; it.op = AOp::Service; it.mount = mSys; it.sub = sub + "\\" + n; it.value = n;
                 it.origStart = start;
-                static const char* sn[] = {"Boot", "System", "РђРІС‚Рѕ", "Р’СЂСѓС‡РЅСѓСЋ", "РћС‚РєР»СЋС‡РµРЅРѕ"};
-                it.state = start == 4 ? "РћС‚РєР»СЋС‡РµРЅРѕ" : std::string("Р’РєР»СЋС‡РµРЅРѕ (") + sn[start > 4 ? 4 : start] + ")";
+                static const char* sn[] = {"Boot", "System", "Авто", "Вручную", "Отключено"};
+                it.state = start == 4 ? "Отключено" : std::string("Включено (") + sn[start > 4 ? 4 : start] + ")";
                 if (it.command.empty() && (type & 3)) it.command = "System32\\drivers\\" + n + ".sys";
                 Finish(it, t, "");
                 it.thirdParty = !IsSystemPath(it.command) || (it.fileExists == false && !it.file.empty());
@@ -262,8 +262,8 @@ std::vector<AutoItem> ScanAutoruns(const Target& t, std::string& err) {
             size_t a = x.find("<Command>"), b = x.find("</Command>");
             if (a == std::string::npos || b == std::string::npos || b < a) continue;
             AutoItem it;
-            it.kind = "РџР»Р°РЅРёСЂРѕРІС‰РёРє (С‚РѕР»СЊРєРѕ РїСЂРѕСЃРјРѕС‚СЂ)"; it.name = f; it.command = trim(x.substr(a + 9, b - a - 9)); it.location = td + f; it.op = AOp::ReadOnly;
-            it.state = x.find("<Enabled>false</Enabled>") != std::string::npos ? "РћС‚РєР»СЋС‡РµРЅРѕ" : "Р’РєР»СЋС‡РµРЅРѕ";
+            it.kind = "Планировщик (только просмотр)"; it.name = f; it.command = trim(x.substr(a + 9, b - a - 9)); it.location = td + f; it.op = AOp::ReadOnly;
+            it.state = x.find("<Enabled>false</Enabled>") != std::string::npos ? "Отключено" : "Включено";
             Finish(it, t, "");
             out.push_back(it);
         }
@@ -276,8 +276,8 @@ std::vector<AutoItem> ScanAutoruns(const Target& t, std::string& err) {
                 size_t a = x.find("<Command>"), b = x.find("</Command>");
                 if (a == std::string::npos || b == std::string::npos || b < a) continue;
                 AutoItem it;
-                it.kind = "РџР»Р°РЅРёСЂРѕРІС‰РёРє (С‚РѕР»СЊРєРѕ РїСЂРѕСЃРјРѕС‚СЂ)"; it.name = d + "\\" + f; it.command = trim(x.substr(a + 9, b - a - 9)); it.location = td + d + "\\" + f; it.op = AOp::ReadOnly;
-                it.state = x.find("<Enabled>false</Enabled>") != std::string::npos ? "РћС‚РєР»СЋС‡РµРЅРѕ" : "Р’РєР»СЋС‡РµРЅРѕ";
+                it.kind = "Планировщик (только просмотр)"; it.name = d + "\\" + f; it.command = trim(x.substr(a + 9, b - a - 9)); it.location = td + d + "\\" + f; it.op = AOp::ReadOnly;
+                it.state = x.find("<Enabled>false</Enabled>") != std::string::npos ? "Отключено" : "Включено";
                 Finish(it, t, "");
                 out.push_back(it);
             }
@@ -289,7 +289,7 @@ std::vector<AutoItem> ScanAutoruns(const Target& t, std::string& err) {
 // ---- modifications ------------------------------------------------------------------------------------------
 static bool WithKey(const AutoItem& it, const std::function<bool(HKEY)>& f, std::string& err) {
     HKEY root = Hives().open(it.mount);
-    if (!root) { err = "РљСѓСЃС‚ " + it.mount + " РЅРµ Р·Р°РіСЂСѓР¶РµРЅ"; return false; }
+    if (!root) { err = "Куст " + it.mount + " не загружен"; return false; }
     bool ok = f(root);
     RegFlushKey(root);
     RegCloseKey(root);
@@ -301,7 +301,7 @@ bool AutorunSetEnabled(const AutoItem& it, bool enable, std::string& err) {
     switch (it.op) {
         case AOp::RunValue:
         case AOp::StartupFile: {
-            if (it.approvedSub.empty()) { err = "Р”Р»СЏ RunOnce РѕС‚РєР»СЋС‡РµРЅРёРµ РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ вЂ” РёСЃРїРѕР»СЊР·СѓР№С‚Рµ В«РЈРґР°Р»РёС‚СЊВ»."; return false; }
+            if (it.approvedSub.empty()) { err = "Для RunOnce отключение не поддерживается — используйте «Удалить»."; return false; }
             std::vector<uint8_t> d(12, 0);
             d[0] = enable ? 0x02 : 0x03;
             if (!enable) { FILETIME ft; GetSystemTimeAsFileTime(&ft); memcpy(&d[4], &ft, 8); }
@@ -311,7 +311,7 @@ bool AutorunSetEnabled(const AutoItem& it, bool enable, std::string& err) {
                 if (x != ERROR_SUCCESS) return fail(x);
                 x = RegSetRaw(k, it.value, REG_BINARY, d);
                 RegCloseKey(k);
-                if (x == ERROR_SUCCESS) AuditChange(std::string(enable ? "Р’РєР»СЋС‡С‘РЅ" : "РћС‚РєР»СЋС‡С‘РЅ") + " СЌР»РµРјРµРЅС‚ Р°РІС‚РѕР·Р°РіСЂСѓР·РєРё: " + it.location + " :: " + it.value);
+                if (x == ERROR_SUCCESS) AuditChange(std::string(enable ? "Включён" : "Отключён") + " элемент автозагрузки: " + it.location + " :: " + it.value);
                 return x == ERROR_SUCCESS ? true : fail(x);
             }, err);
         }
@@ -328,7 +328,7 @@ bool AutorunSetEnabled(const AutoItem& it, bool enable, std::string& err) {
                 else { nv = (QueryVal(k, "", "WRStartBackup", bk) && bk.data.size() >= 4) ? *(DWORD*)bk.data.data() : 3; RegDeleteValueW(k, L"WRStartBackup"); }
                 x = RegSetRaw(k, "Start", REG_DWORD, std::vector<uint8_t>((uint8_t*)&nv, (uint8_t*)&nv + 4));
                 RegCloseKey(k);
-                if (x == ERROR_SUCCESS) AuditChange(fmt("РЎР»СѓР¶Р±Р°/РґСЂР°Р№РІРµСЂ %s: Start %lu -> %lu", it.value.c_str(), (unsigned long)cur, (unsigned long)nv));
+                if (x == ERROR_SUCCESS) AuditChange(fmt("Служба/драйвер %s: Start %lu -> %lu", it.value.c_str(), (unsigned long)cur, (unsigned long)nv));
                 return x == ERROR_SUCCESS ? true : fail(x);
             }, err);
         }
@@ -351,13 +351,13 @@ bool AutorunSetEnabled(const AutoItem& it, bool enable, std::string& err) {
                 LONG x = RegOpenKeyExW(r, W(it.sub).c_str(), 0, KEY_READ | KEY_WRITE, &k);
                 if (x != ERROR_SUCCESS) return fail(x);
                 RegVal v;
-                if (!enable && QueryVal(k, "", "AppInit_DLLs", v)) { RegSetRaw(k, "AppInit_DLLs.WRDisabled", v.type, v.data); RegSetString(k, "", "AppInit_DLLs", ""); AuditChange("AppInit_DLLs РѕС‚РєР»СЋС‡С‘РЅ: " + RegText(v)); }
-                else if (enable && QueryVal(k, "", "AppInit_DLLs.WRDisabled", v)) { RegSetRaw(k, "AppInit_DLLs", v.type, v.data); RegDeleteValueW(k, L"AppInit_DLLs.WRDisabled"); AuditChange("AppInit_DLLs РІРєР»СЋС‡С‘РЅ: " + RegText(v)); }
+                if (!enable && QueryVal(k, "", "AppInit_DLLs", v)) { RegSetRaw(k, "AppInit_DLLs.WRDisabled", v.type, v.data); RegSetString(k, "", "AppInit_DLLs", ""); AuditChange("AppInit_DLLs отключён: " + RegText(v)); }
+                else if (enable && QueryVal(k, "", "AppInit_DLLs.WRDisabled", v)) { RegSetRaw(k, "AppInit_DLLs", v.type, v.data); RegDeleteValueW(k, L"AppInit_DLLs.WRDisabled"); AuditChange("AppInit_DLLs включён: " + RegText(v)); }
                 RegCloseKey(k);
                 return true;
             }, err);
         }
-        default: err = "Р”Р»СЏ СЌС‚РѕРіРѕ С‚РёРїР° Р·Р°РїРёСЃРё РѕС‚РєР»СЋС‡РµРЅРёРµ РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ. РСЃРїРѕР»СЊР·СѓР№С‚Рµ В«РР·РјРµРЅРёС‚СЊВ» РёР»Рё СЂРµРґР°РєС‚РѕСЂ СЂРµРµСЃС‚СЂР°."; return false;
+        default: err = "Для этого типа записи отключение не поддерживается. Используйте «Изменить» или редактор реестра."; return false;
     }
 }
 
@@ -368,21 +368,21 @@ bool AutorunDelete(const AutoItem& it, std::string& err) {
                 RegVal v;
                 QueryVal(r, it.sub, it.value, v);
                 LONG x = RegDelValue(r, it.sub, it.value);
-                if (x == ERROR_SUCCESS) AuditChange("РЈРґР°Р»РµРЅР° Р·Р°РїРёСЃСЊ Р°РІС‚РѕР·Р°РїСѓСЃРєР° " + it.location + " :: " + it.value + " = " + RegText(v));
+                if (x == ERROR_SUCCESS) AuditChange("Удалена запись автозапуска " + it.location + " :: " + it.value + " = " + RegText(v));
                 else err = ErrMsg((DWORD)x);
                 return x == ERROR_SUCCESS;
             }, err);
         }
         case AOp::StartupFile: {
             if (!DeleteFileW(W(it.path).c_str())) { err = ErrMsg(GetLastError()); return false; }
-            AuditChange("РЈРґР°Р»С‘РЅ С„Р°Р№Р» Р°РІС‚РѕР·Р°РіСЂСѓР·РєРё " + it.path);
+            AuditChange("Удалён файл автозагрузки " + it.path);
             return true;
         }
         case AOp::Ifeo: {
             return WithKey(it, [&](HKEY r) {
                 RegDelValue(r, it.sub, "Debugger");
                 RegDelValue(r, it.sub, "Debugger.WRDisabled");
-                AuditChange("РЈРґР°Р»С‘РЅ IFEO Debugger: " + it.sub);
+                AuditChange("Удалён IFEO Debugger: " + it.sub);
                 return true;
             }, err);
         }
@@ -390,16 +390,16 @@ bool AutorunDelete(const AutoItem& it, std::string& err) {
             return WithKey(it, [&](HKEY r) {
                 RegSetString(r, it.sub, "AppInit_DLLs", "");
                 RegDelValue(r, it.sub, "AppInit_DLLs.WRDisabled");
-                AuditChange("РћС‡РёС‰РµРЅ AppInit_DLLs (Р±С‹Р»Рѕ: " + it.command + ")");
+                AuditChange("Очищен AppInit_DLLs (было: " + it.command + ")");
                 return true;
             }, err);
         }
-        default: err = "Р­С‚Сѓ Р·Р°РїРёСЃСЊ РЅРµР»СЊР·СЏ СѓРґР°Р»РёС‚СЊ РёР· СЃРїРёСЃРєР° (СЃР»СѓР¶Р±Р°/РґСЂР°Р№РІРµСЂ вЂ” РѕС‚РєР»СЋС‡РёС‚Рµ; РїР»Р°РЅРёСЂРѕРІС‰РёРє вЂ” С‚РѕР»СЊРєРѕ РїСЂРѕСЃРјРѕС‚СЂ)."; return false;
+        default: err = "Эту запись нельзя удалить из списка (служба/драйвер — отключите; планировщик — только просмотр)."; return false;
     }
 }
 
 bool AutorunSetCommand(const AutoItem& it, const std::string& cmd, std::string& err) {
-    if (it.op != AOp::RunValue && it.op != AOp::EditOnly && it.op != AOp::MoveValue) { err = "Р”Р»СЏ СЌС‚РѕРіРѕ С‚РёРїР° РёР·РјРµРЅРµРЅРёРµ РєРѕРјР°РЅРґС‹ РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ."; return false; }
+    if (it.op != AOp::RunValue && it.op != AOp::EditOnly && it.op != AOp::MoveValue) { err = "Для этого типа изменение команды не поддерживается."; return false; }
     return WithKey(it, [&](HKEY r) {
         RegVal v;
         bool had = QueryVal(r, it.sub, it.value, v);
@@ -412,16 +412,16 @@ bool AutorunSetCommand(const AutoItem& it, const std::string& cmd, std::string& 
         if (x != ERROR_SUCCESS) { err = ErrMsg((DWORD)x); return false; }
         x = RegSetRaw(k, it.value, type, d);
         RegCloseKey(k);
-        if (x == ERROR_SUCCESS) AuditChange("РР·РјРµРЅРµРЅР° РєРѕРјР°РЅРґР° " + it.location + " :: " + it.value + ": '" + it.command + "' -> '" + cmd + "'");
+        if (x == ERROR_SUCCESS) AuditChange("Изменена команда " + it.location + " :: " + it.value + ": '" + it.command + "' -> '" + cmd + "'");
         else err = ErrMsg((DWORD)x);
         return x == ERROR_SUCCESS;
     }, err);
 }
 
 std::string AutorunsCsv(const std::vector<AutoItem>& v) {
-    std::string s = "РЎРѕСЃС‚РѕСЏРЅРёРµ,РўРёРї,РРјСЏ,РљРѕРјР°РЅРґР°,Р¤Р°Р№Р»,РќР°Р№РґРµРЅ,РџРѕРјРµС‚РєР°,Р Р°СЃРїРѕР»РѕР¶РµРЅРёРµ\r\n";
+    std::string s = "Состояние,Тип,Имя,Команда,Файл,Найден,Пометка,Расположение\r\n";
     for (const auto& i : v)
-        s += csvQuote(i.state) + "," + csvQuote(i.kind) + "," + csvQuote(i.name) + "," + csvQuote(i.command) + "," + csvQuote(i.file) + "," + (i.fileExists ? "РґР°" : "РЅРµС‚") + "," + csvQuote(i.flag) + "," + csvQuote(i.location) + "\r\n";
+        s += csvQuote(i.state) + "," + csvQuote(i.kind) + "," + csvQuote(i.name) + "," + csvQuote(i.command) + "," + csvQuote(i.file) + "," + (i.fileExists ? "да" : "нет") + "," + csvQuote(i.flag) + "," + csvQuote(i.location) + "\r\n";
     return s;
 }
 
