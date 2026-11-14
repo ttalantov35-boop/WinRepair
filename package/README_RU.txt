@@ -2,7 +2,7 @@
 =================================
 
 Состав папки
-  WinRepair_x64.exe / WinRepair_x86.exe  — программа (один файл, без установки и зависимостей)
+  WinRepair_x64.exe / WinRepair_x86.exe / WinRepair_arm64.exe — программа (один файл, без установки и зависимостей; arm64 — для Windows on ARM/Snapdragon, в их WinPE/WinRE подходит только он)
   Run-WinRepair.cmd                      — запускает нужную версию с любой буквы диска (удобно в WinPE/WinRE)
   Playbooks\                             — сценарии ремонта и симптомы (*.wrp); описание формата: Playbooks\README_PLAYBOOKS.md
   Tools\                                 — необязательные инструменты (см. Tools\README.txt, например cdb.exe для разбора дампов)

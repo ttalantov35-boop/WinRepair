@@ -2,7 +2,7 @@ WinRepair Toolkit — quick start
 ===============================
 
 Folder contents
-  WinRepair_x64.exe / WinRepair_x86.exe  — the program (a single file, no installation, no dependencies)
+  WinRepair_x64.exe / WinRepair_x86.exe / WinRepair_arm64.exe  — the program (a single file, no installation, no dependencies)
   Run-WinRepair.cmd                      — starts the right build from any drive letter (handy in WinPE/WinRE)
   Playbooks\                             — repair playbooks and symptoms (*.wrp); format: Playbooks\README_PLAYBOOKS.md
   Tools\                                 — optional tools (see Tools\README.txt, e.g. cdb.exe for dump analysis)

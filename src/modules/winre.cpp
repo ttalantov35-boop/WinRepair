@@ -1,5 +1,6 @@
 #include "winre.h"
 #include "catalog.h"
+#include "access.h"
 
 #include <winioctl.h>
 
@@ -220,7 +221,9 @@ bool CreateRamdiskEntry(Ctx& c, const std::string& store, const std::string& des
     };
     set("device", dev);
     set("osdevice", dev);
-    set("path", IsUefiStore(store) ? "\\windows\\system32\\winload.efi" : "\\windows\\system32\\winload.exe");
+    bool uefi = IsUefiStore(store);
+    c.info(uefi ? "Прошивка: UEFI — загрузчик winload.efi" : "Прошивка: BIOS (Legacy) — загрузчик winload.exe");
+    set("path", uefi ? "\\windows\\system32\\winload.efi" : "\\windows\\system32\\winload.exe");
     set("systemroot", "\\windows");
     set("winpe", "yes");
     set("detecthal", "yes");
@@ -253,10 +256,34 @@ void JobBuildWinRepairRE(Ctx& c, const std::string& store, const std::string& sr
         exeSrc = U(b.c_str(), (int)n);
     }
     unsigned long long need = FileSize(srcWim) * 2 + (300ULL << 20);
+    // Загрузчик не умеет читать WIM с тома, зашифрованного BitLocker (поэтому штатный WinRE живёт
+    // на отдельном незашифрованном разделе). Если целевой том зашифрован — ищем другой незашифрованный.
+    std::string destRoot = t.root;
+    if (BlToolPresent()) {
+        std::vector<BlVolume> bl = BlScan();
+        auto enc = [&](char L) { for (const auto& v : bl) if (v.letter == L && v.known) return v.encrypted || v.locked; return false; };
+        if (enc(destRoot[0])) {
+            c.warn(fmt("Том %c: зашифрован BitLocker: загрузчик не сможет прочитать с него образ. Ищу незашифрованный том…", destRoot[0]));
+            std::string alt;
+            DWORD mask = GetLogicalDrives();
+            for (char L = 'C'; L <= 'Z'; ++L) {
+                if (!(mask & (1u << (L - 'A')))) continue;
+                std::string r = std::string(1, L) + ":\\";
+                if (GetDriveTypeW(W(r).c_str()) != DRIVE_FIXED || enc(L)) continue;
+                ULARGE_INTEGER fb2{}, tb2{}, tf2{};
+                if (!GetDiskFreeSpaceExW(W(r).c_str(), &fb2, &tb2, &tf2) || fb2.QuadPart < need) continue;
+                alt = r;
+                break;
+            }
+            if (alt.empty()) { c.error("Все подходящие тома зашифрованы или малы. Разместить образ негде: отключите шифрование BitLocker (manage-bde -off) или подключите незашифрованный диск."); return; }
+            destRoot = alt;
+            c.info("Образ будет размещён на " + destRoot);
+        }
+    }
     ULARGE_INTEGER fb{}, tb{}, tf{};
-    GetDiskFreeSpaceExW(W(t.root).c_str(), &fb, &tb, &tf);
-    if (fb.QuadPart < need) { c.error(fmt("На %s свободно %s, нужно около %s.", t.root.c_str(), fmtBytes(fb.QuadPart).c_str(), fmtBytes(need).c_str())); return; }
-    std::string dest = t.root + "Recovery\\WinRepairRE\\", mnt = dest + "mnt\\", dst = dest + "WinRE_WR.wim", scr = dest + "scratch\\";
+    GetDiskFreeSpaceExW(W(destRoot).c_str(), &fb, &tb, &tf);
+    if (fb.QuadPart < need) { c.error(fmt("На %s свободно %s, нужно около %s.", destRoot.c_str(), fmtBytes(fb.QuadPart).c_str(), fmtBytes(need).c_str())); return; }
+    std::string dest = destRoot + "Recovery\\WinRepairRE\\", mnt = dest + "mnt\\", dst = dest + "WinRE_WR.wim", scr = dest + "scratch\\";
     MakeDirs(dest); MakeDirs(mnt); MakeDirs(scr);
     std::string sdi = WinReSdiFor(srcWim, t);
     if (sdi.empty()) { c.error("Не найден boot.sdi (ни рядом с Winre.wim, ни в Windows\\Boot)."); return; }
@@ -273,6 +300,27 @@ void JobBuildWinRepairRE(Ctx& c, const std::string& store, const std::string& sr
         if (!PathExists(sys)) { c.error("В смонтированном образе нет Windows\\System32."); break; }
         if (!CopyFileW(W(exeSrc).c_str(), W(sys + "WinRepair.exe").c_str(), FALSE)) { c.error("Не удалось скопировать WinRepair.exe в образ: " + ErrMsg(GetLastError())); break; }
         WriteText(sys + "WinRepair.winre", "WinRepair shell marker\r\n", false);
+
+        // Запуск первым при ЛЮБОМ способе старта WinRE: подменяем RecEnv.exe на WinRepair,
+        // оригинал сохраняем рядом как RecEnvOrig.exe (его запускает кнопка «Выйти в штатное меню WinRE»).
+        // Нужен, когда оболочка в реестре образа вызывает RecEnv напрямую и winpeshl.ini не читается.
+        bool replacedRecEnv = false;
+        for (const char* sub : {"sources\\recovery\\", "Windows\\System32\\Recovery\\"}) {
+            std::string rec = mnt + sub + "RecEnv.exe", orig2 = mnt + sub + "RecEnvOrig.exe";
+            if (!PathExists(rec)) continue;
+            SetFileAttributesW(W(rec).c_str(), FILE_ATTRIBUTE_NORMAL);
+            // Переименование вместо копирования: читать файлы из смонтированного WIM система
+            // может запрещать (0x780), а переименование — операция над именем, оно проходит.
+            if (!PathExists(orig2) && !MoveFileW(W(rec).c_str(), W(orig2).c_str())) {
+                c.warn("Не удалось переименовать RecEnv.exe (" + ErrMsg(GetLastError()) + ") — подмена пропущена.");
+                continue;
+            }
+            if (CopyFileW(W(exeSrc).c_str(), W(rec).c_str(), FALSE)) {
+                replacedRecEnv = true;
+                c.info("RecEnv.exe подменён на WinRepair (оригинал сохранён как RecEnvOrig.exe) — программа запустится первой при любом способе старта WinRE.");
+                AuditChange("WinRE+WinRepair: " + rec + " -> WinRepair, оригинал RecEnvOrig.exe");
+            } else c.warn("Не удалось подменить RecEnv.exe (" + ErrMsg(GetLastError()) + ").");
+        }
         // winpeshl.ini: WinRepair first, then the original recovery shell (when WinRepair exits the standard WinRE menu starts)
         std::string ini = sys + "winpeshl.ini", orig = ReadSmall(ini);
         std::string lines;
@@ -293,9 +341,59 @@ void JobBuildWinRepairRE(Ctx& c, const std::string& store, const std::string& sr
                 if (PathExists(probe)) { lines = std::string(rec) + "\r\n"; break; }
             }
         }
+        if (replacedRecEnv) {   // штатное меню теперь живёт в RecEnvOrig.exe
+            std::string low = toLowerUtf8(lines);
+            size_t rp = low.find("recenv.exe");
+            if (rp != std::string::npos) lines = lines.substr(0, rp) + "RecEnvOrig.exe" + lines.substr(rp + 10);
+        }
         SetFileAttributesW(W(ini).c_str(), FILE_ATTRIBUTE_NORMAL);
         WriteText(ini, "[LaunchApps]\r\n%SYSTEMROOT%\\System32\\WinRepair.exe\r\n" + lines, false);
         c.info("winpeshl.ini: WinRepair → затем: " + (lines.empty() ? std::string("(исходной оболочки не найдено)") : trim(lines)));
+
+        // В ряде сборок WinRE оболочка задана в реестре образа напрямую (SYSTEM\Setup\CmdLine = RecEnv),
+        // и тогда winpeshl.ini игнорируется — именно поэтому WinRepair не запускался первым.
+        // Приводим CmdLine к winpeshl.exe: он выполнит winpeshl.ini (WinRepair, затем штатное меню WinRE).
+        {
+            EnablePrivilegeByName(L"SeBackupPrivilege");
+            EnablePrivilegeByName(L"SeRestorePrivilege");
+            const wchar_t* MNT = L"WR_WINRE_SYS";
+            RegUnLoadKeyW(HKEY_LOCAL_MACHINE, MNT);   // хвост от прошлого запуска
+            // Куст в смонтированном WIM реестр открывать отказывается (0x780): работаем с копией куста,
+            // правим её и кладём обратно в образ до фиксации.
+            std::string hiveSrc = sys + "config\\SYSTEM", hiveTmp = dest + "SYSTEM.edit";
+            bool hiveChanged = false;
+            DeleteFileW(W(hiveTmp).c_str());
+            bool copied = CopyFileW(W(hiveSrc).c_str(), W(hiveTmp).c_str(), FALSE) != 0;
+            LONG lr = copied ? RegLoadKeyW(HKEY_LOCAL_MACHINE, MNT, W(hiveTmp).c_str()) : (LONG)GetLastError();
+            if (!copied) c.warn("Не удалось скопировать куст SYSTEM из образа (" + ErrMsg((DWORD)lr) + ") — оболочка не проверена; подмена RecEnv это компенсирует.");
+            else if (lr != ERROR_SUCCESS) c.warn("Не удалось загрузить копию куста SYSTEM (" + ErrMsg((DWORD)lr) + ") — оболочка не проверена; подмена RecEnv это компенсирует.");
+            else {
+                HKEY k = nullptr;
+                if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"WR_WINRE_SYS\\Setup", 0, KEY_READ | KEY_SET_VALUE, &k) == ERROR_SUCCESS) {
+                    wchar_t buf[1024] = {0};
+                    DWORD cb = sizeof buf - sizeof(wchar_t), type = 0;
+                    std::string cur;
+                    if (RegQueryValueExW(k, L"CmdLine", nullptr, &type, (BYTE*)buf, &cb) == ERROR_SUCCESS && (type == REG_SZ || type == REG_EXPAND_SZ)) cur = U(buf);
+                    c.info("Оболочка образа (Setup\\CmdLine): " + (cur.empty() ? std::string("(не задана)") : cur));
+                    if (toLowerUtf8(cur).find("winpeshl") == std::string::npos) {
+                        static const wchar_t kShell[] = L"winpeshl.exe";
+                        if (RegSetValueExW(k, L"CmdLine", 0, REG_SZ, (const BYTE*)kShell, sizeof kShell) == ERROR_SUCCESS) {
+                            hiveChanged = true;
+                            c.info("Setup\\CmdLine: " + (cur.empty() ? std::string("(не задана)") : cur) + " → winpeshl.exe (иначе winpeshl.ini не выполняется)");
+                            AuditChange("WinRE+WinRepair: Setup\\CmdLine '" + cur + "' -> winpeshl.exe в " + dst);
+                        } else c.warn("Не удалось записать Setup\\CmdLine — автозапуск может не сработать.");
+                    }
+                    RegCloseKey(k);
+                } else c.warn("В кусте SYSTEM образа нет раздела Setup — проверка CmdLine пропущена.");
+                RegUnLoadKeyW(HKEY_LOCAL_MACHINE, MNT);
+                if (hiveChanged) {
+                    SetFileAttributesW(W(hiveSrc).c_str(), FILE_ATTRIBUTE_NORMAL);
+                    if (CopyFileW(W(hiveTmp).c_str(), W(hiveSrc).c_str(), FALSE)) c.info("Куст SYSTEM с исправленной оболочкой записан в образ.");
+                    else c.warn("Не удалось записать исправленный куст SYSTEM в образ (" + ErrMsg(GetLastError()) + ") — автозапуск может не сработать.");
+                }
+            }
+            DeleteFileW(W(hiveTmp).c_str());
+        }
         injected = true;
     } while (false);
     ProcResult u = c.run(injected ? "DISM /Unmount-Image /Commit" : "DISM /Unmount-Image /Discard",

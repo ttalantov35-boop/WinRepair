@@ -85,6 +85,7 @@ std::string RegText(const RegVal& v);  // string value as UTF-8 (first string fo
 void ExportRegKey(HKEY k, const std::string& label, std::string& out, int depth = 0);
 
 void AuditChange(const std::string& what);  // Data\Logs\changes_<date>.log + main journal
+int SessionAuditCount();                    // сколько реальных изменений записано в этом запуске
 std::string FileBackup(const std::string& path, const std::string& tag);  // copy into Data\Backups\<stamp>_files\, returns backup path or ""
 
 }  // namespace wr

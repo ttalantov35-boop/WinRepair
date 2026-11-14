@@ -1,13 +1,13 @@
 # Сборка, размер и выпуск
 
 ## Сборка
-* **MSVC** (рекомендуется): *x64 Native Tools Command Prompt* → `build_msvc.bat` → `build\WinRepair.exe`. Для x86 — *x86 Native Tools*.
+* **MSVC** (рекомендуется): *x64 Native Tools Command Prompt* → `build_msvc.bat` → `build\WinRepair.exe`. Для x86 — *x86 Native Tools*, для ARM64 — *ARM64 Native Tools* или кросс-консоль *x64_arm64* (на обычном x64-ПК).
   Флаги сборки «на размер»: `/O1 /Os /GL /Gy /Gw /Zc:inline /MT`, линковка `/LTCG /OPT:REF /OPT:ICF /INCREMENTAL:NO /DEBUG:NONE`. Статическая CRT: внешних Redistributable не нужно.
 * **MinGW-w64**: `build_mingw.bat` (`-Os`, `-Wl,--gc-sections`, `-s`, статическая сборка).
 * Проверка зависимостей: `dumpbin /dependents build\WinRepair.exe` — только системные DLL (kernel32, user32, advapi32, setupapi, iphlpapi, ws2_32, comctl32 …).
 
 ## Пакет для флешки
-`make_package.bat x64` (из x64-консоли) и затем `make_package.bat x86` (из x86-консоли) собирают `dist\WinRepair\`:
+`make_package.bat x64` (из x64-консоли), затем `make_package.bat x86` (из x86-консоли) и `make_package.bat arm64` (из ARM64/кросс-консоли) собирают `dist\WinRepair\`:
 `WinRepair_x64.exe`, `WinRepair_x86.exe`, `Run-WinRepair.cmd`, `Playbooks\`, `Tools\`, `README_RU.txt`, примеры автозапуска и `SHA256.txt`. Папку целиком копируйте в корень флешки (`\WinRepair\`).
 
 ## Размер

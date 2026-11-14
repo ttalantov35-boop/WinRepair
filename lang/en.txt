@@ -69,7 +69,6 @@ WS, МБ ==> WS, MB
 Драйвер ==> Driver
 Журналы ==> Logs
 Закрыть ==> Close
-Куст {} ==> Hive {}
 Модуль  ==> Module 
 Находка ==> Finding
 Питание ==> Power
@@ -1805,3 +1804,59 @@ HKLM (32-бит) ==> HKLM (32-bit)
 Установленные приложения текущей и офлайн-Windows — найти и принудительно удалить программу, мешающую загрузке ==> Installed applications of the current and offline Windows — find and force-remove a program that blocks the boot
 Автозагрузка и службы текущей и офлайн-Windows (Autoruns + msconfig) ==> Startup and services of the current and offline Windows (Autoruns + msconfig)
 Текущую Windows можно просмотреть в окне «Автозагрузка и службы» (выберите её в списке «Целевая ОС»). ==> The current Windows can be viewed in the "Startup and services" window (pick it in the "Target OS" list).
+# --- «Отменить изменения сеанса» (откат по журналу резервных копий) ---
+Отменить изменения сеанса… ==> Undo this session's changes…
+Отменить изменения сеанса ==> Undo session changes
+Показывает всё, что программа изменила в этом сеансе (по журналу резервных копий), и возвращает состояние на его начало: кусты реестра — копией целиком, BCD — импортом, файлы и карантин — обратно на место. Каждый шаг подтверждается и записывается в журнал. ==> Shows everything the program changed in this session (from the backup journal) and returns the state to how the session started: registry hives from the full copy, the BCD by import, files and quarantined items back in place. Every step is confirmed and logged.
+В этом сеансе программа ничего не меняла.\nЖурнала прошлого сеанса с сохранившимися копиями тоже нет. ==> The program has not changed anything in this session.\nThere is also no journal of a previous session with surviving backups.
+В этом сеансе программа ничего не меняла.\n\nНайден журнал прошлого сеанса (начат: {}), записей с сохранившимися копиями: {}.\nПоказать его и предложить откат? ==> The program has not changed anything in this session.\n\nA journal of the previous session was found (started: {}), entries with surviving backups: {}.\nShow it and offer a rollback?
+Изменения этого сеанса ({}):\n\n{}\nОткат вернёт состояние на начало сеанса. Текущие файлы сохраняются рядом с расширением .before_undo.\n\nДа — откатить всё. Нет — открыть папку журналов. Отмена — закрыть. ==> Changes of this session ({}):\n\n{}\nThe rollback returns the state to the start of the session. Current files are kept next to the originals with the .before_undo extension.\n\nYes — roll back everything. No — open the logs folder. Cancel — close.
+Изменения прошлого сеанса ({}):\n\n{}\nОткат вернёт состояние на начало сеанса. Текущие файлы сохраняются рядом с расширением .before_undo.\n\nДа — откатить всё. Нет — открыть папку журналов. Отмена — закрыть. ==> Changes of the previous session ({}):\n\n{}\nThe rollback returns the state to the start of the session. Current files are kept next to the originals with the .before_undo extension.\n\nYes — roll back everything. No — open the logs folder. Cancel — close.
+Да — откатить всё. Нет — открыть папку журналов. Отмена — закрыть. ==> Yes — roll back everything. No — open the logs folder. Cancel — close.
+Подтверждение отката ==> Confirm the rollback
+Выполнить откат всех перечисленных изменений?\n\nПеред откатом закройте окна реестра и других инструментов. После отката рекомендуется перезагрузка. ==> Roll back all the listed changes?\n\nClose the registry and other tool windows first. A restart is recommended after the rollback.
+Откат изменений сеанса… ==> Rolling back this session's changes…
+Откат изменений прошлого сеанса… ==> Rolling back the previous session's changes…
+Откат завершён: успешно {}, с ошибками {}, пропущено {} ==> Rollback finished: {} succeeded, {} failed, {} skipped
+Откат завершён.\nУспешно: {}, с ошибками: {}, пропущено: {}.\n\n{}\nПодробности — в журнале. После отката рекомендуется перезагрузка. ==> Rollback finished.\nSucceeded: {}, failed: {}, skipped: {}.\n\n{}\nSee the log for details. A restart is recommended after the rollback.
+Кусты реестра (копия целиком) ==> Registry hives (full copy)
+Ветки реестра ==> Registry branches
+Загрузка (BCD) ==> Boot (BCD)
+Карантин ==> Quarantine
+Прочее ==> Other
+   … и ещё {} ==>    … and {} more
+Куст {} ==> Hive {}
+Файл: {} ==> File: {}
+Приложение: {} ==> Application: {}
+Ветка реестра: {} ==> Registry branch: {}
+В карантин: {} ==> To quarantine: {}
+BCD текущей системы ==> BCD of the running system
+Возвращено: {} -> {} ==> Restored: {} -> {}
+Возвращено: {} ==> Restored: {}
+— Пропущено: {} ({}) ==> — Skipped: {} ({})
+✖ Ошибка: {} — {} ==> ✖ Failed: {} — {}
+офлайн-ветка: вернётся вместе с копией куста ==> offline branch: comes back with the hive copy
+куст не выгружается (занят): закройте окна реестра и повторите ==> the hive cannot be unloaded (in use): close the registry windows and retry
+путь уже существует: {} ==> the path already exists: {}
+неизвестный тип записи: {} ==> unknown record kind: {}
+
+# --- WinRE + WinRepair: исправление автозапуска (Setup\\CmdLine) ---
+Не удалось открыть куст SYSTEM образа ({}) — проверка Setup\\CmdLine пропущена. ==> Could not open the image's SYSTEM hive ({}) — the Setup\\CmdLine check was skipped.
+Оболочка образа (Setup\\CmdLine): {} ==> Image shell (Setup\\CmdLine): {}
+(не задана) ==> (not set)
+Setup\\CmdLine: {} → winpeshl.exe (иначе winpeshl.ini не выполняется) ==> Setup\\CmdLine: {} → winpeshl.exe (otherwise winpeshl.ini is not executed)
+Не удалось записать Setup\\CmdLine — автозапуск может не сработать. ==> Could not write Setup\\CmdLine — the autostart may not work.
+В кусте SYSTEM образа нет раздела Setup — проверка CmdLine пропущена. ==> The image's SYSTEM hive has no Setup key — the CmdLine check was skipped.
+Том {}: зашифрован BitLocker: загрузчик не сможет прочитать с него образ. Ищу незашифрованный том… ==> Volume {}: is BitLocker-encrypted: the boot manager cannot read the image from it. Looking for an unencrypted volume…
+Все подходящие тома зашифрованы или малы. Разместить образ негде: отключите шифрование BitLocker (manage-bde -off) или подключите незашифрованный диск. ==> Every suitable volume is encrypted or too small. There is nowhere to place the image: turn BitLocker off (manage-bde -off) or attach an unencrypted disk.
+Образ будет размещён на {} ==> The image will be placed on {}
+Куст SYSTEM с исправленной оболочкой записан в образ. ==> The SYSTEM hive with the fixed shell has been written into the image.
+Не удалось записать исправленный куст SYSTEM в образ ({}) — автозапуск может не сработать. ==> Could not write the fixed SYSTEM hive into the image ({}) — the autostart may not work.
+Прошивка: UEFI — загрузчик winload.efi ==> Firmware: UEFI — loader winload.efi
+Прошивка: BIOS (Legacy) — загрузчик winload.exe ==> Firmware: BIOS (Legacy) — loader winload.exe
+Не удалось сохранить копию RecEnv.exe ({}) — подмена пропущена. ==> Could not keep a copy of RecEnv.exe ({}) — the swap was skipped.
+RecEnv.exe подменён на WinRepair (оригинал сохранён как RecEnvOrig.exe) — программа запустится первой при любом способе старта WinRE. ==> RecEnv.exe has been swapped for WinRepair (the original is kept as RecEnvOrig.exe) — the program starts first however WinRE is launched.
+Не удалось подменить RecEnv.exe ({}). ==> Could not swap RecEnv.exe ({}).
+Не удалось скопировать куст SYSTEM из образа ({}) — оболочка не проверена; подмена RecEnv это компенсирует. ==> Could not copy the SYSTEM hive out of the image ({}) — the shell was not checked; the RecEnv swap compensates for this.
+Не удалось загрузить копию куста SYSTEM ({}) — оболочка не проверена; подмена RecEnv это компенсирует. ==> Could not load the copied SYSTEM hive ({}) — the shell was not checked; the RecEnv swap compensates for this.
+Не удалось переименовать RecEnv.exe ({}) — подмена пропущена. ==> Could not rename RecEnv.exe ({}) — the swap was skipped.

@@ -9,6 +9,29 @@ namespace wr {
 namespace {
 std::mutex g_mu;
 std::set<std::string> g_seen;
+std::vector<SessionChange> g_changes;   // журнал текущего запуска (под g_mu)
+bool g_journalStarted = false;
+
+void AppendJournal(const std::string& line) {   // UTF-8, добавление в конец
+    std::string path = DataDir() + "Logs\\undo_journal.tsv";
+    MakeDirs(DataDir() + "Logs\\");
+    HANDLE h = CreateFileW(W(path).c_str(), FILE_APPEND_DATA, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (h == INVALID_HANDLE_VALUE) return;
+    DWORD w;
+    WriteFile(h, line.data(), (DWORD)line.size(), &w, nullptr);
+    CloseHandle(h);
+}
+
+std::string ReadFileUtf8(const std::string& path) {
+    HANDLE h = CreateFileW(W(path).c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (h == INVALID_HANDLE_VALUE) return "";
+    std::string s;
+    char buf[65536];
+    DWORD r;
+    while (ReadFile(h, buf, sizeof buf, &r, nullptr) && r) s.append(buf, r);
+    CloseHandle(h);
+    return s;
+}
 
 std::string Root() { return DataDir() + "Backups\\"; }
 
@@ -53,6 +76,62 @@ std::string BackupDirFor(const std::string& anyPath, const char* kind) {
     return dir;
 }
 
+std::string UndoJournalPath() { return DataDir() + "Logs\\undo_journal.tsv"; }
+
+void RecordSessionChange(const std::string& kind, const std::string& what, const std::string& src,
+                         const std::string& backup, bool online) {
+    SessionChange c;
+    c.time = NiceNow(); c.kind = kind; c.what = what; c.src = src; c.backup = backup; c.online = online;
+    std::lock_guard<std::mutex> g(g_mu);
+    g_changes.push_back(c);
+    std::string hdr;
+    if (!g_journalStarted) { g_journalStarted = true; hdr = "#SESSION\t" + c.time + "\r\n"; }
+    AppendJournal(hdr + kind + "\t" + (online ? "1" : "0") + "\t" + what + "\t" + src + "\t" + backup + "\t" + c.time + "\r\n");
+}
+
+std::vector<SessionChange> SessionChanges() {
+    std::lock_guard<std::mutex> g(g_mu);
+    return g_changes;
+}
+
+std::vector<SessionChange> LoadPreviousSession(std::string& startedAt) {
+    std::vector<SessionChange> out;
+    startedAt.clear();
+    std::string text = ReadFileUtf8(UndoJournalPath());
+    size_t p = 0;
+    std::vector<SessionChange> cur;
+    std::string curStart;
+    while (p < text.size()) {   // последний блок #SESSION, в котором есть записи
+        size_t e = text.find('\n', p);
+        if (e == std::string::npos) e = text.size();
+        std::string line = text.substr(p, e - p);
+        p = e + 1;
+        while (!line.empty() && (line.back() == '\r')) line.pop_back();
+        if (line.empty()) continue;
+        if (line.compare(0, 9, "#SESSION\t") == 0) {
+            if (!cur.empty()) { out = cur; startedAt = curStart; }
+            cur.clear();
+            curStart = line.substr(9);
+            continue;
+        }
+        std::vector<std::string> f;
+        size_t q = 0;
+        while (f.size() < 6) {
+            size_t t = line.find('\t', q);
+            if (t == std::string::npos) { f.push_back(line.substr(q)); break; }
+            f.push_back(line.substr(q, t - q));
+            q = t + 1;
+        }
+        if (f.size() < 6) continue;
+        SessionChange c;
+        c.kind = f[0]; c.online = f[1] == "1"; c.what = f[2]; c.src = f[3]; c.backup = f[4]; c.time = f[5];
+        if (!c.backup.empty() && GetFileAttributesW(W(c.backup).c_str()) == INVALID_FILE_ATTRIBUTES) continue;   // копии уже нет
+        cur.push_back(c);
+    }
+    if (!cur.empty()) { out = cur; startedAt = curStart; }
+    return out;
+}
+
 bool BackupOncePerSession(const std::string& key) {
     std::lock_guard<std::mutex> g(g_mu);
     return g_seen.insert(key).second;
@@ -62,7 +141,9 @@ bool BackupRegText(const std::string& volumePath, const std::string& tag, const 
     std::string f = BackupDirFor(volumePath, "hives") + tag + ".reg";
     pathOut = f;
     if (!BackupOncePerSession("reg:" + f)) return false;   // already saved in this session: that copy is the pre-change state
-    return WriteText(f, regText);
+    if (!WriteText(f, regText)) return false;
+    RecordSessionChange("reg", "Ветка реестра: " + tag, volumePath, f, VolumeId(volumePath) == VolumeId(""));
+    return true;
 }
 
 std::vector<BackupItem> ListBackups() {

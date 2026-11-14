@@ -34,3 +34,19 @@ jobs:
         with:
           name: WinRepair-x64-${{ github.sha }}
           path: build/WinRepair.exe
+  build-windows-arm64:
+    name: Build WinRepair.exe (MSVC ARM64 cross)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64_arm64
+      - name: Build
+        shell: cmd
+        run: build_msvc.bat
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WinRepair-arm64-${{ github.sha }}
+          path: build/WinRepair.exe

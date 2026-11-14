@@ -18,6 +18,7 @@ It works with several installed systems at once (C:, D:…) and needs **no** .NE
 |---|---|
 | [**WinRepair_x64.exe**](../../releases/latest/download/WinRepair_x64.exe) | 64-bit Windows 10/11 and WinPE/WinRE — **main file** |
 | [WinRepair_x86.exe](../../releases/latest/download/WinRepair_x86.exe) | 32-bit systems |
+| [WinRepair_arm64.exe](../../releases/latest/download/WinRepair_arm64.exe) | Windows on ARM (Snapdragon and other ARM64 PCs); required for their WinPE/WinRE — the x64 build will not run there |
 | [Full package (zip) and checksums](../../releases/latest) | both exe files, repair playbooks, documentation, SHA-256 |
 
 **Quick start:** download `WinRepair_x64.exe` → run it **as administrator** → pick the *Target OS* (to repair another disk, choose the offline system). For WinPE/WinRE: copy the file to a USB stick and run it from there.
@@ -64,7 +65,7 @@ Confirmation before every change · backup before every change (hives, BCD, .reg
 * **MSVC** (VS 2019/2022 + Windows 10/11 SDK): open *x64 Native Tools Command Prompt* → `build_msvc.bat` (x86: *x86 Native Tools*).
 * **MinGW-w64** (MSYS2): `build_mingw.bat`.
 * Core tests: `./run_tests.sh` (any g++).
-Result: `build\WinRepair.exe` (static CRT, no external DLLs). Release package: `make_package.bat x64|x86` → `dist\WinRepair\`. Details: `docs/BUILD.md`, `docs/RELEASE.md`.
+Result: `build\WinRepair.exe` (static CRT, no external DLLs). Release package: `make_package.bat x64|x86|arm64` → `dist\WinRepair\` (ARM64: *ARM64 Native Tools* or the *x64_arm64* cross prompt). Details: `docs/BUILD.md`, `docs/RELEASE.md`.
 GitHub publishing guide: `docs/GITHUB_GUIDE.md` (Russian: `docs/GITHUB_GUIDE.ru.md`). Contributing: `CONTRIBUTING.md`. CI and release workflows: `.github/workflows`.
 
 ## License

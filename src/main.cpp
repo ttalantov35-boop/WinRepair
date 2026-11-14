@@ -9,6 +9,7 @@
 #include "modules/bcd.h"
 #include "modules/winre.h"
 #include "modules/playbook.h"
+#include "modules/undo.h"
 #include "ui_tools_common.h"
 #include "ui_tools.h"
 
@@ -45,6 +46,7 @@ struct Action {
 };
 
 void ShowAbout();
+void OpenUndoSession();
 void OpenLastReport();
 void OpenCatalog();
 void ChangeLanguage();
@@ -77,25 +79,28 @@ Action kActions[] = {
     {L"Разбор дампов (заголовок + cdb)", 4, ModDump, "dump", nullptr},
     {L"Ошибки System / Application", 5, ModEvents, "events", nullptr},
     {L"Сетевая диагностика", 6, ModNetwork, "network", nullptr},
+    // Вкладка «Инструменты ремонта»: ряды по назначению (при 5 колонках) —
+    // 2 ряда «ремонт» (оранжевые), затем диагностика (синие) и защита (зелёные).
     {L"Реестр офлайн-Windows (просмотр и правка)…", 7, nullptr, "registry", nullptr},
     {L"BCD / Загрузка: хранилище, записи, режимы…", 7, nullptr, "bcd", nullptr},
     {L"Автозагрузка и службы: текущая и офлайн-Windows (Autoruns + msconfig)…", 7, nullptr, "autoruns", nullptr},
-    {L"Мастер исправлений после заражений…", 7, nullptr, "fixes", nullptr},
-    {L"Восстановление системы: rstrui…", 7, nullptr, "rstrui", nullptr},
-    {L"Точки восстановления: состояние", 7, nullptr, "restore-info", nullptr},
-    {L"WinRE: вход в среду восстановления, WinRE + WinRepair…", 7, nullptr, "winre", nullptr},
-    {L"Выйти в штатное меню WinRE (RecEnv)…", 7, nullptr, "winre-menu", nullptr},
-    {L"Сохранить журналы и отчёты на диск…", 7, nullptr, "savedata", nullptr},
-    {L"Резервные копии: просмотр и очистка…", 7, nullptr, "backups", nullptr},
-    {L"Secure Boot: сертификаты 2023", 7, nullptr, "secureboot", nullptr},
-    {L"BitLocker и драйверы хранилища (диск не виден)…", 7, nullptr, "storagefix", nullptr},
     {L"Установленные приложения: текущая и офлайн-Windows (удалить программу)…", 7, nullptr, "apps", nullptr},
     {L"Офлайн-проводник: файлы выбранной Windows…", 7, nullptr, "explorer", nullptr},
+    {L"Мастер исправлений после заражений…", 7, nullptr, "fixes", nullptr},
+    {L"BitLocker и драйверы хранилища (диск не виден)…", 7, nullptr, "storagefix", nullptr},
+    {L"WinRE: вход в среду восстановления, WinRE + WinRepair…", 7, nullptr, "winre", nullptr},
+    {L"Выйти в штатное меню WinRE (RecEnv)…", 7, nullptr, "winre-menu", nullptr},
+    {L"Восстановление системы: rstrui…", 7, nullptr, "rstrui", nullptr},
+    {L"Точки восстановления: состояние", 7, nullptr, "restore-info", nullptr},
+    {L"Secure Boot: сертификаты 2023", 7, nullptr, "secureboot", nullptr},
+    {L"Сохранить журналы и отчёты на диск…", 7, nullptr, "savedata", nullptr},
+    {L"Резервные копии: просмотр и очистка…", 7, nullptr, "backups", nullptr},
+    {L"Отменить изменения сеанса…", 7, nullptr, "undo", nullptr},
 };
 const int kActionCount = (int)(sizeof kActions / sizeof kActions[0]);
 
 HWND g_wnd, g_tab, g_log, g_target, g_days, g_ext, g_force, g_host, g_port, g_source, g_prog, g_status, g_banner;
-HWND g_btn[32], g_cancelBtn, g_refreshBtn, g_lbl[6], g_hint;
+HWND g_btn[40], g_cancelBtn, g_refreshBtn, g_lbl[6], g_hint;
 HWND g_langBtn = nullptr, g_exitBtn = nullptr;
 HICON g_icon = nullptr;
 bool g_logRich = false;
@@ -150,6 +155,7 @@ const ActionDesc kDescs[] = {
     {"winre-menu", L"Из WinRE выходит в штатное меню среды восстановления (Поиск и устранение неисправностей, Командная строка и др.). Работает только внутри WinRE."},
     {"savedata", L"Копирует журналы и отчёты на выбранный диск: оперативный диск WinPE/WinRE очищается при перезагрузке, и результаты иначе потеряются."},
     {"backups", L"Показывает резервные копии кустов реестра, BCD и файлов, сделанные перед изменениями: размер и расположение. Можно удалить все копии или открыть папку. Хранится одна копия на систему."},
+    {"undo", L"Показывает всё, что программа изменила в этом сеансе (по журналу резервных копий), и возвращает состояние на его начало: кусты реестра — копией целиком, BCD — импортом, файлы и карантин — обратно на место. Каждый шаг подтверждается и записывается в журнал."},
     {"secureboot", L"Проверка Secure Boot: включён ли он и есть ли в KEK и db сертификаты 2023 года взамен истекающих в 2026. Только чтение."},
     {"storagefix", L"Если диск не виден или синий экран 0x7B: поиск томов, заблокированных BitLocker (разблокировка ключом), устройств без драйвера хранилища (Intel VMD/RST, NVMe, RAID) и загрузка драйвера."},
 };
@@ -163,7 +169,7 @@ const wchar_t* DescOf(const char* name) {
 theme::Cat CatOfAction(const char* n) {
     static const char* guide[] = {"triage", "playbooks", "catalog"};
     static const char* repair[] = {"repair", "fixes", "registry", "bcd", "autoruns", "winre", "winre-menu", "storagefix", "rstrui", "apps", "explorer"};
-    static const char* protect[] = {"restorepoint", "savedata", "backups"};
+    static const char* protect[] = {"restorepoint", "savedata", "backups", "undo"};
     for (auto g : guide) if (!strcmp(n, g)) return theme::Cat::Guide;
     for (auto g : repair) if (!strcmp(n, g)) return theme::Cat::Repair;
     for (auto g : protect) if (!strcmp(n, g)) return theme::Cat::Protect;
@@ -470,6 +476,41 @@ void ManageBackups() {
     } else if (r == IDNO) OpenPath(DataDir() + "Backups");
 }
 
+// «Отменить изменения сеанса»: список изменений по журналу копий и возврат состояния на начало сеанса.
+void OpenUndoSession() {
+    std::vector<SessionChange> v = SessionChanges();
+    bool onlyHiveSnapshots = !v.empty() && SessionAuditCount() == 0;
+    for (const auto& c : v) if (c.kind != "hive") onlyHiveSnapshots = false;
+    if (onlyHiveSnapshots) v.clear();   // кусты копировались при загрузке реестра, но правок не было
+    bool previous = false;
+    if (v.empty()) {
+        std::string started;
+        std::vector<SessionChange> prev = LoadPreviousSession(started);
+        if (prev.empty()) {
+            MessageBoxW(g_wnd, L"В этом сеансе программа ничего не меняла.\nЖурнала прошлого сеанса с сохранившимися копиями тоже нет.", L"Отменить изменения сеанса", MB_OK | MB_ICONINFORMATION);
+            return;
+        }
+        std::wstring q = W(fmt("В этом сеансе программа ничего не меняла.\n\nНайден журнал прошлого сеанса (начат: %s), записей с сохранившимися копиями: %zu.\nПоказать его и предложить откат?", started.c_str(), prev.size()));
+        if (MessageBoxW(g_wnd, q.c_str(), L"Отменить изменения сеанса", MB_YESNO | MB_ICONQUESTION) != IDYES) return;
+        v = prev;
+        previous = true;
+    }
+    const char* head = previous ? "Изменения прошлого сеанса (%zu):\n\n%s\nОткат вернёт состояние на начало сеанса. Текущие файлы сохраняются рядом с расширением .before_undo.\n\nДа — откатить всё. Нет — открыть папку журналов. Отмена — закрыть."
+                                : "Изменения этого сеанса (%zu):\n\n%s\nОткат вернёт состояние на начало сеанса. Текущие файлы сохраняются рядом с расширением .before_undo.\n\nДа — откатить всё. Нет — открыть папку журналов. Отмена — закрыть.";
+    std::wstring msg = W(fmt(head, v.size(), UndoSummary(v).c_str()));
+    int r = MessageBoxW(g_wnd, msg.c_str(), L"Отменить изменения сеанса", MB_YESNOCANCEL | MB_ICONQUESTION | MB_DEFBUTTON3);
+    if (r == IDNO) { OpenPath(DataDir() + "Logs"); return; }
+    if (r != IDYES) return;
+    if (MessageBoxW(g_wnd, L"Выполнить откат всех перечисленных изменений?\n\nПеред откатом закройте окна реестра и других инструментов. После отката рекомендуется перезагрузка.", L"Подтверждение отката", MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) return;
+    Logger::I().log(Lvl::Info, previous ? "Откат изменений прошлого сеанса…" : "Откат изменений сеанса…");
+    UndoReport rep = UndoRestore(v);
+    Logger::I().log(rep.failed ? Lvl::Warn : Lvl::Ok, fmt("Откат завершён: успешно %d, с ошибками %d, пропущено %d", rep.ok, rep.failed, rep.skipped));
+    std::string tail = rep.text;
+    if (tail.size() > 1600) tail = tail.substr(0, 1600) + "…\n";
+    std::wstring done = W(fmt("Откат завершён.\nУспешно: %d, с ошибками: %d, пропущено: %d.\n\n%s\nПодробности — в журнале. После отката рекомендуется перезагрузка.", rep.ok, rep.failed, rep.skipped, tail.c_str()));
+    MessageBoxW(g_wnd, done.c_str(), L"Отменить изменения сеанса", rep.failed ? MB_OK | MB_ICONWARNING : MB_OK | MB_ICONINFORMATION);
+}
+
 // Copies left by other computers (the Data folder travels on the USB drive) and old-format folders are offered for deletion at start.
 void CheckForeignBackups() {
     std::vector<BackupItem> bk = ListBackups();
@@ -505,12 +546,18 @@ void StartAction(int idx) {
         else if (!strcmp(a.name, "winre")) OpenWinReManager();
         else if (!strcmp(a.name, "savedata")) OpenSaveData();
         else if (!strcmp(a.name, "backups")) ManageBackups();
+        else if (!strcmp(a.name, "undo")) OpenUndoSession();
         else if (!strcmp(a.name, "secureboot")) QuickCmd(80);
         else if (!strcmp(a.name, "storagefix")) OpenStorageAccess();
         else if (!strcmp(a.name, "winre-menu")) {
             const Env& e = GetEnv();
             if (e.winreShell) {
-                if (MessageBoxW(g_wnd, L"Закрыть WinRepair и открыть штатное меню WinRE (Выбор действия)?\n\nПосле выхода из меню можно вернуться через «Командная строка» → WinRepair.exe.", L"WinRE", MB_YESNO | MB_ICONQUESTION) == IDYES) DestroyWindow(g_wnd);
+                if (MessageBoxW(g_wnd, L"Закрыть WinRepair и открыть штатное меню WinRE (Выбор действия)?\n\nПосле выхода из меню можно вернуться через «Командная строка» → WinRepair.exe.", L"WinRE", MB_YESNO | MB_ICONQUESTION) == IDYES) {
+                    // Если RecEnv.exe был подменён на WinRepair, штатное меню сохранено как RecEnvOrig.exe — запускаем его явно.
+                    for (const std::string& orig : {e.sysDrive + "\\sources\\recovery\\RecEnvOrig.exe", e.winDir + "\\System32\\Recovery\\RecEnvOrig.exe"})
+                        if (PathExists(orig)) { ShellExecuteW(nullptr, L"open", W(orig).c_str(), nullptr, nullptr, SW_SHOWNORMAL); break; }
+                    DestroyWindow(g_wnd);
+                }
             } else if (e.isWinRE) {
                 std::string rec = PathExists(e.sysDrive + "\\sources\\recovery\\RecEnv.exe") ? e.sysDrive + "\\sources\\recovery\\RecEnv.exe" : e.winDir + "\\System32\\Recovery\\RecEnv.exe";
                 ShellExecuteW(g_wnd, L"open", W(rec).c_str(), nullptr, nullptr, SW_SHOWNORMAL);

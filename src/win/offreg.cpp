@@ -1,4 +1,5 @@
 #include "offreg.h"
+#include <atomic>
 #include "backups.h"
 
 #include <cstring>
@@ -125,7 +126,10 @@ bool HiveManager::load(const HiveInfo& h, std::string& err) {
     std::string bk = backupDir_ + h.mount + ".hiv";    // copy BEFORE the registry locks the file
     if (!BackupOncePerSession("hive:" + bk)) Logger::I().log(Lvl::Info, "Копия куста уже сохранена в этом сеансе: " + bk);
     else if (!CopyFileW(W(h.file).c_str(), W(bk).c_str(), FALSE)) Logger::I().log(Lvl::Warn, "Не удалось сделать копию куста " + h.file + ": " + ErrMsg(GetLastError()));
-    else Logger::I().log(Lvl::Info, "Резервная копия куста (одна на систему, заменяет прежнюю): " + bk);
+    else {
+        Logger::I().log(Lvl::Info, "Резервная копия куста (одна на систему, заменяет прежнюю): " + bk);
+        RecordSessionChange("hive", "Куст " + h.label, h.file, bk);
+    }
     RegUnLoadKeyW(HKEY_LOCAL_MACHINE, WK(h.mount).c_str());  // stale mount from a previous crash
     LONG r = RegLoadKeyW(HKEY_LOCAL_MACHINE, WK(h.mount).c_str(), W(h.file).c_str());
     if (r != ERROR_SUCCESS) { err = h.label + ": RegLoadKey — " + ErrMsg((DWORD)r); return false; }
@@ -487,6 +491,9 @@ void ExportRegKey(HKEY k, const std::string& label, std::string& out, int depth)
 }
 
 // ---- audit / file backup --------------------------------------------------------------------------------------
+std::atomic<int> g_auditCount{0};
+int SessionAuditCount() { return g_auditCount.load(); }
+
 void AuditChange(const std::string& what) {
     SYSTEMTIME t;
     GetLocalTime(&t);
@@ -502,6 +509,7 @@ void AuditChange(const std::string& what) {
         CloseHandle(h);
     }
     Logger::I().log(Lvl::Warn, "ИЗМЕНЕНИЕ: " + what);
+    ++g_auditCount;
 }
 
 std::string FileBackup(const std::string& path, const std::string& tag) {
@@ -510,6 +518,7 @@ std::string FileBackup(const std::string& path, const std::string& tag) {
     std::string dst = dir + tag + "_" + name;
     if (!BackupOncePerSession("file:" + dst)) return dst;   // the first copy of this session is the pre-change state; keep it
     if (!CopyFileW(W(path).c_str(), W(dst).c_str(), FALSE)) return "";
+    RecordSessionChange("file", "Файл: " + tag, path, dst);
     return dst;
 }
 

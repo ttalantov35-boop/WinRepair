@@ -22,6 +22,23 @@ std::string BackupDirFor(const std::string& anyPath, const char* kind);   // cre
 bool BackupOncePerSession(const std::string& key);                 // true the first time `key` is seen in this run
 bool BackupRegText(const std::string& volumePath, const std::string& tag, const std::string& regText, std::string& pathOut);  // .reg export, first time per session only
 
+// ---- журнал изменений сеанса (кнопка «Отменить изменения сеанса…») -----------------------------------------
+// Каждая резервная копия/перенос в карантин записывается сюда: вместе они описывают, что менялось в сеансе,
+// и как вернуть состояние на его начало. Журнал дублируется в Data\Logs\undo_journal.tsv (переживает перезапуск).
+struct SessionChange {
+    std::string time;    // NiceNow()
+    std::string kind;    // "hive" | "reg" | "bcd-live" | "file" | "quarantine"
+    std::string what;    // короткое описание для человека
+    std::string src;     // исходный путь (куст, файл, папка); пусто для живого хранилища BCD
+    std::string backup;  // путь копии или карантина
+    bool online = false; // "reg": ветка работающей Windows (возврат = reg import)
+};
+void RecordSessionChange(const std::string& kind, const std::string& what, const std::string& src,
+                         const std::string& backup, bool online = false);
+std::vector<SessionChange> SessionChanges();                       // записи текущего запуска
+std::vector<SessionChange> LoadPreviousSession(std::string& startedAt);  // последний сеанс из файла журнала (только записи с сохранившимися копиями)
+std::string UndoJournalPath();
+
 std::vector<BackupItem> ListBackups();
 unsigned long long BackupsTotalBytes(const std::vector<BackupItem>& v);
 std::string BackupsSummary(const std::vector<BackupItem>& v);      // multi-line text for dialogs

@@ -333,10 +333,15 @@ bool ToQuarantine(const std::string& path, std::string& dest) {
     std::string d = dest;
     for (int i = 1; PathExists(d) && i < 1000; ++i) d = dest + "_" + std::to_string(i);
     dest = d;
-    if (MoveFileExW(W(src).c_str(), W(dest).c_str(), MOVEFILE_COPY_ALLOWED)) return true;
+    if (MoveFileExW(W(src).c_str(), W(dest).c_str(), MOVEFILE_COPY_ALLOWED)) {
+        RecordSessionChange("quarantine", "В карантин: " + src.substr(src.find_last_of('\\') + 1), src, dest);
+        return true;
+    }
     DWORD a = GetFileAttributesW(W(src).c_str());
     TakeOwnership(src, a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_DIRECTORY));
-    return MoveFileExW(W(src).c_str(), W(dest).c_str(), MOVEFILE_COPY_ALLOWED) != 0;
+    if (!MoveFileExW(W(src).c_str(), W(dest).c_str(), MOVEFILE_COPY_ALLOWED)) return false;
+    RecordSessionChange("quarantine", "В карантин: " + src.substr(src.find_last_of('\\') + 1), src, dest);
+    return true;
 }
 
 void DeleteSelected(bool permanent) {

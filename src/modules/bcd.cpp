@@ -120,6 +120,7 @@ std::string BcdBackup(const std::string& store, std::string& err) {
         if (!BackupOncePerSession("bcdlive:" + dst)) return dst;   // already exported in this session (pre-change state)
         std::string o;
         if (!BcdRunSync("", "/export \"" + dst + "\"", o)) { err = "bcdedit /export: " + o; return ""; }
+        RecordSessionChange("bcd-live", "BCD текущей системы", "", dst);
         return dst;
     }
     std::string b = FileBackup(store, "BCD");

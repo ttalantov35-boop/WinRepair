@@ -201,6 +201,7 @@ bool AppRemove(const Target& t, const AppItem& a, const RemovePlan& plan, const 
             }
             log.push_back("Папка перемещена в карантин (можно вернуть): " + dest);
             AuditChange("APP REMOVE: folder " + a.location + " -> " + dest);
+            RecordSessionChange("quarantine", "Приложение: " + a.name, a.location, dest);
         } else {
             TakeOwn(a.location);
             std::atomic<bool> nc{false};
