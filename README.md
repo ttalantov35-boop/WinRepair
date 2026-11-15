@@ -2,13 +2,15 @@
 
 # WinRepair Toolkit — offline Windows diagnostics and repair
 
+> *By Tynychsoft.* 🇷🇺 [Читать по-русски](docs/README.ru.md) · 📖 [Introduction / Знакомство](docs/INTRO.en.md)
+
 
 A single `WinRepair.exe`, no installation: diagnose and repair a Windows that will not boot — from WinPE, WinRE, or straight from a running system.
 It works with several installed systems at once (C:, D:…) and needs **no** .NET, PowerShell or VC++ Redistributable.
 
 ![WinRepair Toolkit main window](docs/screenshots/overview.png)
 
-**What it does:** offline registry editor (regedit-style), BCD and boot options, startup items and services (Autoruns-style), removal of programs that block Windows from starting (e.g. an antivirus), offline file explorer, "What happened?" wizard, BitLocker and storage drivers, WinRE, repair playbooks, reports. The interface is in English and Russian (button at the top right).
+**What it does:** offline registry editor (regedit-style), BCD and boot options, startup items and services (Autoruns-style), removal of programs that block Windows from starting (e.g. an antivirus), offline file explorer, "What happened?" wizard, BitLocker and storage drivers, WinRE, **its own bootable WinPE USB stick** with WinRepair autostart, **one-click undo of all session changes**, repair playbooks, reports. The interface is in English and Russian (button at the top right).
 
 ![Repair tools tab](docs/screenshots/repair-tools.png)
 
@@ -39,7 +41,10 @@ All windows work with the **selected offline Windows** (not with WinPE itself).
 * **Offline file explorer** — browse the selected system's files, copy, move to quarantine, delete, take ownership/permissions, search.
 * **Infection fix wizard** — Winlogon Shell/Userinit, IFEO, AppInit, policies, proxy, hosts, key services, file associations, SafeBoot, Windows Update reset, network/WMI reset, pending operations, hive replacement from RegBack.
 * **System Restore** (`rstrui`, restore points, shadow copies of the target OS).
-* **WinRE** — enter WinRE on next boot, create/repair the WinRE BCD entry, WinRE + WinRepair (a copy of `winre.wim` that starts WinRepair first), Secure Boot 2023 certificate check.
+* **WinRE** — enter WinRE on next boot, create/repair the WinRE BCD entry, WinRE + WinRepair (a copy of `winre.wim` that starts WinRepair first; firmware-aware — picks `winload.efi`/`winload.exe` for UEFI/BIOS, avoids BitLocker-encrypted volumes), Secure Boot 2023 certificate check.
+* **Bootable WinPE USB stick — an independent repair tool** 🆕 — one button ("Create a bootable WinPE USB stick with WinRepair…", also on the Overview tab) builds your own bootable WinPE where **WinRepair starts first automatically** — no third-party WinPE packs needed. Base image: **ADK WinPE** (recommended — clean, guaranteed autostart; System Restore `rstrui` is injected from the running Windows so restore points work offline) or this system's `winre.wim`. Boot files come from ADK Media or the live system; point it at the root of a FAT32 stick and it boots on any UEFI PC with **Secure Boot left on** (files are Microsoft-signed). Playbooks and languages are packed in automatically. The built image is for your own use — the Microsoft licence does not allow redistributing it, which is why every user builds their own with one click.
+* **Windows on ARM** 🆕 — a native `WinRepair_arm64.exe` for Snapdragon and other ARM64 PCs; the WinPE builder and WinRE tools pick the matching architecture (boot files, ARM64 ADK WinPE) automatically.
+* **Undo session changes** 🆕 — the program keeps a journal of everything it changed in the session (registry hives and `.reg` imports, files, BCD, quarantined items) and one button rolls it all back in the safe order; after a restart it also offers the changes of the previous session.
 * **BitLocker and storage drivers** — unlock with a recovery password/password/.bek key (secrets are never written to logs), status/suspend/resume; devices without drivers (Intel VMD/RST hints), `drvload` in WinPE/WinRE, `DISM /Add-Driver` into the offline Windows.
 
 ### "What happened?" wizard (tab "Overview")
@@ -58,6 +63,7 @@ Confirmation before every change · backup before every change (hives, BCD, .reg
 * Log: `Data\Logs\WinRepair_<date>.log` (or `%TEMP%\WinRepair\` if the program folder is read-only). Reports: `Data\Reports\<time>_<module>\`.
 * No UI: `WinRepair.exe /full [/out:folder]` — full diagnostics + HTML report.
 * Optional: put `cdb.exe` (Debugging Tools) into `Tools\` for `!analyze -v` on crash dumps.
+* **Own WinPE stick:** format a USB stick as FAT32, press "Create a bootable WinPE USB stick with WinRepair…", pick the stick root, boot from it (Boot Menu, UEFI entry) — WinRepair opens by itself; "System Restore: rstrui…" rolls the installed Windows back to a restore point offline.
 * **In WinPE:** boot WinPE, run the exe from USB/network, choose the installed Windows in "Target OS". Event logs are read from `*.evtx`, DISM/SFC/chkdsk use `/Image` / `/offwindir`, dumps are taken from `<OS>\Minidump`.
 * **Language:** button "English" / "Русский" at the top right or `/lang:en`; the choice is stored in `WinRepair.ini`. Extra languages: `Lang\<code>.txt` (see `docs/LOCALIZATION.md`).
 
