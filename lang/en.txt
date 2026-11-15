@@ -1860,3 +1860,36 @@ RecEnv.exe подменён на WinRepair (оригинал сохранён к
 Не удалось скопировать куст SYSTEM из образа ({}) — оболочка не проверена; подмена RecEnv это компенсирует. ==> Could not copy the SYSTEM hive out of the image ({}) — the shell was not checked; the RecEnv swap compensates for this.
 Не удалось загрузить копию куста SYSTEM ({}) — оболочка не проверена; подмена RecEnv это компенсирует. ==> Could not load the copied SYSTEM hive ({}) — the shell was not checked; the RecEnv swap compensates for this.
 Не удалось переименовать RecEnv.exe ({}) — подмена пропущена. ==> Could not rename RecEnv.exe ({}) — the swap was skipped.
+
+# --- Свой WinPE с WinRepair ---
+Свой WinPE с WinRepair (флешка)… ==> Your own WinPE with WinRepair (USB stick)…
+Свой WinPE с WinRepair ==> Your own WinPE with WinRepair
+=== Свой WinPE с WinRepair === ==> === Your own WinPE with WinRepair ===
+Куда собрать WinPE. Для загрузочной флешки укажите её КОРЕНЬ (флешка должна быть отформатирована в FAT32); можно указать и обычную папку, чтобы перенести позже. ==> Where to build WinPE. For a bootable USB stick enter its ROOT (the stick must be formatted as FAT32); a regular folder also works, to transfer later.
+В «{}» будет собран загрузочный WinPE с автозапуском WinRepair:\n • база — winpe.wim из Windows ADK (если установлен), иначе winre.wim этой системы\n • файлы Boot, EFI, bootmgr и sources\\boot.wim в указанной папке будут ПЕРЕЗАПИСАНЫ\n • флешка НЕ форматируется, остальные файлы на ней не трогаются\n\nРаспространять собранный образ нельзя (лицензия Microsoft), использовать для своей работы — можно. ==> A bootable WinPE with WinRepair autostart will be built in "{}":\n • base — winpe.wim from the Windows ADK (if installed), otherwise this system's winre.wim\n • Boot, EFI, bootmgr and sources\\boot.wim in that folder will be OVERWRITTEN\n • the stick is NOT formatted, its other files are untouched\n\nDistributing the built image is not allowed (Microsoft licence); using it for your own work is.
+Укажите папку назначения (например, корень флешки E:\\). ==> Enter a destination folder (e.g. the USB stick root E:\\).
+База: ADK WinPE ({}) ==> Base: ADK WinPE ({})
+База: {} ==> Base: {}
+Для ARM64 нужен установленный ADK с дополнением WinPE: загрузочные файлы ARM64 взять больше неоткуда. ==> ARM64 requires the ADK with the WinPE add-on: there is nowhere else to take ARM64 boot files from.
+Запущена 32-битная сборка на 64-битной Windows: её winre.wim 64-битный, и WinRepair_x86 в нём не заработает. Запустите WinRepair_x64.exe или установите ADK WinPE (x86). ==> This is the 32-bit build on a 64-bit Windows: its winre.wim is 64-bit and WinRepair_x86 will not run inside it. Run WinRepair_x64.exe or install the ADK WinPE (x86).
+ADK WinPE не установлен, а winre.wim не найден. Установите Windows ADK + дополнение WinPE (сайт Microsoft) и повторите. ==> The ADK WinPE is not installed and winre.wim was not found. Install the Windows ADK + WinPE add-on (Microsoft site) and retry.
+ADK WinPE не установлен — базой станет winre.wim. Рекомендуется ADK: меньше лишнего и гарантированный автозапуск. ==> The ADK WinPE is not installed — winre.wim becomes the base. The ADK is recommended: less extra content and guaranteed autostart.
+Копирование базового образа ({}) ... ==> Copying the base image ({}) ...
+Playbooks добавлены в образ: {} файл(ов) ==> Playbooks added to the image: {} file(s)
+RecEnv.exe в образе подменён на WinRepair (оригинал: RecEnvOrig.exe). ==> RecEnv.exe in the image has been swapped for WinRepair (original: RecEnvOrig.exe).
+winpeshl.ini: wpeinit (сеть и устройства) → WinRepair ==> winpeshl.ini: wpeinit (network and devices) → WinRepair
+Образ не собран. ==> The image was not built.
+Копирование загрузочных файлов ADK ==> Copying the ADK boot files
+Не удалось скопировать загрузочные файлы ADK. ==> Could not copy the ADK boot files.
+Не найден файл: {} ==> File not found: {}
+Не удалось скопировать {} -> {}: {} ==> Could not copy {} -> {}: {}
+Не удалось подготовить BCD носителя. ==> Could not prepare the media BCD.
+Запись boot.wim на носитель ... ==> Writing boot.wim to the media ...
+Не удалось записать boot.wim на носитель. ==> Could not write boot.wim to the media.
+Как загрузиться: вставьте флешку, при включении откройте Boot Menu (обычно F12/F11/Esc/F9) и выберите её (пункт UEFI). Secure Boot выключать не нужно: загрузочные файлы подписаны Microsoft. ==> How to boot: plug the stick in, open the Boot Menu at power-on (usually F12/F11/Esc/F9) and pick it (the UEFI entry). No need to disable Secure Boot: the boot files are signed by Microsoft.
+Для очень старых компьютеров с BIOS (не UEFI) флешку дополнительно нужно сделать активной и записать загрузочный код (bootsect /nt60 из установочного носителя Windows). ==> For very old BIOS (non-UEFI) PCs the stick additionally needs to be made active with boot code written (bootsect /nt60 from Windows installation media).
+Обновление: при выходе новой версии программы просто повторите эту операцию в ту же папку. ==> Updating: when a new program version is out, simply repeat this operation into the same folder.
+Создать запись WinPE ==> Create the WinPE entry
+Копирование не удалось/отменено. ==> Copying failed or was cancelled.
+Монтирование образа не удалось. ==> Mounting the image failed.
+В образе нет Windows\\System32. ==> The image has no Windows\\System32.

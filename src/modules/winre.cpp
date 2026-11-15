@@ -412,6 +412,213 @@ void JobBuildWinRepairRE(Ctx& c, const std::string& store, const std::string& sr
     c.ok("Готово. Запись BCD: " + id + ". Нажмите «Войти в WinRE + WinRepair при следующей загрузке».");
 }
 
+// ============================================================================================================
+// Свой загрузочный WinPE с WinRepair: независимый инструмент на флешке.
+// База — winpe.wim из ADK (если установлен), иначе winre.wim текущей системы.
+// Все загрузочные файлы и BCD берутся из РАБОТАЮЩЕЙ Windows: читать из смонтированного образа не нужно.
+// Чистый WinPE честно выполняет winpeshl.ini, поэтому WinRepair гарантированно запускается первым.
+
+namespace {
+#if defined(_M_ARM64)
+const char* kPeArch = "arm64";  const char* kEfiBootName = "bootaa64.efi";
+#elif defined(_M_IX86)
+const char* kPeArch = "x86";    const char* kEfiBootName = "bootia32.efi";
+#else
+const char* kPeArch = "amd64";  const char* kEfiBootName = "bootx64.efi";
+#endif
+
+std::string EnvDir(const wchar_t* name) {
+    wchar_t b[MAX_PATH] = {0};
+    GetEnvironmentVariableW(name, b, MAX_PATH);
+    return U(b);
+}
+
+// Корень WinPE в ADK для нашей архитектуры ("...\Windows Preinstallation Environment\amd64\")
+std::string AdkPeRoot() {
+    for (const wchar_t* ev : {L"ProgramFiles(x86)", L"ProgramFiles"}) {
+        std::string pf = EnvDir(ev);
+        if (pf.empty()) continue;
+        std::string base = pf + "\\Windows Kits\\10\\Assessment and Deployment Kit\\Windows Preinstallation Environment\\" + kPeArch + "\\";
+        if (IsDir(base)) return base;
+    }
+    return "";
+}
+
+std::string AdkWinPeWim(const std::string& peRoot) {
+    std::string w = peRoot + "en-us\\winpe.wim";
+    if (PathExists(w)) return w;
+    for (const std::string& d : ListDirs(peRoot)) {
+        w = peRoot + d + "\\winpe.wim";
+        if (PathExists(w)) return w;
+    }
+    return "";
+}
+
+std::string WinDirLive() {
+    wchar_t b[MAX_PATH] = {0};
+    GetWindowsDirectoryW(b, MAX_PATH);
+    return U(b);
+}
+
+bool CopyOne(Ctx& c, const std::string& src, const std::string& dst, bool required) {
+    if (!PathExists(src)) { if (required) c.error("Не найден файл: " + src); return !required; }
+    size_t k = dst.find_last_of('\\');
+    if (k != std::string::npos) MakeDirs(dst.substr(0, k + 1));
+    SetFileAttributesW(W(dst).c_str(), FILE_ATTRIBUTE_NORMAL);
+    if (CopyFileW(W(src).c_str(), W(dst).c_str(), FALSE)) return true;
+    if (required) c.error("Не удалось скопировать " + src + " -> " + dst + ": " + ErrMsg(GetLastError()));
+    return !required;
+}
+}  // namespace
+
+void JobBuildWinPE(Ctx& c, const std::string& destIn) {
+    c.info("=== Свой WinPE с WinRepair ===");
+    std::string dest = destIn;
+    while (!dest.empty() && dest.back() == '\\') dest.pop_back();
+    if (dest.size() < 2) { c.error("Укажите папку назначения (например, корень флешки E:\\)."); return; }
+    dest += "\\";
+    MakeDirs(dest);
+
+    std::string exeSrc;
+    {
+        std::wstring b(32768, L'\0');
+        DWORD n = GetModuleFileNameW(nullptr, &b[0], (DWORD)b.size());
+        exeSrc = U(b.c_str(), (int)n);
+    }
+
+    // --- база: ADK или winre.wim текущей системы ---
+    std::string peRoot = AdkPeRoot(), baseWim, media;
+    bool fromAdk = false;
+    if (!peRoot.empty()) {
+        baseWim = AdkWinPeWim(peRoot);
+        media = peRoot + "Media\\";
+        if (!baseWim.empty() && IsDir(media)) fromAdk = true;
+    }
+    if (fromAdk) c.info("База: ADK WinPE (" + baseWim + ")");
+    else {
+        if (!strcmp(kPeArch, "arm64")) { c.error("Для ARM64 нужен установленный ADK с дополнением WinPE: загрузочные файлы ARM64 взять больше неоткуда."); return; }
+        if (!strcmp(kPeArch, "x86") && !EnvDir(L"ProgramFiles(x86)").empty()) { c.error("Запущена 32-битная сборка на 64-битной Windows: её winre.wim 64-битный, и WinRepair_x86 в нём не заработает. Запустите WinRepair_x64.exe или установите ADK WinPE (x86)."); return; }
+        WinReInfo wi = ReadWinReInfo(c.target);
+        baseWim = wi.wimPath;
+        if (baseWim.empty()) { c.error("ADK WinPE не установлен, а winre.wim не найден. Установите Windows ADK + дополнение WinPE (сайт Microsoft) и повторите."); return; }
+        c.warn("ADK WinPE не установлен — базой станет winre.wim. Рекомендуется ADK: меньше лишнего и гарантированный автозапуск.");
+        c.info("База: " + baseWim);
+    }
+
+    unsigned long long wimSz = FileSize(baseWim);
+    std::string wrk = DataDir() + "WinPEBuild\\", mnt = wrk + "mnt\\", scr = wrk + "scratch\\", wim = wrk + "boot.wim";
+    RemoveTree(DataDir() + "WinPEBuild");
+    MakeDirs(mnt); MakeDirs(scr);
+
+    ULARGE_INTEGER fb{}, tb{}, tf{};
+    GetDiskFreeSpaceExW(W(dest).c_str(), &fb, &tb, &tf);
+    if (fb.QuadPart < wimSz + (100ULL << 20)) { c.error(fmt("На %s свободно %s, нужно около %s.", dest.c_str(), fmtBytes(fb.QuadPart).c_str(), fmtBytes(wimSz + (100ULL << 20)).c_str())); return; }
+
+    c.info("Копирование базового образа (" + fmtBytes(wimSz) + ") ...");
+    if (!CopyBig(baseWim, wim, c.cancel)) { c.error("Копирование не удалось/отменено."); RemoveTree(DataDir() + "WinPEBuild"); return; }
+    SetFileAttributesW(W(wim).c_str(), FILE_ATTRIBUTE_NORMAL);
+
+    std::string dism = "\"" + SysTool("dism.exe") + "\"";
+    ProcResult m = c.run("DISM /Mount-Image", dism + " /Mount-Image /ImageFile:\"" + wim + "\" /Index:1 /MountDir:\"" + NoSlash(mnt) + "\" /ScratchDir:\"" + NoSlash(scr) + "\"");
+    if (m.exitCode != 0) { c.error("Монтирование образа не удалось."); RemoveTree(DataDir() + "WinPEBuild"); return; }
+
+    bool injected = false;
+    do {
+        std::string sys = mnt + "Windows\\System32\\";
+        if (!IsDir(sys)) { c.error("В образе нет Windows\\System32."); break; }
+        if (!CopyOne(c, exeSrc, sys + "WinRepair.exe", true)) break;
+        int nf = 0;
+        if (IsDir(ExeDir() + "Playbooks")) { CopyTree(NoSlash(ExeDir() + "Playbooks"), NoSlash(sys + "Playbooks"), nf, c.cancel); c.info(fmt("Playbooks добавлены в образ: %d файл(ов)", nf)); }
+        if (IsDir(ExeDir() + "Lang")) { nf = 0; CopyTree(NoSlash(ExeDir() + "Lang"), NoSlash(sys + "Lang"), nf, c.cancel); }
+        if (!fromAdk) {
+            WriteText(sys + "WinRepair.winre", "WinRepair shell marker\r\n", false);
+            for (const char* sub : {"sources\\recovery\\", "Windows\\System32\\Recovery\\"}) {   // как в «WinRE + WinRepair»
+                std::string rec = mnt + sub + "RecEnv.exe", orig2 = mnt + sub + "RecEnvOrig.exe";
+                if (!PathExists(rec)) continue;
+                SetFileAttributesW(W(rec).c_str(), FILE_ATTRIBUTE_NORMAL);
+                if (!PathExists(orig2) && !MoveFileW(W(rec).c_str(), W(orig2).c_str())) { c.warn("Не удалось переименовать RecEnv.exe (" + ErrMsg(GetLastError()) + ")."); continue; }
+                if (CopyFileW(W(exeSrc).c_str(), W(rec).c_str(), FALSE)) c.info("RecEnv.exe в образе подменён на WinRepair (оригинал: RecEnvOrig.exe).");
+            }
+        }
+        std::string ini = sys + "winpeshl.ini";
+        SetFileAttributesW(W(ini).c_str(), FILE_ATTRIBUTE_NORMAL);
+        WriteText(ini, "[LaunchApps]\r\n%SYSTEMROOT%\\System32\\wpeinit.exe\r\n%SYSTEMROOT%\\System32\\WinRepair.exe\r\n", false);
+        c.info("winpeshl.ini: wpeinit (сеть и устройства) → WinRepair");
+        injected = true;
+    } while (false);
+
+    ProcResult u = c.run(injected ? "DISM /Unmount-Image /Commit" : "DISM /Unmount-Image /Discard",
+                         dism + " /Unmount-Image /MountDir:\"" + NoSlash(mnt) + "\" " + (injected ? "/Commit" : "/Discard"));
+    if (!injected || u.exitCode != 0) {
+        if (u.exitCode != 0) c.run("DISM /Unmount-Image /Discard", dism + " /Unmount-Image /MountDir:\"" + NoSlash(mnt) + "\" /Discard");
+        c.error("Образ не собран.");
+        RemoveTree(DataDir() + "WinPEBuild");
+        return;
+    }
+
+    // --- загрузочные файлы носителя ---
+    bool mediaOk = true;
+    if (fromAdk) {
+        ProcResult x = c.run("Копирование загрузочных файлов ADK", "\"" + SysTool("cmd.exe") + "\" /c xcopy /e /i /y /q \"" + NoSlash(media) + "\" \"" + NoSlash(dest) + "\\.\"", 300);
+        if (x.exitCode != 0) { c.error("Не удалось скопировать загрузочные файлы ADK."); mediaOk = false; }
+    } else {
+        std::string win = WinDirLive();
+        mediaOk = CopyOne(c, win + "\\Boot\\EFI\\bootmgfw.efi", dest + "EFI\\Boot\\" + kEfiBootName, true)
+               && CopyOne(c, win + "\\Boot\\EFI\\bootmgfw.efi", dest + "EFI\\Microsoft\\Boot\\bootmgfw.efi", true);
+        CopyOne(c, win + "\\Boot\\PCAT\\bootmgr", dest + "bootmgr", false);
+        bool sdi = CopyOne(c, win + "\\Boot\\DVD\\EFI\\boot.sdi", dest + "Boot\\boot.sdi", false) && PathExists(dest + "Boot\\boot.sdi");
+        if (!sdi) sdi = CopyOne(c, win + "\\Boot\\DVD\\PCAT\\boot.sdi", dest + "Boot\\boot.sdi", true);
+        mediaOk = mediaOk && sdi;
+        if (mediaOk) {   // BCD с нуля: {ramdiskoptions} + запись WinPE; копия для BIOS (winload.exe) и для UEFI (winload.efi)
+            std::string st = wrk + "BCD", pre = "\"" + SysTool("bcdedit.exe") + "\" /store \"" + st + "\"";
+            DeleteFileW(W(st).c_str());
+            bool ok = c.run("bcdedit /createstore", "\"" + SysTool("bcdedit.exe") + "\" /createstore \"" + st + "\"", 30).exitCode == 0;
+            ok = ok && c.run("ramdiskoptions", pre + " /create {ramdiskoptions} /d \"Ramdisk\"", 30).exitCode == 0;
+            ok = ok && c.run("ramdisksdidevice", pre + " /set {ramdiskoptions} ramdisksdidevice boot", 30).exitCode == 0;
+            ok = ok && c.run("ramdisksdipath", pre + " /set {ramdiskoptions} ramdisksdipath \\Boot\\boot.sdi", 30).exitCode == 0;
+            ProcResult e = c.run("Создать запись WinPE", pre + " /create /d \"WinRepair WinPE\" /application osloader", 30);
+            std::string id = Guid(e.output);
+            ok = ok && !id.empty();
+            if (ok) {
+                auto set2 = [&](const std::string& el, const std::string& val) { ok = ok && c.run("/set " + el, pre + " /set " + id + " " + el + " " + val, 30).exitCode == 0; };
+                set2("device", "ramdisk=[boot]\\sources\\boot.wim,{ramdiskoptions}");
+                set2("osdevice", "ramdisk=[boot]\\sources\\boot.wim,{ramdiskoptions}");
+                set2("path", "\\windows\\system32\\winload.exe");
+                set2("systemroot", "\\windows");
+                set2("winpe", "yes");
+                set2("detecthal", "yes");
+                ok = ok && c.run("{bootmgr}", pre + " /create {bootmgr} /d \"WinRepair WinPE\"", 30).exitCode == 0;
+                ok = ok && c.run("{bootmgr} device", pre + " /set {bootmgr} device boot", 30).exitCode == 0;
+                ok = ok && c.run("{bootmgr} timeout", pre + " /set {bootmgr} timeout 1", 30).exitCode == 0;
+                ok = ok && c.run("displayorder", pre + " /displayorder " + id, 30).exitCode == 0;
+                ok = ok && c.run("default", pre + " /default " + id, 30).exitCode == 0;
+                ok = ok && CopyOne(c, st, dest + "Boot\\BCD", true);                       // BIOS: \Boot\BCD, winload.exe
+                ok = ok && c.run("path winload.efi", pre + " /set " + id + " path \\windows\\system32\\winload.efi", 30).exitCode == 0;
+                ok = ok && CopyOne(c, st, dest + "EFI\\Microsoft\\Boot\\BCD", true);       // UEFI: свой BCD, winload.efi
+            }
+            mediaOk = ok;
+            if (!ok) c.error("Не удалось подготовить BCD носителя.");
+        }
+    }
+
+    bool wimOk = mediaOk;
+    if (mediaOk) {
+        MakeDirs(dest + "sources\\");
+        c.info("Запись boot.wim на носитель ...");
+        SetFileAttributesW(W(dest + "sources\\boot.wim").c_str(), FILE_ATTRIBUTE_NORMAL);
+        wimOk = CopyBig(wim, dest + "sources\\boot.wim", c.cancel);
+        if (!wimOk) c.error("Не удалось записать boot.wim на носитель.");
+    }
+    RemoveTree(DataDir() + "WinPEBuild");
+    if (!mediaOk || !wimOk) return;
+
+    AuditChange("Создан носитель WinPE + WinRepair: " + dest + (fromAdk ? " (база ADK)" : " (база winre.wim)"));
+    c.ok("Готово: " + dest);
+    c.info("Как загрузиться: вставьте флешку, при включении откройте Boot Menu (обычно F12/F11/Esc/F9) и выберите её (пункт UEFI). Secure Boot выключать не нужно: загрузочные файлы подписаны Microsoft.");
+    if (!fromAdk) c.info("Для очень старых компьютеров с BIOS (не UEFI) флешку дополнительно нужно сделать активной и записать загрузочный код (bootsect /nt60 из установочного носителя Windows).");
+    c.info("Обновление: при выходе новой версии программы просто повторите эту операцию в ту же папку.");
+}
+
 void JobRemoveWinRepairRE(Ctx& c, const std::string& store) {
     c.info("=== Удаление «Windows RE + WinRepair» ===");
     std::string raw;

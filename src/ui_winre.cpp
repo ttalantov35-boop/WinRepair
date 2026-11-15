@@ -10,7 +10,7 @@ namespace {
 enum { ID_TARGET = 8001, ID_STORE, ID_FIND, ID_STATUS, ID_B0 = 8100 };
 
 struct State {
-    HWND wnd = nullptr, target, store, find, status, btn[10];
+    HWND wnd = nullptr, target, store, find, status, btn[11];
     std::vector<Target> targets;
     std::vector<BcdStore> stores;
     Target tgt;
@@ -185,6 +185,33 @@ void CheckWim() {
     UiStartJob("winre-check", "Проверка winre.wim", [wim](Ctx& c) { c.run("DISM /Get-WimInfo", "\"" + SysTool("dism.exe") + "\" /Get-WimInfo /WimFile:\"" + wim + "\"", 120); }, &tg);
 }
 
+// Свой загрузочный WinPE: база — ADK (если установлен) или winre.wim; результат — папка/флешка с автозапуском WinRepair.
+void BuildOwnPE() {
+    if (UiRunning()) { MessageBoxW(V.wnd, L"Дождитесь завершения текущей операции.", L"Занято", MB_OK | MB_ICONINFORMATION); return; }
+    std::vector<FormField> f(1);
+    f[0].label = L"Куда собрать WinPE. Для загрузочной флешки укажите её КОРЕНЬ (флешка должна быть отформатирована в FAT32); можно указать и обычную папку, чтобы перенести позже.";
+    f[0].kind = 3;
+    DWORD mask = GetLogicalDrives();
+    std::wstring def;
+    for (char L = 'D'; L <= 'Z'; ++L) {
+        if (!(mask & (1u << (L - 'A')))) continue;
+        std::string r = std::string(1, L) + ":\\";
+        if (GetDriveTypeW(W(r).c_str()) == DRIVE_REMOVABLE) { f[0].options.push_back(W(r)); if (def.empty()) def = W(r); }
+    }
+    f[0].options.push_back(L"D:\\WinPE_WR");
+    f[0].value = def.empty() ? L"D:\\WinPE_WR" : def;
+    if (!FormDialog(V.wnd, L"Свой WinPE с WinRepair", f)) return;
+    std::string dest = trim(U(f[0].value));
+    if (dest.size() < 2) return;
+    std::wstring msg = L"В «" + W(dest) + L"» будет собран загрузочный WinPE с автозапуском WinRepair:\n"
+                       L" • база — winpe.wim из Windows ADK (если установлен), иначе winre.wim этой системы\n"
+                       L" • файлы Boot, EFI, bootmgr и sources\\boot.wim в указанной папке будут ПЕРЕЗАПИСАНЫ\n"
+                       L" • флешка НЕ форматируется, остальные файлы на ней не трогаются\n\n"
+                       L"Распространять собранный образ нельзя (лицензия Microsoft), использовать для своей работы — можно.";
+    if (!Confirm(msg, true)) return;
+    UiStartJob("winpe-build", "Свой WinPE с WinRepair", [dest](Ctx& c) { JobBuildWinPE(c, dest); });
+}
+
 void Layout() {
     RECT rc;
     GetClientRect(V.wnd, &rc);
@@ -196,24 +223,24 @@ void Layout() {
     Place(V.store, m + S(105), y, W_ - 2 * m - S(105) - S(120), S(300));
     Place(V.find, W_ - m - S(112), y - 1, S(112), S(26));
     y += S(34);
-    int bh = S(32), rows = 5;
+    int bh = S(32), rows = 6;
     int stH = H - y - m - rows * (bh + S(6));
     Place(V.status, m, y, W_ - 2 * m, stH);
     y += stH + m;
     int bw = (W_ - 2 * m - S(8)) / 2;
-    for (int i = 0; i < 10; ++i) Place(V.btn[i], m + (i % 2) * (bw + S(8)), y + (i / 2) * (bh + S(6)), bw, bh);
+    for (int i = 0; i < 11; ++i) Place(V.btn[i], m + (i % 2) * (bw + S(8)), y + (i / 2) * (bh + S(6)), bw, bh);
 }
 
 LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     switch (m) {
-        case WM_SIZE: if (V.btn[9]) Layout(); return 0;
-        case WM_GETMINMAXINFO: { auto* mm = (MINMAXINFO*)lp; mm->ptMinTrackSize.x = S(860); mm->ptMinTrackSize.y = S(600); return 0; }
+        case WM_SIZE: if (V.btn[10]) Layout(); return 0;
+        case WM_GETMINMAXINFO: { auto* mm = (MINMAXINFO*)lp; mm->ptMinTrackSize.x = S(860); mm->ptMinTrackSize.y = S(640); return 0; }
         case WM_COMMAND: {
             int id = LOWORD(wp), code = HIWORD(wp);
             if (id == ID_TARGET && code == CBN_SELCHANGE) { Refresh(); }
             else if (id == ID_STORE && code == CBN_SELCHANGE) Refresh();
             else if (id == ID_FIND) { Rescan(); Refresh(); }
-            else if (id >= ID_B0 && id < ID_B0 + 10) {
+            else if (id >= ID_B0 && id < ID_B0 + 11) {
                 switch (id - ID_B0) {
                     case 0: Refresh(); break;
                     case 1: Enter(false, false); break;
@@ -224,7 +251,8 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
                     case 6: RemoveCustom(); break;
                     case 7: CancelOnce(); break;
                     case 8: CheckWim(); break;
-                    case 9: DestroyWindow(h); break;
+                    case 9: BuildOwnPE(); break;
+                    case 10: DestroyWindow(h); break;
                 }
             }
             return 0;
@@ -253,8 +281,8 @@ void OpenWinReImpl() {
     SendMessageW(V.status, WM_SETFONT, (WPARAM)g_ui.mono, TRUE);
     const wchar_t* bt[] = {L"Обновить статус", L"Войти в WinRE при следующей загрузке…", L"Войти в WinRE и перезагрузить сейчас…", L"Создать/восстановить запись WinRE в BCD…",
                            L"WinRE + WinRepair: создать…", L"Войти в WinRE + WinRepair (следующая загрузка)…", L"WinRE + WinRepair: удалить…", L"Отменить разовый вход",
-                           L"Проверить winre.wim (DISM)", L"Закрыть"};
-    for (int i = 0; i < 10; ++i) V.btn[i] = Mk(h, L"BUTTON", bt[i], BS_PUSHBUTTON | WS_TABSTOP, ID_B0 + i);
+                           L"Проверить winre.wim (DISM)", L"Свой WinPE с WinRepair (флешка)…", L"Закрыть"};
+    for (int i = 0; i < 11; ++i) V.btn[i] = Mk(h, L"BUTTON", bt[i], BS_PUSHBUTTON | WS_TABSTOP, ID_B0 + i);
     Layout();
     ShowWindow(h, SW_SHOW);
     if (V.targets.empty()) { SetWindowTextW(V.status, L"Целевые ОС не найдены."); return; }
