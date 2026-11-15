@@ -244,6 +244,15 @@ void JobBootOnce(Ctx& c, const std::string& store, const std::string& id, bool r
     if (reboot) { AuditChange("Перезагрузка после bootsequence"); c.run("Перезагрузка", RebootCommand(), 30); }
 }
 
+// Файл RecEnv.exe в образе принадлежит TrustedInstaller, поэтому переименование может
+// давать «Отказано в доступе» (0x5). Отдаём владение администраторам и выдаём им полные
+// права. SID S-1-5-32-544 — встроенная группа «Администраторы», одинаковая на любом языке.
+static void TakeOwnFull(Ctx& c, const std::string& path) {
+    c.run("takeown /f RecEnv.exe", "\"" + SysTool("takeown.exe") + "\" /f \"" + path + "\" /a", 60);
+    c.run("icacls /grant", "\"" + SysTool("icacls.exe") + "\" \"" + path + "\" /grant *S-1-5-32-544:F /c", 60);
+    SetFileAttributesW(W(path).c_str(), FILE_ATTRIBUTE_NORMAL);
+}
+
 void JobBuildWinRepairRE(Ctx& c, const std::string& store, const std::string& srcWim) {
     c.info("=== Создание «Windows RE + WinRepair» ===");
     if (!c.needTarget()) return;
@@ -312,8 +321,11 @@ void JobBuildWinRepairRE(Ctx& c, const std::string& store, const std::string& sr
             // Переименование вместо копирования: читать файлы из смонтированного WIM система
             // может запрещать (0x780), а переименование — операция над именем, оно проходит.
             if (!PathExists(orig2) && !MoveFileW(W(rec).c_str(), W(orig2).c_str())) {
-                c.warn("Не удалось переименовать RecEnv.exe (" + ErrMsg(GetLastError()) + ") — подмена пропущена.");
-                continue;
+                TakeOwnFull(c, rec);   // владелец — TrustedInstaller, 0x5: берём права и пробуем ещё раз
+                if (!MoveFileW(W(rec).c_str(), W(orig2).c_str())) {
+                    c.warn("Не удалось переименовать RecEnv.exe (" + ErrMsg(GetLastError()) + ") — подмена пропущена.");
+                    continue;
+                }
             }
             if (CopyFileW(W(exeSrc).c_str(), W(rec).c_str(), FALSE)) {
                 replacedRecEnv = true;
@@ -454,6 +466,16 @@ std::string AdkWinPeWim(const std::string& peRoot) {
     return "";
 }
 
+// Совпадает ли «родная» архитектура этой Windows с архитектурой собираемого PE
+bool HostMatchesPeArch() {
+    USHORT pm = 0, nm = 0;
+    auto f = (BOOL(WINAPI*)(HANDLE, USHORT*, USHORT*))(void*)GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "IsWow64Process2");
+    if (!f || !f(GetCurrentProcess(), &pm, &nm) || !nm) return true;  // не узнали — считаем, что совпадает
+    if (!strcmp(kPeArch, "amd64")) return nm == 0x8664;
+    if (!strcmp(kPeArch, "x86"))   return nm == 0x014c;
+    return nm == 0xAA64;
+}
+
 std::string WinDirLive() {
     wchar_t b[MAX_PATH] = {0};
     GetWindowsDirectoryW(b, MAX_PATH);
@@ -471,7 +493,7 @@ bool CopyOne(Ctx& c, const std::string& src, const std::string& dst, bool requir
 }
 }  // namespace
 
-void JobBuildWinPE(Ctx& c, const std::string& destIn) {
+void JobBuildWinPE(Ctx& c, const std::string& destIn, bool baseWinre) {
     c.info("=== Свой WinPE с WinRepair ===");
     std::string dest = destIn;
     while (!dest.empty() && dest.back() == '\\') dest.pop_back();
@@ -487,23 +509,29 @@ void JobBuildWinPE(Ctx& c, const std::string& destIn) {
     }
 
     // --- база: ADK или winre.wim текущей системы ---
-    std::string peRoot = AdkPeRoot(), baseWim, media;
-    bool fromAdk = false;
+    // Источники: образ-база (по выбору пользователя) и загрузочные файлы носителя (ADK Media, если есть).
+    std::string peRoot = AdkPeRoot(), adkWim, media, baseWim;
     if (!peRoot.empty()) {
-        baseWim = AdkWinPeWim(peRoot);
+        adkWim = AdkWinPeWim(peRoot);
         media = peRoot + "Media\\";
-        if (!baseWim.empty() && IsDir(media)) fromAdk = true;
+        if (!IsDir(media)) media.clear();
     }
-    if (fromAdk) c.info("База: ADK WinPE (" + baseWim + ")");
-    else {
-        if (!strcmp(kPeArch, "arm64")) { c.error("Для ARM64 нужен установленный ADK с дополнением WinPE: загрузочные файлы ARM64 взять больше неоткуда."); return; }
+    bool baseAdk = !baseWinre;
+    if (baseAdk) {
+        baseWim = adkWim;
+        if (baseWim.empty()) { c.error("ADK WinPE не установлен, а winre.wim не найден. Установите Windows ADK + дополнение WinPE (сайт Microsoft) и повторите."); return; }
+        c.info("База: ADK WinPE (" + baseWim + ")");
+    } else {
         if (!strcmp(kPeArch, "x86") && !EnvDir(L"ProgramFiles(x86)").empty()) { c.error("Запущена 32-битная сборка на 64-битной Windows: её winre.wim 64-битный, и WinRepair_x86 в нём не заработает. Запустите WinRepair_x64.exe или установите ADK WinPE (x86)."); return; }
+        if (!HostMatchesPeArch()) { c.error("Разрядность этой Windows не совпадает с программой — её winre.wim не подойдёт как база. Установите ADK WinPE нужной архитектуры."); return; }
         WinReInfo wi = ReadWinReInfo(c.target);
         baseWim = wi.wimPath;
-        if (baseWim.empty()) { c.error("ADK WinPE не установлен, а winre.wim не найден. Установите Windows ADK + дополнение WinPE (сайт Microsoft) и повторите."); return; }
-        c.warn("ADK WinPE не установлен — базой станет winre.wim. Рекомендуется ADK: меньше лишнего и гарантированный автозапуск.");
-        c.info("База: " + baseWim);
+        if (baseWim.empty()) { c.error("winre.wim не найден — выбрать базой среду восстановления не получится. Установите ADK WinPE или восстановите WinRE."); return; }
+        c.info("База: winre.wim (" + baseWim + ") — встроенное «Восстановление системы» (rstrui), как у DaRT.");
     }
+    bool fromAdk = !media.empty();   // откуда берём загрузочные файлы носителя
+    if (fromAdk) c.info("Загрузочные файлы носителя: ADK Media.");
+    else if (!HostMatchesPeArch()) { c.error("ADK Media нет, а загрузочные файлы этой Windows другой архитектуры. Установите ADK с дополнением WinPE."); return; }
 
     unsigned long long wimSz = FileSize(baseWim);
     std::string wrk = DataDir() + "WinPEBuild\\", mnt = wrk + "mnt\\", scr = wrk + "scratch\\", wim = wrk + "boot.wim";
@@ -530,16 +558,43 @@ void JobBuildWinPE(Ctx& c, const std::string& destIn) {
         int nf = 0;
         if (IsDir(ExeDir() + "Playbooks")) { CopyTree(NoSlash(ExeDir() + "Playbooks"), NoSlash(sys + "Playbooks"), nf, c.cancel); c.info(fmt("Playbooks добавлены в образ: %d файл(ов)", nf)); }
         if (IsDir(ExeDir() + "Lang")) { nf = 0; CopyTree(NoSlash(ExeDir() + "Lang"), NoSlash(sys + "Lang"), nf, c.cancel); }
-        if (!fromAdk) {
+        if (!baseAdk) {
             WriteText(sys + "WinRepair.winre", "WinRepair shell marker\r\n", false);
-            for (const char* sub : {"sources\\recovery\\", "Windows\\System32\\Recovery\\"}) {   // как в «WinRE + WinRepair»
-                std::string rec = mnt + sub + "RecEnv.exe", orig2 = mnt + sub + "RecEnvOrig.exe";
-                if (!PathExists(rec)) continue;
+            // Запускаем WinRepair первой, заменив загрузочную оболочку sources\recovery\RecEnv.exe.
+            // Windows 11 26H2 запрещает переименование файлов в смонтированном WIM (0x780) даже владельцу,
+            // но ПЕРЕЗАПИСЬ существующего файла проходит. Поэтому: сначала пробуем сохранить оригинал
+            // переименованием (где это разрешено), а затем в любом случае перезаписываем RecEnv.exe
+            // прямо на WinRepair. Вторую копию (Windows\System32\Recovery\RecEnv.exe) НЕ трогаем —
+            // через неё кнопка «Выйти в меню WinRE» открывает штатное восстановление.
+            std::string rec = mnt + "sources\\recovery\\RecEnv.exe", orig2 = mnt + "sources\\recovery\\RecEnvOrig.exe";
+            if (PathExists(rec)) {
                 SetFileAttributesW(W(rec).c_str(), FILE_ATTRIBUTE_NORMAL);
-                if (!PathExists(orig2) && !MoveFileW(W(rec).c_str(), W(orig2).c_str())) { c.warn("Не удалось переименовать RecEnv.exe (" + ErrMsg(GetLastError()) + ")."); continue; }
-                if (CopyFileW(W(exeSrc).c_str(), W(rec).c_str(), FALSE)) c.info("RecEnv.exe в образе подменён на WinRepair (оригинал: RecEnvOrig.exe).");
+                TakeOwnFull(c, rec);
+                bool kept = PathExists(orig2) || MoveFileW(W(rec).c_str(), W(orig2).c_str());
+                if (CopyFileW(W(exeSrc).c_str(), W(rec).c_str(), FALSE))
+                    c.info(kept ? "RecEnv.exe подменён на WinRepair (оригинал: RecEnvOrig.exe). WinRepair запустится первой."
+                                : "RecEnv.exe перезаписан на WinRepair напрямую. WinRepair запустится первой; штатное восстановление остаётся во второй копии (Windows\\System32\\Recovery).");
+                else
+                    c.warn("Не удалось заменить RecEnv.exe (" + ErrMsg(GetLastError()) + "). Автозапуск недоступен: в WinRE откройте командную строку и введите winrepair.");
             }
         }
+        // Восстановление системы: rstrui и компоненты из РАБОТАЮЩЕЙ Windows (в базовом WinPE их нет).
+        // Копируем только отсутствующие файлы: в образе на базе winre.wim они уже есть.
+        if (HostMatchesPeArch()) {
+            std::string s32 = WinDirLive() + "\\System32\\";
+            int added = 0;
+            for (const char* fn : {"rstrui.exe", "srcore.dll", "srclient.dll", "vssapi.dll", "vsstrace.dll", "srhelper.dll", "spp.dll", "sppc.dll", "dsrole.dll"}) {
+                if (PathExists(sys + fn) || !PathExists(s32 + fn)) continue;
+                if (CopyOne(c, s32 + fn, sys + fn, false) && PathExists(sys + fn)) ++added;
+            }
+            for (const char* lang : {"ru-RU", "en-US"})
+                for (const char* fn : {"rstrui.exe.mui", "srcore.dll.mui"}) {
+                    std::string ms = s32 + lang + "\\" + fn, md = sys + lang + "\\" + fn;
+                    if (PathExists(ms) && !PathExists(md)) CopyOne(c, ms, md, false);
+                }
+            if (added) c.info(fmt("Восстановление системы добавлено в образ: rstrui и компоненты (%d файл(ов)). В WinPE запускайте «Восстановление системы: rstrui…» — откат пойдёт офлайн (/offline).", added));
+        } else c.warn("Разрядность этой Windows не совпадает с образом — rstrui не добавлен, откат точек восстановления в этом WinPE будет недоступен.");
+
         std::string ini = sys + "winpeshl.ini";
         SetFileAttributesW(W(ini).c_str(), FILE_ATTRIBUTE_NORMAL);
         WriteText(ini, "[LaunchApps]\r\n%SYSTEMROOT%\\System32\\wpeinit.exe\r\n%SYSTEMROOT%\\System32\\WinRepair.exe\r\n", false);
@@ -612,10 +667,10 @@ void JobBuildWinPE(Ctx& c, const std::string& destIn) {
     RemoveTree(DataDir() + "WinPEBuild");
     if (!mediaOk || !wimOk) return;
 
-    AuditChange("Создан носитель WinPE + WinRepair: " + dest + (fromAdk ? " (база ADK)" : " (база winre.wim)"));
+    AuditChange("Создан носитель WinPE + WinRepair: " + dest + (baseAdk ? " (база ADK)" : " (база winre.wim)"));
     c.ok("Готово: " + dest);
     c.info("Как загрузиться: вставьте флешку, при включении откройте Boot Menu (обычно F12/F11/Esc/F9) и выберите её (пункт UEFI). Secure Boot выключать не нужно: загрузочные файлы подписаны Microsoft.");
-    if (!fromAdk) c.info("Для очень старых компьютеров с BIOS (не UEFI) флешку дополнительно нужно сделать активной и записать загрузочный код (bootsect /nt60 из установочного носителя Windows).");
+    c.info("Для очень старых компьютеров с BIOS (не UEFI) флешку дополнительно нужно сделать активной и записать загрузочный код (bootsect /nt60 из установочного носителя Windows).");
     c.info("Обновление: при выходе новой версии программы просто повторите эту операцию в ту же папку.");
 }
 

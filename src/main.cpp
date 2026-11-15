@@ -60,6 +60,7 @@ const wchar_t* kTabs[] = {L"Обзор", L"Система", L"Диски", L"Ц�
 Action kActions[] = {
     {L"Мастер «Что случилось?» (диагностика по симптому)…", 0, nullptr, "triage", nullptr},
     {L"Сценарии ремонта (playbooks)…", 0, nullptr, "playbooks", nullptr},
+    {L"Создать загрузочную флешку WinPE с WinRepair…", 0, nullptr, "winpeusb", nullptr},
     {L"Полная диагностика + HTML-отчёт", 0, ModFull, "full", nullptr},
     {L"Открыть последний HTML-отчёт", 0, nullptr, "open-report", nullptr},
     {L"Каталог команд…", 0, nullptr, "catalog", nullptr},
@@ -150,6 +151,7 @@ const ActionDesc kDescs[] = {
     {"autoruns", L"Автозагрузка и службы выбранной (в том числе офлайн) Windows: ключи Run, задачи, службы, драйверы. Подозрительные записи можно отключить, режим запуска служб менять (аналог msconfig). Отключение обратимо."},
     {"fixes", L"Обратимые исправления после заражения: Winlogon Shell/Userinit, IFEO, AppInit_DLLs, политики, прокси, файл hosts и др. Каждое исправление описано, подтверждается и записывается в журнал."},
     {"rstrui", L"Запускает мастер восстановления системы (rstrui.exe) для отката к точке восстановления, если она есть. Меняет систему, потребуется подтверждение."},
+    {"winpeusb", L"Собирает независимый загрузочный WinPE с автозапуском WinRepair: укажите корень флешки (FAT32) — и с неё можно загрузить любой компьютер. База — Windows ADK (если установлен) или winre.wim этой системы."},
     {"restore-info", L"Показывает, какие точки восстановления есть в системе, их дату и описание. Только чтение."},
     {"winre", L"Среда восстановления Windows (WinRE): состояние, вход в неё при следующей загрузке или сразу, создание образа WinRE с этой утилитой и его удаление."},
     {"winre-menu", L"Из WinRE выходит в штатное меню среды восстановления (Поиск и устранение неисправностей, Командная строка и др.). Работает только внутри WinRE."},
@@ -168,7 +170,7 @@ const wchar_t* DescOf(const char* name) {
 // Purpose of a command -> colour (see ui_theme.h)
 theme::Cat CatOfAction(const char* n) {
     static const char* guide[] = {"triage", "playbooks", "catalog"};
-    static const char* repair[] = {"repair", "fixes", "registry", "bcd", "autoruns", "winre", "winre-menu", "storagefix", "rstrui", "apps", "explorer"};
+    static const char* repair[] = {"repair", "fixes", "registry", "bcd", "autoruns", "winre", "winre-menu", "winpeusb", "storagefix", "rstrui", "apps", "explorer"};
     static const char* protect[] = {"restorepoint", "savedata", "backups", "undo"};
     for (auto g : guide) if (!strcmp(n, g)) return theme::Cat::Guide;
     for (auto g : repair) if (!strcmp(n, g)) return theme::Cat::Repair;
@@ -544,6 +546,7 @@ void StartAction(int idx) {
         else if (!strcmp(a.name, "rstrui")) { Target t = CurrentTarget(); QuickCmd(t.valid && t.online ? 56 : 57); }
         else if (!strcmp(a.name, "restore-info")) QuickCmd(59);
         else if (!strcmp(a.name, "winre")) OpenWinReManager();
+        else if (!strcmp(a.name, "winpeusb")) OpenWinPeBuilder();
         else if (!strcmp(a.name, "savedata")) OpenSaveData();
         else if (!strcmp(a.name, "backups")) ManageBackups();
         else if (!strcmp(a.name, "undo")) OpenUndoSession();

@@ -183,6 +183,7 @@ void OpenPlaybooksImpl();
 void PlaybooksJobDone();
 void TriageJobDone();
 void OpenWinReImpl();
+void OpenWinPeBuilderImpl();   // диалог «Свой WinPE с WinRepair» (владелец — окно WinRE или главное окно)
 void OpenSaveDataImpl();
 void WinReJobDone();
 void StorageJobDone();

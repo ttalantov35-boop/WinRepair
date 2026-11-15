@@ -187,8 +187,9 @@ void CheckWim() {
 
 // Свой загрузочный WinPE: база — ADK (если установлен) или winre.wim; результат — папка/флешка с автозапуском WinRepair.
 void BuildOwnPE() {
-    if (UiRunning()) { MessageBoxW(V.wnd, L"Дождитесь завершения текущей операции.", L"Занято", MB_OK | MB_ICONINFORMATION); return; }
-    std::vector<FormField> f(1);
+    HWND own = V.wnd ? V.wnd : g_ui.main;
+    if (UiRunning()) { MessageBoxW(own, L"Дождитесь завершения текущей операции.", L"Занято", MB_OK | MB_ICONINFORMATION); return; }
+    std::vector<FormField> f(2);
     f[0].label = L"Куда собрать WinPE. Для загрузочной флешки укажите её КОРЕНЬ (флешка должна быть отформатирована в FAT32); можно указать и обычную папку, чтобы перенести позже.";
     f[0].kind = 3;
     DWORD mask = GetLogicalDrives();
@@ -200,16 +201,22 @@ void BuildOwnPE() {
     }
     f[0].options.push_back(L"D:\\WinPE_WR");
     f[0].value = def.empty() ? L"D:\\WinPE_WR" : def;
-    if (!FormDialog(V.wnd, L"Свой WinPE с WinRepair", f)) return;
+    f[1].label = L"База образа. winre.wim — с «Восстановлением системы» (rstrui), как у DaRT; ADK — чистый минимальный WinPE.";
+    f[1].kind = 3;
+    f[1].options.push_back(L"winre.wim этой системы — встроенное «Восстановление системы» (rstrui), как у DaRT");
+    f[1].options.push_back(L"ADK WinPE — чистый минимальный образ (без rstrui)");
+    f[1].value = f[1].options[0];
+    if (!FormDialog(own, L"Свой WinPE с WinRepair", f)) return;
     std::string dest = trim(U(f[0].value));
     if (dest.size() < 2) return;
+    bool baseWinre = f[1].value.find(L"ADK WinPE") == std::wstring::npos;
     std::wstring msg = L"В «" + W(dest) + L"» будет собран загрузочный WinPE с автозапуском WinRepair:\n"
-                       L" • база — winpe.wim из Windows ADK (если установлен), иначе winre.wim этой системы\n"
+                       L" • база: " + f[1].value + L"\n"
                        L" • файлы Boot, EFI, bootmgr и sources\\boot.wim в указанной папке будут ПЕРЕЗАПИСАНЫ\n"
                        L" • флешка НЕ форматируется, остальные файлы на ней не трогаются\n\n"
                        L"Распространять собранный образ нельзя (лицензия Microsoft), использовать для своей работы — можно.";
-    if (!Confirm(msg, true)) return;
-    UiStartJob("winpe-build", "Свой WinPE с WinRepair", [dest](Ctx& c) { JobBuildWinPE(c, dest); });
+    if (MessageBoxW(own, (msg + L"\n\nПродолжить?").c_str(), L"Подтверждение", MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) return;
+    UiStartJob("winpe-build", "Свой WinPE с WinRepair", [dest, baseWinre](Ctx& c) { JobBuildWinPE(c, dest, baseWinre); });
 }
 
 void Layout() {
@@ -292,6 +299,8 @@ void OpenWinReImpl() {
 }
 
 void WinReJobDone() { if (V.wnd) Refresh(); }
+
+void OpenWinPeBuilderImpl() { BuildOwnPE(); }
 
 void OpenSaveDataImpl() {
     if (UiRunning()) { MessageBoxW(g_ui.main, L"Дождитесь завершения текущей операции.", L"Занято", MB_OK | MB_ICONINFORMATION); return; }

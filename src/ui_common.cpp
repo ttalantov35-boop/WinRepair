@@ -133,6 +133,7 @@ void OpenInstalledApps() { ui::OpenAppsImpl(); }
 void OpenOfflineExplorer() { ui::OpenOfflineExplorerImpl(); }
 void OpenFixWizard() { ui::OpenFixWizardImpl(); }
 void OpenWinReManager() { ui::OpenWinReImpl(); }
+void OpenWinPeBuilder() { ui::OpenWinPeBuilderImpl(); }
 void OpenTriage() { ui::OpenTriageImpl(); }
 void OpenPlaybooks() { ui::OpenPlaybooksImpl(); }
 void OpenStorageAccess() { ui::OpenStorageAccessImpl(); }

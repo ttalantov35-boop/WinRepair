@@ -18,7 +18,7 @@ std::string WinReSdiFor(const std::string& wimPath, const Target& t);  // path o
 bool CreateRamdiskEntry(Ctx& c, const std::string& store, const std::string& desc, const std::string& wimPath, const std::string& sdiPath, std::string& outId);
 void JobBuildWinRepairRE(Ctx& c, const std::string& store, const std::string& srcWim);
 void JobRemoveWinRepairRE(Ctx& c, const std::string& store);
-void JobBuildWinPE(Ctx& c, const std::string& destRoot);   // свой загрузочный WinPE с WinRepair (флешка/папка)
+void JobBuildWinPE(Ctx& c, const std::string& destRoot, bool baseWinre);   // свой загрузочный WinPE; baseWinre: база winre.wim (rstrui как у DaRT), иначе ADK
 void JobBootOnce(Ctx& c, const std::string& store, const std::string& id, bool reboot);
 std::string RebootCommand();
 bool CopyTree(const std::string& src, const std::string& dst, int& files, const std::atomic<bool>* cancel);

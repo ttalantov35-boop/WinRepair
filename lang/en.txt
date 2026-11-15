@@ -1866,7 +1866,7 @@ RecEnv.exe подменён на WinRepair (оригинал сохранён к
 Свой WinPE с WinRepair ==> Your own WinPE with WinRepair
 === Свой WinPE с WinRepair === ==> === Your own WinPE with WinRepair ===
 Куда собрать WinPE. Для загрузочной флешки укажите её КОРЕНЬ (флешка должна быть отформатирована в FAT32); можно указать и обычную папку, чтобы перенести позже. ==> Where to build WinPE. For a bootable USB stick enter its ROOT (the stick must be formatted as FAT32); a regular folder also works, to transfer later.
-В «{}» будет собран загрузочный WinPE с автозапуском WinRepair:\n • база — winpe.wim из Windows ADK (если установлен), иначе winre.wim этой системы\n • файлы Boot, EFI, bootmgr и sources\\boot.wim в указанной папке будут ПЕРЕЗАПИСАНЫ\n • флешка НЕ форматируется, остальные файлы на ней не трогаются\n\nРаспространять собранный образ нельзя (лицензия Microsoft), использовать для своей работы — можно. ==> A bootable WinPE with WinRepair autostart will be built in "{}":\n • base — winpe.wim from the Windows ADK (if installed), otherwise this system's winre.wim\n • Boot, EFI, bootmgr and sources\\boot.wim in that folder will be OVERWRITTEN\n • the stick is NOT formatted, its other files are untouched\n\nDistributing the built image is not allowed (Microsoft licence); using it for your own work is.
+В «{}» будет собран загрузочный WinPE с автозапуском WinRepair:\n • база: {}\n • файлы Boot, EFI, bootmgr и sources\\boot.wim в указанной папке будут ПЕРЕЗАПИСАНЫ\n • флешка НЕ форматируется, остальные файлы на ней не трогаются\n\nРаспространять собранный образ нельзя (лицензия Microsoft), использовать для своей работы — можно. ==> A bootable WinPE with WinRepair autostart will be built in "{}":\n • base: {}\n • Boot, EFI, bootmgr and sources\\boot.wim in that folder will be OVERWRITTEN\n • the stick is NOT formatted, its other files are untouched\n\nDistributing the built image is not allowed (Microsoft licence); using it for your own work is.
 Укажите папку назначения (например, корень флешки E:\\). ==> Enter a destination folder (e.g. the USB stick root E:\\).
 База: ADK WinPE ({}) ==> Base: ADK WinPE ({})
 База: {} ==> Base: {}
@@ -1877,6 +1877,9 @@ ADK WinPE не установлен — базой станет winre.wim. Ре�
 Копирование базового образа ({}) ... ==> Copying the base image ({}) ...
 Playbooks добавлены в образ: {} файл(ов) ==> Playbooks added to the image: {} file(s)
 RecEnv.exe в образе подменён на WinRepair (оригинал: RecEnvOrig.exe). ==> RecEnv.exe in the image has been swapped for WinRepair (original: RecEnvOrig.exe).
+RecEnv.exe в образе подменён на WinRepair (оригинал: RecEnvOrig.exe). Программа запустится первой, экран выбора языка больше не появится. ==> RecEnv.exe in the image has been swapped for WinRepair (original: RecEnvOrig.exe). The program starts first; the language-selection screen no longer appears.
+takeown /f RecEnv.exe ==> takeown /f RecEnv.exe
+icacls /grant ==> icacls /grant
 winpeshl.ini: wpeinit (сеть и устройства) → WinRepair ==> winpeshl.ini: wpeinit (network and devices) → WinRepair
 Образ не собран. ==> The image was not built.
 Копирование загрузочных файлов ADK ==> Copying the ADK boot files
@@ -1893,3 +1896,18 @@ winpeshl.ini: wpeinit (сеть и устройства) → WinRepair ==> winpe
 Копирование не удалось/отменено. ==> Copying failed or was cancelled.
 Монтирование образа не удалось. ==> Mounting the image failed.
 В образе нет Windows\\System32. ==> The image has no Windows\\System32.
+Создать загрузочную флешку WinPE с WinRepair… ==> Create a bootable WinPE USB stick with WinRepair…
+Собирает независимый загрузочный WinPE с автозапуском WinRepair: укажите корень флешки (FAT32) — и с неё можно загрузить любой компьютер. База — Windows ADK (если установлен) или winre.wim этой системы. ==> Builds an independent bootable WinPE with WinRepair autostart: enter the USB stick root (FAT32) — and any computer can boot from it. Base — the Windows ADK (if installed) or this system's winre.wim.
+Восстановление системы добавлено в образ: rstrui и компоненты ({} файл(ов)). В WinPE запускайте «Восстановление системы: rstrui…» — откат пойдёт офлайн (/offline). ==> System Restore added to the image: rstrui and components ({} file(s)). In WinPE use "System Restore: rstrui…" — the rollback runs offline (/offline).
+Разрядность этой Windows не совпадает с образом — rstrui не добавлен, откат точек восстановления в этом WinPE будет недоступен. ==> This Windows' architecture does not match the image — rstrui was not added; restore-point rollback will be unavailable in this WinPE.
+База образа. winre.wim — с «Восстановлением системы» (rstrui), как у DaRT; ADK — чистый минимальный WinPE. ==> Image base. winre.wim — with System Restore (rstrui), like DaRT; ADK — a clean minimal WinPE.
+winre.wim этой системы — встроенное «Восстановление системы» (rstrui), как у DaRT ==> this system's winre.wim — built-in System Restore (rstrui), like DaRT
+ADK WinPE — чистый минимальный образ (без rstrui) ==> ADK WinPE — a clean minimal image (no rstrui)
+База: winre.wim ({}) — встроенное «Восстановление системы» (rstrui), как у DaRT. ==> Base: winre.wim ({}) — built-in System Restore (rstrui), like DaRT.
+Загрузочные файлы носителя: ADK Media. ==> Media boot files: ADK Media.
+Разрядность этой Windows не совпадает с программой — её winre.wim не подойдёт как база. Установите ADK WinPE нужной архитектуры. ==> This Windows' architecture does not match the program — its winre.wim will not work as the base. Install the ADK WinPE of the needed architecture.
+winre.wim не найден — выбрать базой среду восстановления не получится. Установите ADK WinPE или восстановите WinRE. ==> winre.wim was not found — the recovery environment cannot be the base. Install the ADK WinPE or restore WinRE.
+ADK Media нет, а загрузочные файлы этой Windows другой архитектуры. Установите ADK с дополнением WinPE. ==> No ADK Media, and this Windows' boot files are of a different architecture. Install the ADK with the WinPE add-on.
+RecEnv.exe подменён на WinRepair (оригинал: RecEnvOrig.exe). WinRepair запустится первой. ==> RecEnv.exe swapped for WinRepair (original: RecEnvOrig.exe). WinRepair will start first.
+RecEnv.exe перезаписан на WinRepair напрямую. WinRepair запустится первой; штатное восстановление остаётся во второй копии (Windows\\System32\\Recovery). ==> RecEnv.exe overwritten with WinRepair directly. WinRepair will start first; the standard recovery remains in the second copy (Windows\\System32\\Recovery).
+Не удалось заменить RecEnv.exe ({}). Автозапуск недоступен: в WinRE откройте командную строку и введите winrepair. ==> Could not replace RecEnv.exe ({}). Autostart unavailable: in WinRE open the command prompt and type winrepair.

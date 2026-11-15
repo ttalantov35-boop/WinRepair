@@ -21,6 +21,7 @@ void OpenInstalledApps();
 void OpenOfflineExplorer();
 void OpenFixWizard();
 void OpenWinReManager();
+void OpenWinPeBuilder();
 void OpenStorageAccess();
 void UiRefreshTargets();  // implemented by main.cpp
 void UiSelectTarget(const Target& t);             // select the target in the main window (implemented by main.cpp)
