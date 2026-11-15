@@ -560,23 +560,20 @@ void JobBuildWinPE(Ctx& c, const std::string& destIn, bool baseWinre) {
         if (IsDir(ExeDir() + "Lang")) { nf = 0; CopyTree(NoSlash(ExeDir() + "Lang"), NoSlash(sys + "Lang"), nf, c.cancel); }
         if (!baseAdk) {
             WriteText(sys + "WinRepair.winre", "WinRepair shell marker\r\n", false);
-            // Запускаем WinRepair первой, заменив загрузочную оболочку sources\recovery\RecEnv.exe.
-            // Windows 11 26H2 запрещает переименование файлов в смонтированном WIM (0x780) даже владельцу,
-            // но ПЕРЕЗАПИСЬ существующего файла проходит. Поэтому: сначала пробуем сохранить оригинал
-            // переименованием (где это разрешено), а затем в любом случае перезаписываем RecEnv.exe
-            // прямо на WinRepair. Вторую копию (Windows\System32\Recovery\RecEnv.exe) НЕ трогаем —
-            // через неё кнопка «Выйти в меню WinRE» открывает штатное восстановление.
-            std::string rec = mnt + "sources\\recovery\\RecEnv.exe", orig2 = mnt + "sources\\recovery\\RecEnvOrig.exe";
-            if (PathExists(rec)) {
-                SetFileAttributesW(W(rec).c_str(), FILE_ATTRIBUTE_NORMAL);
-                TakeOwnFull(c, rec);
-                bool kept = PathExists(orig2) || MoveFileW(W(rec).c_str(), W(orig2).c_str());
-                if (CopyFileW(W(exeSrc).c_str(), W(rec).c_str(), FALSE))
-                    c.info(kept ? "RecEnv.exe подменён на WinRepair (оригинал: RecEnvOrig.exe). WinRepair запустится первой."
-                                : "RecEnv.exe перезаписан на WinRepair напрямую. WinRepair запустится первой; штатное восстановление остаётся во второй копии (Windows\\System32\\Recovery).");
-                else
-                    c.warn("Не удалось заменить RecEnv.exe (" + ErrMsg(GetLastError()) + "). Автозапуск недоступен: в WinRE откройте командную строку и введите winrepair.");
-            }
+            // Плитка WinRepair в штатном меню WinRE («Устранение неполадок»), официальный механизм Microsoft:
+            // инструмент и WinREConfig.xml в \sources\recovery\tools. Создаются только НОВЫЕ файлы —
+            // RecEnv.exe в этом образе недоступен ни для чтения, ни для переименования, ни для перезаписи (0x780).
+            std::string tools = mnt + "sources\\recovery\\tools\\";
+            MakeDirs(tools);
+            int tf = 0;
+            bool toolOk = CopyOne(c, exeSrc, tools + "WinRepair.exe", false) && PathExists(tools + "WinRepair.exe");
+            if (IsDir(ExeDir() + "Playbooks")) CopyTree(NoSlash(ExeDir() + "Playbooks"), NoSlash(tools + "Playbooks"), tf, c.cancel);
+            if (IsDir(ExeDir() + "Lang")) CopyTree(NoSlash(ExeDir() + "Lang"), NoSlash(tools + "Lang"), tf, c.cancel);
+            WriteText(tools + "WinRepair.winre", "WinRepair shell marker\r\n", false);
+            bool cfgOk = WriteText(tools + "WinREConfig.xml",
+                "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<!-- WinREConfig.xml -->\r\n<Recovery>\r\n  <RecoveryTools>\r\n    <RelativeFilePath>WinRepair.exe</RelativeFilePath>\r\n  </RecoveryTools>\r\n</Recovery>\r\n", false);
+            if (toolOk && cfgOk) c.info("В меню WinRE добавлена плитка WinRepair: после выбора языка откройте «Поиск и устранение неисправностей» — WinRepair стоит рядом со штатными средствами.");
+            else c.warn("Не удалось добавить плитку WinRepair в меню WinRE (" + ErrMsg(GetLastError()) + "). Запуск остаётся через командную строку: winrepair.");
         }
         // Восстановление системы: rstrui и компоненты из РАБОТАЮЩЕЙ Windows (в базовом WinPE их нет).
         // Копируем только отсутствующие файлы: в образе на базе winre.wim они уже есть.
@@ -595,10 +592,20 @@ void JobBuildWinPE(Ctx& c, const std::string& destIn, bool baseWinre) {
             if (added) c.info(fmt("Восстановление системы добавлено в образ: rstrui и компоненты (%d файл(ов)). В WinPE запускайте «Восстановление системы: rstrui…» — откат пойдёт офлайн (/offline).", added));
         } else c.warn("Разрядность этой Windows не совпадает с образом — rstrui не добавлен, откат точек восстановления в этом WinPE будет недоступен.");
 
+        // Автозапуск WinRepair первой. На чистом WinPE (ADK) winpeshl.ini — наш новый файл и пишется свободно,
+        // поэтому программа выходит сразу, без экрана языка и без RecEnv. На базе winre.wim этот файл уже есть
+        // и защищён (0x780): перезапись молча не проходит, а оболочку запускает RecEnv — поэтому для автозапуска
+        // нужна база ADK. Пишем и ПРОВЕРЯЕМ результат, а также дублируем через startnet.cmd.
         std::string ini = sys + "winpeshl.ini";
+        bool preExisted = PathExists(ini);
         SetFileAttributesW(W(ini).c_str(), FILE_ATTRIBUTE_NORMAL);
-        WriteText(ini, "[LaunchApps]\r\n%SYSTEMROOT%\\System32\\wpeinit.exe\r\n%SYSTEMROOT%\\System32\\WinRepair.exe\r\n", false);
-        c.info("winpeshl.ini: wpeinit (сеть и устройства) → WinRepair");
+        bool iniOk = WriteText(ini, "[LaunchApps]\r\n%SYSTEMROOT%\\System32\\wpeinit.exe\r\n%SYSTEMROOT%\\System32\\WinRepair.exe\r\n", false);
+        // startnet.cmd запускается стандартным winpeshl, если наш winpeshl.ini не подхватится — как запасной путь.
+        WriteText(sys + "startnet.cmd", "@echo off\r\nwpeinit\r\nstart \"\" %SYSTEMROOT%\\System32\\WinRepair.exe\r\n", false);
+        if (iniOk && (!preExisted || !baseWinre))
+            c.info("Автозапуск: winpeshl.ini → wpeinit → WinRepair (программа запустится первой).");
+        else
+            c.warn("winpeshl.ini в этом образе защищён от перезаписи (0x780) — автозапуск первой не гарантирован. Для гарантированного автозапуска соберите флешку на базе ADK WinPE (второй пункт в выборе базы).");
         injected = true;
     } while (false);
 

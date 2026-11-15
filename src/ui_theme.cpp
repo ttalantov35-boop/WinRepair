@@ -222,6 +222,17 @@ void PaintHeader(HDC dc, const RECT& rc, HICON icon, const std::wstring& title, 
     RECT tr = {tx, rc.top + S(6), right, rc.top + S(38)};
     DrawTextW(dc, title.c_str(), -1, &tr, DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
 
+    // Подпись бренда — на линии названия, чуть правее и мягче по тону
+    RECT tm{0, 0, 0, 0};
+    DrawTextW(dc, title.c_str(), -1, &tm, DT_SINGLELINE | DT_CALCRECT | DT_NOPREFIX);
+    int bx = tx + (tm.right - tm.left) + S(18);
+    if (bx < right - S(60)) {
+        SelectObject(dc, Semi());
+        SetTextColor(dc, RGB(173, 203, 240));
+        RECT br = {bx, rc.top + S(8), right, rc.top + S(36)};
+        DrawTextW(dc, L"Tynychsoft", -1, &br, DT_SINGLELINE | DT_BOTTOM | DT_NOPREFIX);
+    }
+
     // second line: OS name (bright, semibold) followed by status chips
     int ly = rc.top + S(40), lhgt = S(22);
     SelectObject(dc, Semi());
