@@ -1,0 +1,185 @@
+; WinRepair Toolkit help (English). Source of the built-in help: the build puts this file inside WinRepair.exe.
+; The released program shows only the built-in help — files next to the exe are not read, it cannot be replaced.
+; To check edits without rebuilding use the author build: build_msvc.bat edit → help window → "Edit help…".
+; Format:
+;   # Section {#anchor}    — section (the anchor lets F1 open the right place)
+;   ## Subsection          — subsection
+;   - item                 — list item
+;   ; comment              — line is not shown
+; Other lines are plain text. An empty line starts a new paragraph.
+; Save the final text here (help\help.en.txt in the sources) and build the program with the normal build_msvc.bat.
+
+# Getting started {#start}
+WinRepair is a single WinRepair.exe, no installation. It checks and repairs Windows 10/11, including a Windows that does not boot. It runs in normal Windows, in WinPE and in WinRE. No .NET, PowerShell or VC++ Redistributable is needed.
+
+- Run the program as administrator. Without admin rights the header shows a red badge and most repairs will not work.
+- In "Target OS" pick the Windows to check or repair. To repair another disk, pick the offline system (C:, D: and so on). After connecting a disk press "Refresh".
+- To work from WinPE or WinRE, copy the program to a USB stick and run it from there. Building your own WinPE stick is easier (see "Bootable WinPE USB stick").
+
+Program files:
+- WinRepair_x64.exe — main file, for 64-bit Windows, WinPE and WinRE;
+- WinRepair_x86.exe — for 32-bit systems;
+- WinRepair_arm64.exe — for Windows on ARM (Snapdragon).
+
+## Keys and buttons
+- F1 or the "Help" button at the top — this help. In tool windows F1 opens the section about that window.
+- "Command prompt (administrator)…" on the Overview tab — a cmd console with administrator rights (see "Command prompt").
+- "English / Русский" — interface language.
+- Right-click on the log or a table — copy, save and other actions.
+
+# Main window {#main}
+At the top is the header with badges: architecture, WinPE/WinRE, administrator rights, program version. On the right of the header: "Help" (green), "English / Русский" (violet) and "Exit" (red). Below are the settings, tabs with action buttons, and the log.
+
+Button colour means purpose: blue — diagnostics (read-only), teal — wizards, playbooks, the command catalog and the command prompt, orange — repair tools (they change the system and always ask for confirmation), green — protection (restore points, backups, saving data), grey — service.
+
+- Target OS + "Refresh" — which Windows to check and repair.
+- Period, days — how many days of events and blue screens to look at (3 by default).
+- Extended mode — adds the long ScanHealth and chkdsk /scan checks.
+- Restore point: ignore the 24 h limit — allows creating a restore point more than once a day.
+- Host and port — for network diagnostics (www.microsoft.com:443 by default).
+- DISM source (/Source) — path to install.wim/esd to repair files without the internet.
+- The log at the bottom shows what the program does. Next to it: "Cancel", "Open reports folder", "Open log file", "Save log…", "Copy log", "Clear".
+
+On screen the log shows only the main lines. The full output of every command goes to the log file ("Open log file").
+
+# Tabs and features {#tabs}
+Tabs 1–7 mostly only read data. The system is changed by "REPAIR integrity", "Create restore point" and the tools on the "Repair tools" tab. Every change is confirmed.
+
+- Overview — "What happened?" wizard, repair playbooks, bootable WinPE USB stick, full diagnostics + HTML report, command catalog, command prompt (administrator), "About · Tynychsoft".
+- System — system snapshot, memory (SMBIOS), boot (BCD / GPT / WinRE).
+- Disks — disks, SMART, file system errors.
+- Integrity — check without changes; "REPAIR integrity (DISM + SFC)"; create a restore point.
+- Drivers and BSOD — devices with errors, blue screen events, crash dump analysis. For full analysis (!analyze -v) put cdb.exe into the Tools folder next to the program.
+- Events — System and Application log errors for the selected period. Offline, *.evtx files are read.
+- Network — network check up to the given host and port.
+- Repair tools — windows for repairing the selected Windows (sections below).
+
+## "What happened?" wizard {#triage}
+Pick a symptom: does not boot, blue screen, disk not visible, suspected malware, no network, slow or reboots, updates fail. The program runs read-only checks and lists findings by severity with a recommended action. The result is saved as triage.txt and triage.json.
+
+## Command catalog {#catalog}
+Overview → "Command catalog": ready-made Windows commands with parameter fields and a category filter — diagnostics, DISM/SFC, boot/BCD, disks, network, recovery, WinPE. Every run is confirmed; bcdboot, bootrec /fixmbr, /fixboot, /rebuildbcd and chkdsk /f /r are confirmed twice. For an offline system DISM and SFC switch to /Image: and /offwindir automatically. Dangerous procedures (Driver Verifier, removing updates, reinstalling) are given as instructions only — the program does not run them.
+
+# Repair tools {#repair}
+All windows work with the selected target Windows, not with WinPE itself.
+
+## Offline registry {#registry}
+View and edit the registry of several systems at once: SYSTEM, SOFTWARE, SAM, SECURITY, DEFAULT, COMPONENTS, NTUSER and UsrClass of every profile. Search, favourites, .reg export. Every hive is copied before loading, every change is confirmed and backed up.
+
+## BCD / Boot {#bcd}
+Finds BCD stores on all partitions (including hidden ones and the ESP), shows and edits entries, backs up and restores the store, runs bcdboot. Boot modes: safe mode, boot log, VGA, debugging, no driver signature check. Reboot, including straight into WinRE.
+
+## Startup and services {#autoruns}
+Run and RunOnce, Startup folders, Winlogon, IFEO, AppInit_DLLs, BootExecute, services, drivers, scheduled tasks. "File missing" and "suspicious" marks, quick filter, reversible disable, delete, edit command, clean boot mode with rollback, CSV export.
+
+## Installed applications {#apps}
+Programs of the selected system. Forced removal of a program that stops Windows from starting (for example an antivirus): startup items are disabled, the folder goes to quarantine, the uninstall entry is deleted with a .reg backup.
+
+## Offline file explorer {#explorer}
+Files of the selected Windows: copy, quarantine, delete, take ownership and permissions, search.
+
+## Infection fix wizard {#fixes}
+Winlogon Shell/Userinit, IFEO, AppInit, policies, proxy, hosts, key services, file associations, SafeBoot. Reset of Windows Update, network and WMI, revert of pending operations, hive replacement from RegBack.
+
+## BitLocker and storage drivers {#bitlocker}
+Unlock a volume with a recovery key, password or .bek file (keys are never written to the log), status, suspend and resume. If the disk is not visible: Intel VMD/RST hints, loading a driver (drvload) in WinPE/WinRE, adding a driver to the offline Windows (DISM /Add-Driver).
+
+## WinRE {#winre}
+Enter the recovery environment on next boot, repair the WinRE BCD entry, "WinRE + WinRepair" — a copy of winre.wim that starts WinRepair first. It is added as a separate boot menu entry, no USB stick needed. Also: the standard WinRE menu and the Secure Boot 2023 certificate check.
+
+## System Restore {#rstrui}
+rstrui (also for an offline Windows from WinPE) and the state of restore points.
+
+# Bootable WinPE USB stick {#winpe}
+The "Create a bootable WinPE USB stick with WinRepair…" button (Overview tab and the WinRE window) builds a stick that starts WinRepair by itself. The stick boots both in UEFI (Secure Boot can stay on) and in BIOS (Legacy).
+
+1. Where to write — the root of a USB stick, preferably FAT32. The hint under the field shows what is selected: a stick (FAT32/NTFS, MBR/GPT), a folder or the Windows disk.
+2. Image base — one of three:
+- Windows installation image (ISO, boot.wim, a folder or an installation stick) — no ADK needed;
+- ADK WinPE — a clean minimal image; winpe.wim can be picked manually;
+- this system's winre.wim — with built-in System Restore (rstrui).
+3. Installation image — an .iso or boot.wim file, or a folder/disk with Windows files.
+
+## ISO image
+After you pick an .iso file the program mounts it right away and waits until Windows assigns it a drive letter (up to 30 seconds). While it is mounting, "Build the stick" is unavailable. Then the letter of the mounted image appears in the lower "Folder or disk" frame. After the stick is written the image is dismounted automatically. If you close the window without building, the image is dismounted too.
+
+If mounting fails, mount the image manually (right-click the file → "Mount") and pick its letter in the lower frame.
+
+## What the program does while building
+- Extracts WinPE from the image and repacks it with normal compression (this also makes custom builds editable).
+- Fixes the system path and the shell in the image registry, checks the winload.exe and winload.efi loaders.
+- Adds WinRepair (with its built-in help), playbooks, languages and autostart.
+- Takes the boot files from the same installation image, otherwise from ADK or from this Windows.
+- For BIOS it makes the stick partition active and writes the boot code (only to a USB stick, never to the Windows disk).
+- Finally it checks the stick and dismounts the ISO image.
+
+The progress of writing boot.wim is shown in the status bar at the bottom. "Cancel" stops the write and deletes the incomplete file. The working copy of the image is deleted after the build; only the logs remain.
+
+## Stick already has WinPE
+"Stick already has WinPE? Make it bootable for BIOS…" is for a stick where WinPE was copied manually. It only makes the partition active and writes the boot code. Files on the stick are not deleted.
+
+## How to boot
+Insert the stick, open the Boot Menu at power-on (usually F12, F11, Esc or F9) and pick the stick: the UEFI entry, or USB-HDD (BIOS/Legacy) on older computers. WinRepair opens by itself.
+
+The built image is for your own use only: the Microsoft licence does not allow redistributing it.
+
+# Repair playbooks {#playbooks}
+A playbook is a *.wrp text file with a step-by-step repair procedure or a new symptom for the "What happened?" wizard. No recompilation is needed.
+
+- Playbooks are read from the Playbooks folder next to the program and from Data\Playbooks. A playbook with the same id in the second folder replaces the shipped one.
+- Steps: message, question, confirmation, command, fix, diagnostic module, check. Every step that changes the system is confirmed separately.
+- After editing a file press "Reload list". Errors in files are shown as "PARSE ERRORS".
+
+# Command prompt {#cmd}
+The "Command prompt (administrator)…" button on the Overview tab opens a cmd console with administrator rights. In WinPE and WinRE the rights are already full. In normal Windows without admin rights Windows asks for permission.
+
+The console opens in the root of the selected target Windows. Drive letters in WinPE often differ from normal Windows: check them with diskpart → list volume.
+
+Useful commands:
+- dir D:\ — contents of a disk;
+- diskpart → list disk, list volume — disks and partitions;
+- bcdedit /enum all — boot entries;
+- dism /Image:D:\ /Cleanup-Image /RestoreHealth — repair an offline Windows;
+- sfc /scannow /offbootdir=D:\ /offwindir=D:\Windows — check files of an offline Windows;
+- chkdsk D: /f — fix disk errors;
+- notepad — Notepad; its File → Open dialog is handy for browsing disks;
+- any_command /? — help for a command.
+
+Commands typed in the console are not written to the program log and are not reverted by "Undo this session's changes".
+
+# Logs, backups and undo {#data}
+Everything the program does is written to the Data folder next to the program. If that folder is read-only, %TEMP%\WinRepair is used.
+
+- Data\Logs\WinRepair_<date>.log — full log, with the output of every command;
+- Data\Logs\commands_<date>.log — command catalog log;
+- Data\Logs\undo_journal.tsv — list of changes for undo;
+- Data\Reports\<time>_<module> — reports (HTML, triage, command output);
+- Data\Backups — backups of registry hives, BCD, .reg;
+- <disk>:\WinRepair_Removed\<time> — file quarantine on the same disk.
+
+Buttons on the "Repair tools" tab:
+- "Undo this session's changes…" — shows the changes (registry, files, BCD, quarantine) and rolls them back in a safe order. After a restart it also offers the previous session. Close tool windows before undo.
+- "Backups: view and clean up…" — how many backups and how much space they take. After deleting backups undo is no longer possible.
+- "Save journals and reports to disk…" — copies logs and reports to a USB stick or another disk. Important when the program runs from the WinPE image itself (drive X:): drive X: is cleared on reboot.
+
+# Command-line switches {#switches}
+- WinRepair.exe /full — full diagnostics without a window, HTML report in Data\Reports\<time>_full. Exit code 0 — report created, 1 — not.
+- WinRepair.exe /full /out:E:\Reports\PC-01 — the same, report into the given folder.
+- WinRepair.exe /lang:en or /lang:ru — interface language.
+
+# Language, help and files next to the program {#files}
+- WinRepair.ini — interface language (if the folder is read-only — Data\settings.ini).
+- Lang\<code>.txt — additional languages; English is built into the program.
+- Playbooks — repair playbooks.
+- Tools\cdb.exe — optional, full crash dump analysis.
+- Data — logs, reports, backups; created automatically.
+
+When building a WinPE stick, the Playbooks and Lang folders are copied into the image automatically.
+
+The help is built into the program (Tynychsoft) and is not replaced by files next to it — in the official build its text cannot be changed. The official program comes only from the Releases page on GitHub; check the file against the SHA-256 in the release.
+
+# Safety {#safety}
+- Confirmation and a backup before every change.
+- Quarantine instead of deletion.
+- Every action is written to the log.
+- The program sends no data anywhere. BitLocker keys and passwords never reach the log.

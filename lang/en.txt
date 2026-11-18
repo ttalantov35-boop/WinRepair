@@ -1839,7 +1839,6 @@ BCD текущей системы ==> BCD of the running system
 куст не выгружается (занят): закройте окна реестра и повторите ==> the hive cannot be unloaded (in use): close the registry windows and retry
 путь уже существует: {} ==> the path already exists: {}
 неизвестный тип записи: {} ==> unknown record kind: {}
-
 # --- WinRE + WinRepair: исправление автозапуска (Setup\\CmdLine) ---
 Не удалось открыть куст SYSTEM образа ({}) — проверка Setup\\CmdLine пропущена. ==> Could not open the image's SYSTEM hive ({}) — the Setup\\CmdLine check was skipped.
 Оболочка образа (Setup\\CmdLine): {} ==> Image shell (Setup\\CmdLine): {}
@@ -1860,7 +1859,6 @@ RecEnv.exe подменён на WinRepair (оригинал сохранён к
 Не удалось скопировать куст SYSTEM из образа ({}) — оболочка не проверена; подмена RecEnv это компенсирует. ==> Could not copy the SYSTEM hive out of the image ({}) — the shell was not checked; the RecEnv swap compensates for this.
 Не удалось загрузить копию куста SYSTEM ({}) — оболочка не проверена; подмена RecEnv это компенсирует. ==> Could not load the copied SYSTEM hive ({}) — the shell was not checked; the RecEnv swap compensates for this.
 Не удалось переименовать RecEnv.exe ({}) — подмена пропущена. ==> Could not rename RecEnv.exe ({}) — the swap was skipped.
-
 # --- Свой WinPE с WinRepair ---
 Свой WinPE с WinRepair (флешка)… ==> Your own WinPE with WinRepair (USB stick)…
 Свой WinPE с WinRepair ==> Your own WinPE with WinRepair
@@ -1872,7 +1870,6 @@ RecEnv.exe подменён на WinRepair (оригинал сохранён к
 База: {} ==> Base: {}
 Для ARM64 нужен установленный ADK с дополнением WinPE: загрузочные файлы ARM64 взять больше неоткуда. ==> ARM64 requires the ADK with the WinPE add-on: there is nowhere else to take ARM64 boot files from.
 Запущена 32-битная сборка на 64-битной Windows: её winre.wim 64-битный, и WinRepair_x86 в нём не заработает. Запустите WinRepair_x64.exe или установите ADK WinPE (x86). ==> This is the 32-bit build on a 64-bit Windows: its winre.wim is 64-bit and WinRepair_x86 will not run inside it. Run WinRepair_x64.exe or install the ADK WinPE (x86).
-ADK WinPE не установлен, а winre.wim не найден. Установите Windows ADK + дополнение WinPE (сайт Microsoft) и повторите. ==> The ADK WinPE is not installed and winre.wim was not found. Install the Windows ADK + WinPE add-on (Microsoft site) and retry.
 ADK WinPE не установлен — базой станет winre.wim. Рекомендуется ADK: меньше лишнего и гарантированный автозапуск. ==> The ADK WinPE is not installed — winre.wim becomes the base. The ADK is recommended: less extra content and guaranteed autostart.
 Копирование базового образа ({}) ... ==> Copying the base image ({}) ...
 Playbooks добавлены в образ: {} файл(ов) ==> Playbooks added to the image: {} file(s)
@@ -1900,10 +1897,7 @@ winpeshl.ini: wpeinit (сеть и устройства) → WinRepair ==> winpe
 Собирает независимый загрузочный WinPE с автозапуском WinRepair: укажите корень флешки (FAT32) — и с неё можно загрузить любой компьютер. База — Windows ADK (если установлен) или winre.wim этой системы. ==> Builds an independent bootable WinPE with WinRepair autostart: enter the USB stick root (FAT32) — and any computer can boot from it. Base — the Windows ADK (if installed) or this system's winre.wim.
 Восстановление системы добавлено в образ: rstrui и компоненты ({} файл(ов)). В WinPE запускайте «Восстановление системы: rstrui…» — откат пойдёт офлайн (/offline). ==> System Restore added to the image: rstrui and components ({} file(s)). In WinPE use "System Restore: rstrui…" — the rollback runs offline (/offline).
 Разрядность этой Windows не совпадает с образом — rstrui не добавлен, откат точек восстановления в этом WinPE будет недоступен. ==> This Windows' architecture does not match the image — rstrui was not added; restore-point rollback will be unavailable in this WinPE.
-База образа. winre.wim — с «Восстановлением системы» (rstrui), как у DaRT; ADK — чистый минимальный WinPE. ==> Image base. winre.wim — with System Restore (rstrui), like DaRT; ADK — a clean minimal WinPE.
-winre.wim этой системы — встроенное «Восстановление системы» (rstrui), как у DaRT ==> this system's winre.wim — built-in System Restore (rstrui), like DaRT
-ADK WinPE — чистый минимальный образ (без rstrui) ==> ADK WinPE — a clean minimal image (no rstrui)
-База: winre.wim ({}) — встроенное «Восстановление системы» (rstrui), как у DaRT. ==> Base: winre.wim ({}) — built-in System Restore (rstrui), like DaRT.
+База: winre.wim ({}) — со встроенным «Восстановлением системы» (rstrui). ==> Base: winre.wim ({}) — with built-in System Restore (rstrui).
 Загрузочные файлы носителя: ADK Media. ==> Media boot files: ADK Media.
 Разрядность этой Windows не совпадает с программой — её winre.wim не подойдёт как база. Установите ADK WinPE нужной архитектуры. ==> This Windows' architecture does not match the program — its winre.wim will not work as the base. Install the ADK WinPE of the needed architecture.
 winre.wim не найден — выбрать базой среду восстановления не получится. Установите ADK WinPE или восстановите WinRE. ==> winre.wim was not found — the recovery environment cannot be the base. Install the ADK WinPE or restore WinRE.
@@ -1914,4 +1908,258 @@ RecEnv.exe перезаписан на WinRepair напрямую. WinRepair з�
 В меню WinRE добавлена плитка WinRepair: после выбора языка откройте «Поиск и устранение неисправностей» — WinRepair стоит рядом со штатными средствами. ==> A WinRepair tile was added to the WinRE menu: after choosing the language open "Troubleshoot" — WinRepair sits next to the standard tools.
 Не удалось добавить плитку WinRepair в меню WinRE ({}). Запуск остаётся через командную строку: winrepair. ==> Could not add the WinRepair tile to the WinRE menu ({}). Launch remains via the command prompt: winrepair.
 Автозапуск: winpeshl.ini → wpeinit → WinRepair (программа запустится первой). ==> Autostart: winpeshl.ini → wpeinit → WinRepair (the program starts first).
-winpeshl.ini в этом образе защищён от перезаписи (0x780) — автозапуск первой не гарантирован. Для гарантированного автозапуска соберите флешку на базе ADK WinPE (второй пункт в выборе базы). ==> winpeshl.ini in this image is write-protected (0x780) — starting first is not guaranteed. For guaranteed autostart, build the stick on the ADK WinPE base (the second item in the base choice).
+База образа. Установочный образ Windows — ADK не нужен, достаточно ISO или установочной флешки; ADK — чистый минимальный WinPE; winre.wim — с «Восстановлением системы» (rstrui). ==> Image base. Windows install image — no ADK needed, an ISO or a Windows install USB stick is enough; ADK — a clean minimal WinPE; winre.wim — with System Restore (rstrui).
+Установочный образ Windows (ISO или флешка) — ADK не нужен ==> Windows install image (ISO or USB stick) — no ADK needed
+ADK WinPE — чистый минимальный образ (нужен установленный ADK) ==> ADK WinPE — a clean minimal image (requires ADK installed)
+winre.wim этой системы — со встроенным «Восстановлением системы» (rstrui) ==> This system's winre.wim — with built-in System Restore (rstrui)
+Установочный образ Windows (только для первого варианта базы): файл .iso, буква диска с подключённым образом или установочной флешкой, либо папка с sources\\boot.wim. Лучше той же версии и разрядности, что ваша Windows. ==> Windows install image (only for the first base option): an .iso file, the drive letter of a mounted image or install USB stick, or a folder with sources\\boot.wim. Best of the same version and architecture as your Windows.
+Укажите установочный образ Windows: файл .iso, букву диска с подключённым образом или установочной флешкой.\nСкачать образ можно на сайте Microsoft («Скачать Windows 10/11»). ==> Specify a Windows install image: an .iso file, or the drive letter of a mounted image or install USB stick.\nYou can download an image from Microsoft's site ("Download Windows 10/11").
+Нужен образ Windows ==> Windows image required
+Укажите установочный образ Windows: файл .iso, букву диска с подключённым образом/установочной флешки или папку, где есть sources\\boot.wim. ==> Specify a Windows install image: an .iso file, the drive letter of a mounted image/install USB stick, or a folder containing sources\\boot.wim.
+На носителе нет sources\\boot.wim: {} ==> The media has no sources\\boot.wim: {}
+Файл образа не найден: {} ==> Image file not found: {}
+Не удалось подключить образ ISO. Подключите его вручную (правый клик → «Подключить») и укажите букву диска. ==> Could not mount the ISO image. Mount it manually (right-click → "Mount") and specify the drive letter.
+Подключить образ ISO ==> Mount the ISO image
+Отключить образ ISO ==> Dismount the ISO image
+DISM /Get-WimInfo (boot.wim) ==> DISM /Get-WimInfo (boot.wim)
+DISM /Export-Image (boot.wim, индекс 1) ==> DISM /Export-Image (boot.wim, index 1)
+Извлечение WinPE (образ №1) из boot.wim установочного носителя ... ==> Extracting WinPE (image #1) from the install media's boot.wim ...
+Не удалось извлечь WinPE из установочного образа. ==> Could not extract WinPE from the install image.
+База: установочный образ Windows ({}, WinPE) — ADK не нужен. ==> Base: Windows install image ({}, WinPE) — ADK not needed.
+Образ Windows лучше брать той же версии, что и ваша система: «Восстановление системы» (rstrui) копируется из работающей Windows и может не заработать на сильно другой сборке. ==> Prefer an image of the same Windows version as your system: System Restore (rstrui) is copied from the running Windows and may not work on a very different build.
+Разрядность образа Windows не совпадает с этой программой (нужна {}). Возьмите образ той же разрядности. ==> The Windows image architecture does not match this program ({} required). Use an image of the same architecture.
+ADK WinPE не установлен. Выберите вариант «Установочный образ Windows» (нужен ISO или установочная флешка Windows) или установите Windows ADK + дополнение WinPE (сайт Microsoft). ==> ADK WinPE is not installed. Choose "Windows install image" (an ISO or Windows install USB stick is needed) or install Windows ADK + the WinPE add-on (from Microsoft).
+winpeshl.ini в этом образе защищён от перезаписи (0x780) — автозапуск первой не гарантирован. Для гарантированного автозапуска соберите флешку на базе ADK WinPE или установочного образа Windows. ==> winpeshl.ini in this image is write-protected (0x780) — starting first is not guaranteed. For guaranteed autostart, build the stick on the ADK WinPE or Windows install image base.
+Копирование: {}% ({} из {}) ==> Copying: {}% ({} of {})
+  записано {}% ({}), {} МБ/с ==>   written {}% ({}), {} MB/s
+  носитель не принимает данные уже {} с (записано {}) — флешка очень медленная или неисправна; можно нажать «Отмена». ==>   the media has not accepted data for {} s (written {}) — the stick is very slow or faulty; you can press "Cancel".
+  копирование прерывается по запросу отмены ... ==>   copying is being stopped as requested ...
+  носитель не отвечает — копирование брошено; извлеките флешку и вставьте заново. ==>   the media is not responding — copying abandoned; remove the stick and plug it in again.
+Размер: {}. Ход записи — в строке состояния внизу окна. ==> Size: {}. Write progress is shown in the status bar at the bottom.
+Запись boot.wim отменена; недописанный файл на носителе удалён. ==> Writing boot.wim was cancelled; the incomplete file on the media was deleted.
+Не удалось записать boot.wim на носитель: {} ==> Could not write boot.wim to the media: {}
+Рабочая копия образа удалена ({}); сохранены только журналы. ==> The working copy of the image was deleted ({}); only logs are kept.
+Не удалось полностью удалить рабочую папку сборки: {} — удалите её вручную. ==> Could not fully delete the build working folder: {} — delete it manually.
+Обзор… ==> Browse…
+Образ Windows (*.iso, boot.wim) ==> Windows image (*.iso, boot.wim)
+Образ ISO (*.iso) ==> ISO image (*.iso)
+Все файлы (*.*) ==> All files (*.*)
+1. Куда записать ==> 1. Where to write
+корень флешки (FAT32) или обычная папка ==> USB stick root (FAT32) or a regular folder
+2. База образа ==> 2. Image base
+откуда взять WinPE ==> where to take WinPE from
+3. Установочный образ Windows ==> 3. Windows install image
+выберите ОДИН вариант — файл ISO или диск/флешку ==> choose ONE option — ISO file or drive/USB stick
+не нужен для выбранной базы ==> not needed for the selected base
+ADK WinPE — чистый минимальный образ ==> ADK WinPE — a clean minimal image
+ADK WinPE — чистый минимальный образ (ADK не установлен) ==> ADK WinPE — a clean minimal image (ADK not installed)
+Файл ISO — скачанный образ Windows (подключится автоматически) ==> ISO file — a downloaded Windows image (mounted automatically)
+Диск или флешка с Windows — подключённый образ, установочная флешка или папка с sources\\boot.wim ==> Drive or USB stick with Windows — a mounted image, install stick or folder with sources\\boot.wim
+Собрать флешку ==> Build the stick
+Свой WinPE с WinRepair — загрузочная флешка ==> Own WinPE with WinRepair — bootable USB stick
+Выберите образ Windows (.iso) ==> Choose a Windows image (.iso)
+Диск или папка установки Windows (внутри должен быть sources\\boot.wim) ==> Windows setup drive or folder (must contain sources\\boot.wim)
+Куда записать WinPE: корень флешки (FAT32) или папка ==> Where to write WinPE: USB stick root (FAT32) or a folder
+Укажите файл .iso: кнопка «Обзор…» или вставьте путь (можно в кавычках, как из «Копировать как путь»). ==> Specify an .iso file: the "Browse…" button or paste a path (quotes from "Copy as path" are fine).
+Найден boot.wim: {} ==> boot.wim found: {}
+Нужен файл с расширением .iso. Для диска или флешки выберите вариант ниже. ==> An .iso file is required. For a drive or USB stick choose the option below.
+Файл ISO найден ({}). Он подключится сразу, буква диска появится ниже; после записи образ отключится. ==> ISO file found ({}). It will be mounted right away and its drive letter will appear below; after writing the image is dismounted.
+Выберите диск или флешку с установкой Windows (там должен быть sources\\boot.wim). ==> Choose a drive or USB stick with Windows setup (it must contain sources\\boot.wim).
+Диск или папка не найдены: {} ==> Drive or folder not found: {}
+В «{}» нет sources\\boot.wim — это не установочный носитель Windows. ==> "{}" has no sources\\boot.wim — this is not Windows install media.
+Найден {}sources\\boot.wim ({}). ==> Found {}sources\\boot.wim ({}).
+Для базы ADK установочный образ не нужен. ==> The install image is not needed for the ADK base.
+Для базы winre.wim установочный образ не нужен. ==> The install image is not needed for the winre.wim base.
+Укажите, куда записать WinPE (панель 1). ==> Specify where to write WinPE (panel 1).
+Панель 3 — установочный образ Windows: ==> Panel 3 — Windows install image:
+Скачать образ можно на сайте Microsoft («Скачать Windows 10/11»). ==> You can download the image from Microsoft ("Download Windows 10/11").
+Укажите файл .iso или boot.wim: кнопка «Обзор…» или вставьте путь (можно в кавычках, как из «Копировать как путь»). ==> Specify an .iso or boot.wim file: the "Browse…" button or paste a path (quotes from "Copy as path" are fine).
+Нужен файл .iso или .wim (boot.wim). Для папки или диска выберите вариант ниже. ==> An .iso or .wim (boot.wim) file is required. For a folder or drive choose the option below.
+Файл boot.wim найден ({}). Из него будет взят образ №1 — WinPE. ==> boot.wim found ({}). Image #1 (WinPE) will be taken from it.
+Выберите папку или диск с файлами установки Windows (внутри должен быть sources\\boot.wim). ==> Choose a folder or drive with Windows setup files (it must contain sources\\boot.wim).
+Образ Windows (*.iso, *.wim) ==> Windows image (*.iso, *.wim)
+Образ WIM (*.wim) ==> WIM image (*.wim)
+Выберите образ Windows (.iso или boot.wim) ==> Choose a Windows image (.iso or boot.wim)
+Файл образа — .iso (подключится сам) или boot.wim (например, sources\\boot.wim распакованного ISO) ==> Image file — .iso (mounted automatically) or boot.wim (e.g. sources\\boot.wim of an extracted ISO)
+Папка или диск с файлами Windows — распакованный ISO, подключённый образ или установочная флешка (внутри sources\\boot.wim) ==> Folder or drive with Windows files — extracted ISO, mounted image or install USB stick (contains sources\\boot.wim)
+Папка или диск с файлами Windows (внутри должен быть sources\\boot.wim) ==> Folder or drive with Windows files (must contain sources\\boot.wim)
+выберите ОДИН вариант — файл образа или папку/диск ==> choose ONE option — image file or folder/drive
+Источник: файл образа {} ==> Source: image file {}
+Язык программы в WinPE: {} (WinRepair.ini). ==> Program language in WinPE: {} (WinRepair.ini).
+DISM /Get-WimInfo (список образов) ==> DISM /Get-WimInfo (image list)
+  образ №{}: {} ==>   image #{}: {}
+(без имени) ==> (no name)
+Все образы в boot.wim похожи на программу установки — берётся №1, при сборке он будет приведён к обычному WinPE. ==> All images in boot.wim look like Windows Setup — taking #1; it will be turned into a regular WinPE during the build.
+DISM /Get-WimInfo (boot.wim, образ №{}) ==> DISM /Get-WimInfo (boot.wim, image #{})
+Выбранный образ — не WinPE ({}). Нужен boot.wim, а не install.wim/install.esd. ==> The selected image is not WinPE ({}). A boot.wim is needed, not install.wim/install.esd.
+Извлечение WinPE (образ №{}) из boot.wim установочного носителя ... ==> Extracting WinPE (image #{}) from the install media boot.wim ...
+DISM /Export-Image (boot.wim, индекс {}) ==> DISM /Export-Image (boot.wim, index {})
+В образе задан путь системы программы установки (X:\\$windows.~bt) — с ним WinPE не запускается. Исправляем на X:\\. ==> The image has the Windows Setup system path (X:\\$windows.~bt) — WinPE does not start with it. Fixing it to X:\\.
+Путь системы WinPE: X:\\ (SYSTEMROOT = X:\\Windows). ==> WinPE system path: X:\\ (SYSTEMROOT = X:\\Windows).
+DISM /Set-TargetPath не выполнен — если флешка не загрузится с ошибкой SYSTEMROOT, возьмите другой boot.wim. ==> DISM /Set-TargetPath failed — if the stick does not boot with a SYSTEMROOT error, use another boot.wim.
+Куст SYSTEM образа не прочитан ({}) — оболочка не проверена. ==> The image SYSTEM hive could not be read ({}) — the shell was not checked.
+Куст SYSTEM образа не загружен ({}) — оболочка не проверена. ==> The image SYSTEM hive could not be loaded ({}) — the shell was not checked.
+Setup\\CmdLine → winpeshl.exe (иначе winpeshl.ini и автозапуск WinRepair не выполняются). ==> Setup\\CmdLine → winpeshl.exe (otherwise winpeshl.ini and WinRepair autostart do not run).
+Не удалось записать исправленный куст SYSTEM в образ ({}). ==> Could not write the fixed SYSTEM hive to the image ({}).
+В образе нет Windows\\System32\\winpeshl.exe — это не похоже на WinPE; флешка может не загрузиться. ==> The image has no Windows\\System32\\winpeshl.exe — it does not look like WinPE; the stick may not boot.
+Проверка реестра образа на пути программы установки ($windows.~bt) ... ==> Checking the image registry for Windows Setup paths ($windows.~bt) ...
+Куст {} не прочитан ({}). ==> Hive {} could not be read ({}).
+Куст {} не загружен ({}). ==> Hive {} could not be loaded ({}).
+Куст {} не выгружен ({}) — правка не записана. ==> Hive {} could not be unloaded ({}) — the fix was not written.
+Исправленный куст не записан в образ: {} ({}). ==> The fixed hive was not written to the image: {} ({}).
+DISM /Set-TargetPath не выполнен — путь исправляется напрямую в реестре образа. ==> DISM /Set-TargetPath failed — the path is fixed directly in the image registry.
+Куст {}: исправлено путей $windows.~bt → X:\\: {} ==> Hive {}: $windows.~bt paths fixed to X:\\: {}
+В реестре образа путей $windows.~bt нет. ==> No $windows.~bt paths in the image registry.
+DISM /Get-TargetPath (проверка) ==> DISM /Get-TargetPath (check)
+После исправления DISM всё ещё сообщает путь $windows.~bt — этот boot.wim, скорее всего, не загрузится. Возьмите оригинальный образ Microsoft или базу ADK. ==> After the fix DISM still reports the $windows.~bt path — this boot.wim will most likely not boot. Use an original Microsoft image or the ADK base.
+Проверка пройдена: путь системы образа — X:\\. ==> Check passed: the image system path is X:\\.
+ADK WinPE указан вручную: {} (папки Media рядом нет — загрузочные файлы возьмём из этой Windows) ==> ADK WinPE specified manually: {} (no Media folder next to it — boot files will be taken from this Windows)
+ADK WinPE указан вручную: {} ==> ADK WinPE specified manually: {}
+ADK WinPE — чистый минимальный образ (ADK не найден автоматически — укажете winpe.wim) ==> ADK WinPE — a clean minimal image (ADK not found automatically — you will point to winpe.wim)
+ADK не найден автоматически — после нажатия «Собрать флешку» укажите файл winpe.wim. ==> ADK was not found automatically — after pressing "Build the stick" point to the winpe.wim file.
+ADK WinPE не найден автоматически.\nУкажите файл winpe.wim — обычно он лежит в папке Windows Kits\\10\\Assessment and Deployment Kit\\Windows Preinstallation Environment\\amd64\\en-us. ==> ADK WinPE was not found automatically.\nPoint to the winpe.wim file — it is usually in Windows Kits\\10\\Assessment and Deployment Kit\\Windows Preinstallation Environment\\amd64\\en-us.
+Образ ADK WinPE (winpe.wim) ==> ADK WinPE image (winpe.wim)
+Укажите winpe.wim из Windows ADK ==> Point to winpe.wim from Windows ADK
+Извлечение и перепаковка образа №{} в обычное сжатие (LZX) ... ==> Extracting and repacking image #{} with regular compression (LZX) ...
+DISM /Export-Image (индекс {}, /Compress:max) ==> DISM /Export-Image (index {}, /Compress:max)
+Перепаковка не удалась — копируем образ как есть ({}) ... ==> Repacking failed — copying the image as is ({}) ...
+Подключённый образ не отдаёт файлы ({}) — правим его другим способом: распаковка в папку, правка, упаковка заново. ==> The mounted image does not give access to its files ({}) — using another way: apply to a folder, edit, capture again.
+Не удалось распаковать образ в папку — этот образ использовать не получится. Возьмите другой boot.wim или базу ADK. ==> Could not apply the image to a folder — this image cannot be used. Use another boot.wim or the ADK base.
+Образ распакован в {} — дальше правка идёт как с обычными файлами. ==> The image was applied to {} — editing continues as with regular files.
+Образ не собран: флешка с ним не загрузилась бы. Возьмите другой boot.wim (лучше оригинальный ISO Microsoft) или базу ADK. ==> The image was not built: a stick with it would not boot. Use another boot.wim (preferably an original Microsoft ISO) or the ADK base.
+После исправления DISM всё ещё сообщает путь $windows.~bt — с таким образом WinPE не загрузится. ==> After the fix DISM still reports the $windows.~bt path — WinPE will not boot with this image.
+Проверка пройдена: путь системы образа — X:\\ (подтверждено DISM). ==> Check passed: the image system path is X:\\ (confirmed by DISM).
+Проверка пройдена: реестр образа проверен, путей $windows.~bt не осталось. ==> Check passed: the image registry was checked, no $windows.~bt paths left.
+Путь системы образа проверить не удалось: DISM не обслуживает образ, а реестр образа не читается. ==> The image system path could not be verified: DISM cannot service the image and its registry cannot be read.
+Образ в {} всё ещё подключён — рабочая папка не удалена. Выполните: dism /Cleanup-Mountpoints ==> The image in {} is still mounted — the working folder was not deleted. Run: dism /Cleanup-Mountpoints
+В образе нет Windows\\System32\\ntoskrnl.exe — образ повреждён или это не WinPE. ==> The image has no Windows\\System32\\ntoskrnl.exe — the image is damaged or not WinPE.
+Загрузчик {}: есть. ==> Loader {}: present.
+В образе нет {} и взять его негде — флешка не загрузится в режиме {}. ==> The image has no {} and there is nowhere to take it from — the stick will not boot in {} mode.
+В образе не было {} (загрузчик для {}) — добавлен из {}. ==> The image had no {} (loader for {}) — added from {}.
+Не удалось добавить {} в образ ({}) — флешка не загрузится в режиме {} ==> Could not add {} to the image ({}) — the stick will not boot in {} mode
+WinPE записан в папку, а не в корень флешки — загрузочный код для BIOS не записывается. ==> WinPE was written to a folder, not to a USB stick root — BIOS boot code is not written.
+Не удалось определить диск носителя {} — загрузочный код для BIOS не записан. ==> Could not determine the disk of {} — BIOS boot code was not written.
+Носитель {} на том же диске, что и Windows, — активный раздел и загрузочный код не трогаем. ==> {} is on the same disk as Windows — the active partition and boot code are left untouched.
+Носитель {} — не флешка и не USB-диск: активный раздел и загрузочный код автоматически не меняются. Для BIOS: bootsect /nt60 {}: /mbr. ==> {} is neither a USB stick nor a USB disk: the active partition and boot code are not changed automatically. For BIOS: bootsect /nt60 {}: /mbr.
+Подготовка флешки для режима BIOS (Legacy): активный раздел и загрузочный код ... ==> Preparing the stick for BIOS (Legacy) mode: active partition and boot code ...
+Флешка размечена в GPT: в режиме UEFI она загрузится, а в BIOS (Legacy) — нет. Для BIOS нужна разметка MBR (в «Управлении дисками» или diskpart: clean, convert mbr — ВСЕ данные на флешке удалятся), затем повторите сборку. ==> The stick uses GPT: it boots in UEFI mode but not in BIOS (Legacy). BIOS needs MBR partitioning (Disk Management or diskpart: clean, convert mbr — ALL data on the stick will be erased), then repeat the build.
+diskpart: раздел флешки — активный ==> diskpart: mark the stick partition active
+Раздел флешки сделан активным. ==> The stick partition was marked active.
+Не удалось сделать раздел флешки активным — в BIOS (Legacy) она может не загрузиться. ==> Could not mark the stick partition active — it may not boot in BIOS (Legacy).
+Раздел флешки уже активный. ==> The stick partition is already active.
+Таблица разделов флешки не прочитана (возможно, флешка без разделов) — активность раздела не меняется. ==> The stick partition table could not be read (it may have no partitions) — the active flag is not changed.
+bootsect.exe не найден (нет ADK и установочного носителя) — загрузочный код не записан. Если флешка не загрузится в BIOS: bootsect /nt60 {}: /mbr (из папки boot установочного носителя Windows). ==> bootsect.exe not found (no ADK and no install media) — boot code was not written. If the stick does not boot in BIOS: bootsect /nt60 {}: /mbr (from the boot folder of Windows install media).
+bootsect /nt60 — загрузочный код BOOTMGR для BIOS ==> bootsect /nt60 — BOOTMGR boot code for BIOS
+Загрузочный код BOOTMGR записан в загрузочный сектор раздела и в MBR флешки — флешка готова и для BIOS (Legacy). ==> BOOTMGR boot code was written to the partition boot sector and the stick MBR — the stick is ready for BIOS (Legacy) too.
+bootsect завершился с ошибкой — в режиме BIOS (Legacy) флешка может не загрузиться (в UEFI — загрузится). ==> bootsect failed — the stick may not boot in BIOS (Legacy) mode (it will boot in UEFI).
+Как загрузиться: вставьте флешку, при включении откройте Boot Menu (обычно F12/F11/Esc/F9) и выберите её — пункт UEFI или, на старых компьютерах, USB-HDD (BIOS/Legacy). Secure Boot выключать не нужно: загрузочные файлы подписаны Microsoft. ==> How to boot: insert the stick, open the Boot Menu at power-on (usually F12/F11/Esc/F9) and choose it — the UEFI entry or, on old computers, USB-HDD (BIOS/Legacy). Secure Boot does not need to be disabled: the boot files are signed by Microsoft.
+В «{}» будет собран загрузочный WinPE с автозапуском WinRepair:\n • база: {}\n • файлы Boot, EFI, bootmgr и sources\\boot.wim в указанной папке будут ПЕРЕЗАПИСАНЫ\n • флешка НЕ форматируется, остальные файлы на ней не трогаются\n • это ПАПКА: загружаться с неё нельзя — скопируйте её содержимое в корень флешки; для BIOS-компьютеров затем нажмите «Сделать флешку загрузочной для BIOS» в этом окне\n\nРаспространять собранный образ нельзя (лицензия Microsoft), использовать для своей работы — можно. ==> A bootable WinPE with WinRepair autostart will be built in "{}":\n • base: {}\n • Boot, EFI, bootmgr and sources\\boot.wim in that folder will be OVERWRITTEN\n • the stick is NOT formatted, its other files are untouched\n • this is a FOLDER: you cannot boot from it — copy its contents to the root of a USB stick; for BIOS computers then press "Make the stick bootable for BIOS" in this window\n\nDistributing the built image is not allowed (Microsoft licence); using it for your own work is.
+В «{}» будет собран загрузочный WinPE с автозапуском WinRepair:\n • база: {}\n • файлы Boot, EFI, bootmgr и sources\\boot.wim в указанной папке будут ПЕРЕЗАПИСАНЫ\n • флешка НЕ форматируется, остальные файлы на ней не трогаются\n • для BIOS (Legacy) флешка будет сделана активной и в неё запишется загрузочный код — автоматически\n\nРаспространять собранный образ нельзя (лицензия Microsoft), использовать для своей работы — можно. ==> A bootable WinPE with WinRepair autostart will be built in "{}":\n • base: {}\n • Boot, EFI, bootmgr and sources\\boot.wim in that folder will be OVERWRITTEN\n • the stick is NOT formatted, its other files are untouched\n • for BIOS (Legacy) the stick will be made active and boot code will be written to it — automatically\n\nDistributing the built image is not allowed (Microsoft licence); using it for your own work is.
+Выберите флешку из списка или укажите папку. ==> Choose a USB stick from the list or specify a folder.
+Это папка: с неё не загрузиться. Скопируете на флешку — для UEFI хватит, для BIOS потом нажмите «Сделать флешку загрузочной для BIOS». Проще сразу выбрать флешку. ==> This is a folder: you cannot boot from it. Copied to a stick it is enough for UEFI; for BIOS then press "Make the stick bootable for BIOS". Easier to choose the stick right away.
+Это папка (будет создана): с неё не загрузиться. Скопируете на флешку — для UEFI хватит, для BIOS потом нажмите «Сделать флешку загрузочной для BIOS». Проще сразу выбрать флешку. ==> This is a folder (will be created): you cannot boot from it. Copied to a stick it is enough for UEFI; for BIOS then press "Make the stick bootable for BIOS". Easier to choose the stick right away.
+Диска {} нет — вставьте флешку и выберите её в списке. ==> Drive {} does not exist — insert the stick and choose it in the list.
+Это диск, на котором стоит Windows, — выберите флешку. ==> This is the disk Windows is installed on — choose a USB stick.
+Это не флешка (внутренний диск, {}, {}). Загрузочный код для BIOS на него автоматически не пишется. ==> This is not a USB stick (internal disk, {}, {}). BIOS boot code is not written to it automatically.
+Флешка {}, {}, разметка GPT: загрузится только в UEFI. Для старых компьютеров (BIOS) нужна разметка MBR. ==> USB stick {}, {}, GPT partitioning: boots in UEFI only. Old (BIOS) computers need MBR partitioning.
+Флешка {}, {}: в BIOS загрузится, но многие UEFI-компьютеры с {} не грузятся — лучше отформатировать в FAT32. ==> USB stick {}, {}: boots in BIOS, but many UEFI computers cannot boot from {} — better format it as FAT32.
+Флешка FAT32, {}: загрузится и в UEFI, и в BIOS (Legacy) — всё настроится автоматически. ==> USB stick FAT32, {}: boots in both UEFI and BIOS (Legacy) — everything is set up automatically.
+Флешка FAT32, {}: загрузится и в UEFI, и в BIOS (Legacy) — всё настроится автоматически. На ней уже есть WinPE — файлы обновятся. ==> USB stick FAT32, {}: boots in both UEFI and BIOS (Legacy) — everything is set up automatically. It already has WinPE — the files will be updated.
+Флешка уже с WinPE? Сделать загрузочной для BIOS… ==> Stick already has WinPE? Make it bootable for BIOS…
+Сделать флешку загрузочной для BIOS ==> Make the stick bootable for BIOS
+В панели 1 выберите флешку (букву диска), на которую уже скопирован WinPE. ==> In panel 1 choose the USB stick (drive letter) WinPE has already been copied to.
+Это диск, на котором стоит Windows. Выберите флешку. ==> This is the disk Windows is installed on. Choose a USB stick.
+На этой флешке нет WinPE (bootmgr и sources\\boot.wim). Сначала нажмите «Собрать флешку» — тогда всё, в том числе загрузка в BIOS, настроится само. ==> This stick has no WinPE (bootmgr and sources\\boot.wim). Press "Build the stick" first — then everything, including BIOS boot, is set up automatically.
+Флешка размечена в GPT — в режиме BIOS (Legacy) с неё не загрузиться. Нужна разметка MBR (данные на флешке при этом удаляются). ==> The stick uses GPT — it cannot boot in BIOS (Legacy) mode. MBR partitioning is required (the data on the stick is erased in the process).
+На флешке будет сделан активным раздел и записан загрузочный код BOOTMGR (bootsect /nt60). Файлы на флешке не удаляются.\n\nПродолжить? ==> The stick partition will be made active and BOOTMGR boot code will be written (bootsect /nt60). Files on the stick are not deleted.\n\nContinue?
+Флешка WinPE: загрузка в BIOS ==> WinPE stick: BIOS boot
+=== Флешка WinPE: загрузка в режиме BIOS (Legacy) === ==> === WinPE stick: boot in BIOS (Legacy) mode ===
+На {} нет файлов WinPE (bootmgr, Boot\\BCD, sources\\boot.wim). Сначала соберите WinPE на эту флешку или скопируйте его туда. ==> {} has no WinPE files (bootmgr, Boot\\BCD, sources\\boot.wim). Build WinPE on this stick first or copy it there.
+Флешка {} подготовлена для загрузки в BIOS (Legacy) ==> Stick {} prepared for BIOS (Legacy) boot
+В установочном носителе нет полного набора загрузочных файлов (bootmgr, boot\\BCD, boot\\boot.sdi, efi) — берём их из ADK или этой Windows. ==> The install media lacks a full set of boot files (bootmgr, boot\\BCD, boot\\boot.sdi, efi) — taking them from ADK or this Windows.
+ADK WinPE не найден (искали по реестру Windows Kits и в Program Files). ==> ADK WinPE not found (searched the Windows Kits registry and Program Files).
+Загрузочные файлы носителя: из того же установочного образа ({}) — версии загрузчика и WinPE совпадают. ==> Media boot files: from the same install image ({}) — boot manager and WinPE versions match.
+Загрузочные файлы носителя: из этой Windows, BCD создаётся заново. ==> Media boot files: from this Windows, BCD is created anew.
+Пометить образ загружаемым не удалось — используется образ без пометки. ==> Could not mark the image bootable — using the image without the flag.
+Копирование загрузочных файлов носителя: \\{} ==> Copying media boot files: \\{}
+Не удалось скопировать папку {} установочного носителя. ==> Could not copy the {} folder of the install media.
+Проверка носителя: загрузочная запись BIOS и образ на флешке ... ==> Media check: BIOS boot record and the image on the stick ...
+BCD носителя (BIOS: \\Boot\\BCD) ==> Media BCD (BIOS: \\Boot\\BCD)
+boot.wim на носителе ==> boot.wim on the media
+# --- 18.11.2026: подключение ISO, короткий журнал сборки, командная строка, справка (F1) ---
+Подробности каждой команды пишутся в лог-файл (кнопка «Открыть лог-файл»). ==> Details of every command go to the log file ("Open log file" button).
+Подключение образа ISO (ждём букву диска, до 30 с) ... ==> Mounting the ISO image (waiting for a drive letter, up to 30 s) ...
+Не удалось подключить образ ISO: {} ==> Could not mount the ISO image: {}
+Не удалось подключить образ ISO. ==> Could not mount the ISO image.
+Подключите образ вручную (правый клик по файлу → «Подключить») и выберите его букву в панели 3 — «Папка или диск». ==> Mount the image manually (right-click the file → "Mount") and pick its letter in panel 3 — "Folder or disk".
+Образ ISO подключён как {} — после сборки будет отключён. ==> ISO image mounted as {} — it will be dismounted after the build.
+Образ ISO отключён ({}). ==> ISO image dismounted ({}).
+Не удалось отключить образ ISO ({}) — отключите его вручную: правый клик по диску → «Извлечь». ==> Could not dismount the ISO image ({}) — dismount it manually: right-click the drive → "Eject".
+файл не найден: {} ==> file not found: {}
+в этой системе нет PowerShell (например, в WinPE) — подключить ISO нельзя; распакуйте ISO в папку или возьмите установочную флешку ==> this system has no PowerShell (for example, WinPE) — an ISO cannot be mounted; extract the ISO to a folder or use an installation USB stick
+PowerShell не запустился: {} ==> PowerShell did not start: {}
+PowerShell не ответил вовремя ==> PowerShell did not respond in time
+образ подключён, но Windows не присвоила ему букву диска ==> the image is mounted, but Windows did not assign it a drive letter
+образ не подключился ==> the image was not mounted
+не удалось запустить подключение. ==> could not start mounting.
+boot.wim записан: {} за {} с ({} МБ/с). ==> boot.wim written: {} in {} s ({} MB/s).
+Проверка: BCD носителя (BIOS: \\Boot\\BCD) ==> Check: media BCD (BIOS: \\Boot\\BCD)
+Проверка: boot.wim на носителе ==> Check: boot.wim on the media
+Проверка носителя: загрузочная запись есть, boot.wim читается. ==> Media check: the boot entry is present, boot.wim is readable.
+Проверка носителя: загрузочная запись есть, boot.wim читается ({}). ==> Media check: the boot entry is present, boot.wim is readable ({}).
+Проверка носителя: загрузочная запись BCD не найдена или не читается; подробности — в лог-файле. ==> Media check: the BCD boot entry is missing or unreadable; details are in the log file.
+Проверка носителя: boot.wim на носителе не читается; подробности — в лог-файле. ==> Media check: boot.wim on the media is unreadable; details are in the log file.
+Проверка носителя: загрузочная запись BCD не найдена или не читается; boot.wim на носителе не читается; подробности — в лог-файле. ==> Media check: the BCD boot entry is missing or unreadable; boot.wim on the media is unreadable; details are in the log file.
+Справка (папка Help) добавлена в образ: {} файл(ов) ==> Help (Help folder) added to the image: {} file(s)
+Свой WinPE с WinRepair — загрузочная флешка (F1 — справка) ==> Own WinPE with WinRepair — bootable USB stick (F1 — help)
+Подключаю образ ISO… подождите, обычно это 5–30 секунд. ==> Mounting the ISO image… please wait, usually 5–30 seconds.
+Не удалось подключить образ: {} Подключите его вручную (правый клик → «Подключить») и выберите букву ниже. ==> Could not mount the image: {} Mount it manually (right-click → "Mount") and pick its letter below.
+Образ ISO подключён как {} — найден sources\\boot.wim ({}). После записи образ отключится. ==> ISO image mounted as {} — sources\\boot.wim found ({}). The image will be dismounted after writing.
+Не удалось подключить образ ISO: {}\n\nПодключите его вручную (правый клик по файлу → «Подключить») и выберите его букву в рамке «Папка или диск». ==> Could not mount the ISO image: {}\n\nMount it manually (right-click the file → "Mount") and pick its letter in the "Folder or disk" frame.
+Образ ISO ==> ISO image
+Куда записать WinPE. Лучше всего — корень флешки в FAT32 (например, E:\\): она загрузится и в UEFI, и в BIOS. Можно указать папку и потом скопировать её на флешку. ==> Where to write WinPE. Best is the root of a FAT32 USB stick (for example E:\\): it boots both in UEFI and in BIOS. You can also pick a folder and copy it to a stick later.
+Выбрать флешку или папку в проводнике. ==> Pick a USB stick or a folder in Explorer.
+WinPE берётся из установочного образа Windows 10/11: ISO, boot.wim или установочная флешка. Ничего устанавливать не нужно. ==> WinPE is taken from a Windows 10/11 installation image: ISO, boot.wim or an installation USB stick. Nothing needs to be installed.
+Чистый WinPE из Windows ADK (нужны ADK и дополнение WinPE с сайта Microsoft). Если ADK не найден, укажете winpe.wim вручную. ==> Clean WinPE from the Windows ADK (needs the ADK and the WinPE add-on from Microsoft). If the ADK is not found, you will pick winpe.wim manually.
+Среда восстановления этой Windows (winre.wim) со встроенным «Восстановлением системы» (rstrui). Не подходит, если WinRE отключена или повреждена. ==> This Windows' recovery environment (winre.wim) with built-in System Restore (rstrui). Not suitable if WinRE is disabled or damaged.
+Файл .iso — программа сама подключит его и после записи отключит. Или boot.wim из папки sources распакованного образа. ==> An .iso file — the program mounts it and dismounts it after writing. Or boot.wim from the sources folder of an extracted image.
+Путь к файлу .iso или boot.wim. Можно вставить путь из «Копировать как путь» (в кавычках). ISO подключается сразу после выбора. ==> Path to an .iso or boot.wim file. You can paste a path from "Copy as path" (in quotes). An ISO is mounted right after you pick it.
+Выбрать файл .iso или boot.wim в проводнике. ==> Pick an .iso or boot.wim file in Explorer.
+Папка или диск, где есть sources\\boot.wim: распакованный ISO, подключённый образ (буква диска) или установочная флешка Windows. ==> A folder or disk with sources\\boot.wim: an extracted ISO, a mounted image (drive letter) or a Windows installation USB stick.
+Буква подключённого образа или установочной флешки (например, F:\\) либо папка. В списке — найденные диски с sources\\boot.wim. ==> Drive letter of a mounted image or installation stick (for example F:\\), or a folder. The list shows the drives found with sources\\boot.wim.
+Выбрать папку или диск в проводнике. ==> Pick a folder or disk in Explorer.
+Если WinPE уже скопирован на флешку вручную: сделать раздел активным и записать загрузочный код для старых компьютеров (BIOS/Legacy). Файлы не удаляются. ==> If WinPE was already copied to the stick manually: make the partition active and write the boot code for older computers (BIOS/Legacy). Files are not deleted.
+Собрать WinPE с WinRepair и записать на флешку. Флешка не форматируется: заменяются только Boot, EFI, bootmgr и sources\\boot.wim. ==> Build WinPE with WinRepair and write it to the stick. The stick is not formatted: only Boot, EFI, bootmgr and sources\\boot.wim are replaced.
+Закрыть окно без сборки. Образ ISO, подключённый программой, будет отключён. ==> Close the window without building. An ISO image mounted by the program will be dismounted.
+Командная строка ==> Command prompt
+Командная строка (администратор) ==> Command prompt (administrator)
+Справка ==> Help
+Справка по программе (F1). В окнах инструментов F1 открывает раздел про это окно. ==> Program help (F1). In tool windows F1 opens the section about that window.
+Консоль cmd с правами администратора — для своих команд (diskpart, bcdedit, dism, sfc и др.). Открывается в корне выбранной целевой ОС. ==> A cmd console with administrator rights — for your own commands (diskpart, bcdedit, dism, sfc and others). Opens in the root of the selected target OS.
+WinRepair — командная строка (администратор) ==> WinRepair — command prompt (administrator)
+Целевая Windows: {} ==> Target Windows: {}
+Целевая Windows не выбрана. ==> No target Windows selected.
+Буквы дисков в WinPE могут отличаться: diskpart, затем list volume. Список команд: help ==> Drive letters in WinPE may differ: diskpart, then list volume. List of commands: help
+Открыта командная строка (администратор) в {}. Команды из неё в журнал программы не попадают. ==> Command prompt (administrator) opened in {}. Commands typed there are not written to the program log.
+Не удалось открыть командную строку: {} ==> Could not open the command prompt: {}
+Справка WinRepair ==> WinRepair Help
+Изменить справку… ==> Edit help…
+Поиск по справке ==> Search help
+Встроенная справка. Чтобы изменить текст, нажмите «Изменить справку…». ==> Built-in help. To change the text, press "Edit help…".
+Файл справки: {} ==> Help file: {}
+Не найдено: {} ==> Not found: {}
+Не удалось создать файл справки: {} ==> Could not create the help file: {}
+Создан файл справки для правки: {} ==> Help file created for editing: {}
+Правьте файл в Блокноте, сохраните и нажмите «Обновить»: {} ==> Edit the file in Notepad, save it and press "Refresh": {}
+# Справка не найдена\nВстроенная справка отсутствует, файла Help\\help.ru.txt рядом с программой тоже нет. ==> # Help not found\nThere is no built-in help and no Help\\help.ru.txt file next to the program.
+# --- 18.11.2026 (2): командная строка в «Обзоре», кнопка «Справка», О программе — Tynychsoft, справка только встроенная ---
+{} {}\nРазработчик: {}\n{}\n\nНативное приложение Win32 (C++17), без зависимостей от .NET, PowerShell и VC++ Runtime.\n\nСреда: {}, {}{}\nАдминистратор: {}\nЖурналы и отчёты: {} ==> {} {}\nDeveloper: {}\n{}\n\nA native Win32 application (C++17), with no dependency on .NET, PowerShell or the VC++ Runtime.\n\nEnvironment: {}, {}{}\nAdministrator: {}\nJournals and reports: {}
+Версия программы, разработчик (Tynychsoft), среда запуска, права, расположение журналов и отчётов, результат проверки целостности. ==> Program version, developer (Tynychsoft), environment, rights, location of logs and reports, integrity check result.
+Командная строка (администратор)… ==> Command prompt (administrator)…
+Консоль cmd с правами администратора — для своих команд (diskpart, bcdedit, dism, sfc и др.). В WinPE и WinRE открывается сразу, в обычной Windows — через запрос UAC. Открывается в корне выбранной целевой ОС. Команды из консоли не попадают в журнал программы. ==> A cmd console with administrator rights — for your own commands (diskpart, bcdedit, dism, sfc and others). In WinPE and WinRE it opens at once, in normal Windows after a UAC prompt. Opens in the root of the selected target OS. Commands typed there are not written to the program log.
+О программе · Tynychsoft ==> About · Tynychsoft
+О программе — Tynychsoft ==> About — Tynychsoft
+Режим автора — встроенная справка. Чтобы изменить текст, нажмите «Изменить справку…». ==> Author mode — built-in help. To change the text, press "Edit help…".
+Режим автора — файл справки: {} ==> Author mode — help file: {}
+Справка WinRepair — режим автора ==> WinRepair Help — author mode
+Справка встроена в программу — {}, версия {}. ==> The help is built into the program — {}, version {}.

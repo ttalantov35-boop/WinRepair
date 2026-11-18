@@ -3,6 +3,9 @@
 1 ICON "winrepair.ico"
 1 24 "WinRepair.manifest"
 2 RCDATA "..\\lang\\en.txt"
+// Built-in help (F1, "Help" button). Release builds show only this embedded text (no external override, see ui_help.cpp)
+3 RCDATA "..\\help\\help.ru.txt"
+4 RCDATA "..\\help\\help.en.txt"
 // Built-in playbooks (RCDATA 100+): loaded by modules/playbook.cpp, can be overridden from disk by id
 100 RCDATA "..\\Playbooks\\repair-black-screen-login.wrp"
 101 RCDATA "..\\Playbooks\\repair-boot-uefi.wrp"

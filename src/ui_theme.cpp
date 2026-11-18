@@ -114,6 +114,8 @@ COLORREF Accent(Cat c) {
         case Cat::Repair: return RGB(232, 89, 12);
         case Cat::Protect: return RGB(47, 158, 68);
         case Cat::Exit: return RGB(201, 42, 42);
+        case Cat::Lang: return RGB(112, 72, 232);
+        case Cat::Help: return RGB(18, 140, 90);
         case Cat::Header: return RGB(255, 255, 255);
         default: return RGB(110, 120, 140);
     }
@@ -130,52 +132,65 @@ void DrawButton(const DRAWITEMSTRUCT* d, Cat c, bool hover) {
     wchar_t buf[512] = {0};
     GetWindowTextW(d->hwndItem, buf, 511);
 
-    // area behind the rounded corners
-    HBRUSH under = (c == Cat::Header || c == Cat::Exit) ? nullptr : BgBrush();
+    // Кнопки заголовка (язык, справка, выход) — залитые цветом; остальные — светлая заливка цвета раздела,
+    // толстая цветная рамка и цветная полоса слева: раздел виден сразу, кнопку легко найти глазами.
+    bool filled = (c == Cat::Header || c == Cat::Exit || c == Cat::Lang || c == Cat::Help);
+    HBRUSH under = filled ? nullptr : BgBrush();
     if (under) FillRect(dc, &r, under);
 
     COLORREF fill, border, txt;
-    bool filled = (c == Cat::Header || c == Cat::Exit);
     if (c == Cat::Header) {
         COLORREF base = RGB(20, 56, 112);
         fill = Blend(base, RGB(255, 255, 255), down ? 34 : hover ? 26 : 14);
         border = Blend(base, RGB(255, 255, 255), 40);
         txt = RGB(255, 255, 255);
-    } else if (c == Cat::Exit) {
+    } else if (c == Cat::Exit || c == Cat::Lang || c == Cat::Help) {
         fill = down ? Blend(acc, RGB(0, 0, 0), 25) : hover ? Blend(acc, RGB(255, 255, 255), 14) : acc;
         border = Blend(acc, RGB(0, 0, 0), 25);
         txt = RGB(255, 255, 255);
     } else if (dis) {
         fill = RGB(236, 239, 244); border = RGB(214, 219, 228); txt = RGB(140, 148, 162); acc = RGB(176, 184, 198);
     } else {
-        fill = Blend(RGB(255, 255, 255), acc, down ? 22 : hover ? 11 : 0);
-        border = hover || down ? acc : Blend(RGB(255, 255, 255), acc, 38);
+        fill = Blend(RGB(255, 255, 255), acc, down ? 26 : hover ? 16 : 7);
+        border = hover || down ? acc : Blend(RGB(255, 255, 255), acc, 62);
         txt = kText;
     }
+    int pw = filled ? 1 : S(2);   // толщина рамки
     HBRUSH fb = CreateSolidBrush(fill);
     HPEN pen = CreatePen(PS_SOLID, 1, border);
     HGDIOBJ ob = SelectObject(dc, fb), op = SelectObject(dc, pen);
     RoundRect(dc, r.left, r.top, r.right, r.bottom, S(10), S(10));
-    SelectObject(dc, ob);
     SelectObject(dc, op);
-    DeleteObject(fb);
     DeleteObject(pen);
 
     RECT tr = r;
-    if (!filled) {   // colour bar under the text = category
-        int bh = down || hover ? S(4) : S(3);
-        RECT st = {r.left + S(12), r.bottom - S(6) - bh + S(3), r.right - S(12), r.bottom - S(6) + S(3)};
+    if (!filled) {
+        // цветная полоса слева (по цвету раздела), обрезанная по скруглению кнопки
+        HRGN rg = CreateRoundRectRgn(r.left, r.top, r.right + 1, r.bottom + 1, S(10), S(10));
+        SelectClipRgn(dc, rg);
+        RECT st = {r.left, r.top, r.left + S(down || hover ? 8 : 6), r.bottom};
         HBRUSH sb = CreateSolidBrush(acc);
         FillRect(dc, &st, sb);
         DeleteObject(sb);
-        tr.left += S(12);
-        tr.right -= S(10);
+        SelectClipRgn(dc, nullptr);
+        DeleteObject(rg);
+        // толстая рамка поверх заливки и полосы
+        HPEN tp = CreatePen(PS_INSIDEFRAME, pw, border);
+        HGDIOBJ op2 = SelectObject(dc, tp), ob2 = SelectObject(dc, GetStockObject(NULL_BRUSH));
+        RoundRect(dc, r.left, r.top, r.right, r.bottom, S(10), S(10));
+        SelectObject(dc, op2);
+        SelectObject(dc, ob2);
+        DeleteObject(tp);
+        tr.left += S(16);
+        tr.right -= S(8);
         tr.top += S(2);
-        tr.bottom -= S(9);
+        tr.bottom -= S(2);
     } else {
         tr.left += S(6);
         tr.right -= S(6);
     }
+    SelectObject(dc, ob);
+    DeleteObject(fb);
     SetBkMode(dc, TRANSPARENT);
     SetTextColor(dc, txt);
     HGDIOBJ of = SelectObject(dc, Semi());
@@ -194,7 +209,7 @@ void DrawButton(const DRAWITEMSTRUCT* d, Cat c, bool hover) {
     }
 }
 
-void PaintHeader(HDC dc, const RECT& rc, HICON icon, const std::wstring& title, const std::wstring& subtitle, const std::vector<Chip>& chips) {
+void PaintHeader(HDC dc, const RECT& rc, HICON icon, const std::wstring& title, const std::wstring& subtitle, const std::vector<Chip>& chips, int rightReserve) {
     int w = rc.right - rc.left, h = rc.bottom - rc.top;
     const COLORREF c1 = RGB(10, 26, 54), c2 = RGB(24, 108, 204);
     int strips = 64;
@@ -216,7 +231,7 @@ void PaintHeader(HDC dc, const RECT& rc, HICON icon, const std::wstring& title, 
     int isz = S(48), x = rc.left + S(14), y = rc.top + (h - lh - isz) / 2;
     if (icon) DrawIconEx(dc, x, y, icon, isz, isz, 0, nullptr, DI_NORMAL);
     SetBkMode(dc, TRANSPARENT);
-    int tx = x + (icon ? isz + S(14) : 0), right = rc.right - S(230);
+    int tx = x + (icon ? isz + S(14) : 0), right = rc.right - (rightReserve >= 0 ? rightReserve : S(230));
     HGDIOBJ of = SelectObject(dc, Title());
     SetTextColor(dc, RGB(255, 255, 255));
     RECT tr = {tx, rc.top + S(6), right, rc.top + S(38)};

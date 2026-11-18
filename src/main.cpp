@@ -34,7 +34,7 @@ enum {
     IDC_BANNER = 100, IDC_TARGET, IDC_REFRESH, IDC_DAYS, IDC_EXT, IDC_FORCE, IDC_HOST, IDC_PORT, IDC_SOURCE,
     IDC_TAB, IDC_LOG, IDC_CANCEL, IDC_OPENREP, IDC_OPENLOG, IDC_SAVELOG, IDC_CLEAR, IDC_COPYLOG, IDC_PROG, IDC_STATUS,
     IDC_L1, IDC_L2, IDC_L3, IDC_L4, IDC_L5, IDC_L6, IDC_DESC, IDC_ACTION0 = 1000,
-    IDC_CAT_LIST = 2001, IDC_CAT_FILTER, IDC_CAT_RUN, IDC_CAT_CLOSE, IDC_CAT_DESC, IDC_CAT_E0 = 2010, IDC_CAT_L0 = 2020, IDC_CAT_FIND = 2030, IDC_LANG = 2040, IDC_EXIT = 2050
+    IDC_CAT_LIST = 2001, IDC_CAT_FILTER, IDC_CAT_RUN, IDC_CAT_CLOSE, IDC_CAT_DESC, IDC_CAT_E0 = 2010, IDC_CAT_L0 = 2020, IDC_CAT_FIND = 2030, IDC_LANG = 2040, IDC_EXIT = 2050, IDC_HELPBTN = 2060
 };
 
 struct Action {
@@ -64,7 +64,8 @@ Action kActions[] = {
     {L"Полная диагностика + HTML-отчёт", 0, ModFull, "full", nullptr},
     {L"Открыть последний HTML-отчёт", 0, nullptr, "open-report", nullptr},
     {L"Каталог команд…", 0, nullptr, "catalog", nullptr},
-    {L"О программе", 0, nullptr, "about", nullptr},
+    {L"Командная строка (администратор)…", 0, nullptr, "cmd", nullptr},
+    {L"О программе · Tynychsoft", 0, nullptr, "about", nullptr},
     {L"Снимок системы", 1, ModSystem, "system", nullptr},
     {L"Память (SMBIOS, диагностика)", 1, ModMemory, "memory", nullptr},
     {L"Загрузка (BCD / GPT / WinRE)", 1, ModBoot, "boot", nullptr},
@@ -102,7 +103,7 @@ const int kActionCount = (int)(sizeof kActions / sizeof kActions[0]);
 
 HWND g_wnd, g_tab, g_log, g_target, g_days, g_ext, g_force, g_host, g_port, g_source, g_prog, g_status, g_banner;
 HWND g_btn[40], g_cancelBtn, g_refreshBtn, g_lbl[6], g_hint;
-HWND g_langBtn = nullptr, g_exitBtn = nullptr;
+HWND g_langBtn = nullptr, g_exitBtn = nullptr, g_helpBtn = nullptr;
 HICON g_icon = nullptr;
 bool g_logRich = false;
 RECT g_targetFrame{};
@@ -131,7 +132,8 @@ const ActionDesc kDescs[] = {
     {"full", L"Запускает 9 диагностических модулей подряд, выставляет оценку состояния системы и сохраняет HTML-отчёт в папку отчётов. Ничего не изменяет."},
     {"open-report", L"Открывает в браузере последний сохранённый HTML-отчёт полной диагностики."},
     {"catalog", L"Каталог из 83 команд Windows (winver, systeminfo, sfc, DISM, bcdedit, diskpart, netsh и др.) с описанием, уровнем риска и точной командной строкой. Каждый запуск подтверждается отдельно."},
-    {"about", L"Версия программы, среда запуска, права, расположение журналов и отчётов, результат проверки целостности."},
+    {"about", L"Версия программы, разработчик (Tynychsoft), среда запуска, права, расположение журналов и отчётов, результат проверки целостности."},
+    {"cmd", L"Консоль cmd с правами администратора — для своих команд (diskpart, bcdedit, dism, sfc и др.). В WinPE и WinRE открывается сразу, в обычной Windows — через запрос UAC. Открывается в корне выбранной целевой ОС. Команды из консоли не попадают в журнал программы."},
     {"system", L"Снимок системы: версия и сборка Windows, имя и состояние компьютера, процессор, память, BIOS и плата, TPM, Secure Boot, диски. Только чтение."},
     {"memory", L"Модули памяти по данным SMBIOS (объём, тип, скорость, слоты) и результаты диагностики памяти Windows, если она запускалась. Даёт рекомендации при подозрении на неисправное ОЗУ. Только чтение."},
     {"boot", L"Состояние загрузки выбранной ОС: хранилище BCD, записи загрузки, схема дисков (GPT/MBR), системный раздел ESP и среда WinRE. Показывает замечания, например отсутствующую запись. Только чтение."},
@@ -169,7 +171,7 @@ const wchar_t* DescOf(const char* name) {
 
 // Purpose of a command -> colour (see ui_theme.h)
 theme::Cat CatOfAction(const char* n) {
-    static const char* guide[] = {"triage", "playbooks", "catalog"};
+    static const char* guide[] = {"triage", "playbooks", "catalog", "cmd"};
     static const char* repair[] = {"repair", "fixes", "registry", "bcd", "autoruns", "winre", "winre-menu", "winpeusb", "storagefix", "rstrui", "apps", "explorer"};
     static const char* protect[] = {"restorepoint", "savedata", "backups", "undo"};
     for (auto g : guide) if (!strcmp(n, g)) return theme::Cat::Guide;
@@ -303,6 +305,7 @@ void Layout() {
     MoveWindow(g_banner, 0, 0, 1, 1, TRUE);   // hidden: the header band is painted in WM_PAINT
     MoveWindow(g_exitBtn, W_ - m - S(104), S(20), S(104), S(32), TRUE);
     MoveWindow(g_langBtn, W_ - m - S(104) - S(8) - S(96), S(20), S(96), S(32), TRUE);
+    MoveWindow(g_helpBtn, W_ - m - S(104) - S(8) - S(96) - S(8) - S(110), S(20), S(110), S(32), TRUE);
     int y = hdrH + S(32);
     int rh = S(24);
     y += S(2);
@@ -450,11 +453,28 @@ void CreateTooltips() {
         ti.lpszText = LPSTR_TEXTCALLBACKW;
         SendMessageW(g_tip, TTM_ADDTOOLW, 0, (LPARAM)&ti);
     }
+    for (HWND hb : {g_helpBtn}) {   // кнопка заголовка: текст — в TooltipNeedText
+        TOOLINFOW ti{};
+        ti.cbSize = sizeof ti;
+        ti.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
+        ti.hwnd = g_wnd;
+        ti.uId = (UINT_PTR)hb;
+        ti.lpszText = LPSTR_TEXTCALLBACKW;
+        SendMessageW(g_tip, TTM_ADDTOOLW, 0, (LPARAM)&ti);
+    }
 }
 
 // TTN_GETDISPINFO: title and text for the button under the pointer
 void TooltipNeedText(NMTTDISPINFOW* di) {
     int id = GetDlgCtrlID((HWND)di->hdr.idFrom);
+    if (id == IDC_HELPBTN) {
+        static std::wstring title;
+        title = TrW(L"Справка");
+        g_tipText = TrW(L"Справка по программе (F1). В окнах инструментов F1 открывает раздел про это окно.");
+        SendMessageW(g_tip, TTM_SETTITLEW, TTI_INFO, (LPARAM)title.c_str());
+        di->lpszText = const_cast<wchar_t*>(g_tipText.c_str());
+        return;
+    }
     if (id < IDC_ACTION0 || id >= IDC_ACTION0 + kActionCount) return;
     const Action& a = kActions[id - IDC_ACTION0];
     std::wstring t = W(U(std::wstring(a.text)));
@@ -463,6 +483,34 @@ void TooltipNeedText(NMTTDISPINFOW* di) {
     if (g_tipText.empty()) g_tipText = t;
     SendMessageW(g_tip, TTM_SETTITLEW, TTI_INFO, (LPARAM)t.c_str());
     di->lpszText = const_cast<wchar_t*>(g_tipText.c_str());
+}
+
+// Командная строка cmd с правами администратора. В WinPE/WinRE программа уже работает с полными правами —
+// консоль наследует их; в обычной Windows без прав — запрос UAC (runas). Открывается в корне целевой ОС.
+void OpenAdminCmd() {
+    const Env& e = GetEnv();
+    std::wstring cmd = W(SysTool("cmd.exe"));
+    Target t = CurrentTarget();
+    std::wstring dir = t.valid && IsDir(t.root) ? WRaw(t.root) : WRaw(ExeDir());
+    std::wstring title = TrW(L"WinRepair — командная строка (администратор)");
+    std::wstring l1 = t.valid ? W("Целевая Windows: " + t.winDir) : TrW(L"Целевая Windows не выбрана.");
+    std::wstring l2 = TrW(L"Буквы дисков в WinPE могут отличаться: diskpart, затем list volume. Список команд: help");
+    // Внутри /k "..." нельзя символы & | < > ^ в тексте сообщений — они служебные для cmd.
+    auto safe = [](std::wstring s) { for (wchar_t& ch : s) if (ch == L'&' || ch == L'|' || ch == L'<' || ch == L'>' || ch == L'^' || ch == L'"') ch = L' '; return s; };
+    std::wstring args = L"/k \"title " + safe(title) + L" & echo " + safe(l1) + L" & echo " + safe(l2) + L" & echo.\"";
+    bool ok = false;
+    if (e.isAdmin) {
+        std::wstring cl = L"\"" + cmd + L"\" " + args;
+        STARTUPINFOW si{};
+        si.cb = sizeof si;
+        PROCESS_INFORMATION pi{};
+        ok = CreateProcessW(cmd.c_str(), &cl[0], nullptr, nullptr, FALSE, CREATE_NEW_CONSOLE | CREATE_UNICODE_ENVIRONMENT, nullptr, dir.c_str(), &si, &pi) != FALSE;
+        if (ok) { CloseHandle(pi.hThread); CloseHandle(pi.hProcess); }
+    } else {
+        ok = (INT_PTR)ShellExecuteW(g_wnd, L"runas", cmd.c_str(), args.c_str(), dir.c_str(), SW_SHOWNORMAL) > 32;
+    }
+    if (ok) Logger::I().log(Lvl::Info, "Открыта командная строка (администратор) в " + U(dir) + ". Команды из неё в журнал программы не попадают.");
+    else Logger::I().log(Lvl::Error, "Не удалось открыть командную строку: " + ErrMsg(GetLastError()));
 }
 
 void ManageBackups() {
@@ -535,6 +583,7 @@ void StartAction(int idx) {
     if (!a.fn) {
         if (!strcmp(a.name, "open-report")) OpenLastReport();
         else if (!strcmp(a.name, "catalog")) OpenCatalog();
+        else if (!strcmp(a.name, "cmd")) OpenAdminCmd();
         else if (!strcmp(a.name, "triage")) OpenTriage();
         else if (!strcmp(a.name, "playbooks")) OpenPlaybooks();
         else if (!strcmp(a.name, "registry")) OpenRegistryEditor();
@@ -600,10 +649,10 @@ void OpenLastReport() {
 
 void ShowAbout() {
     const Env& e = GetEnv();
-    std::string t = fmt("%s %s\n\nНативное приложение Win32 (C++17), без зависимостей от .NET, PowerShell и VC++ Runtime.\n\n"
+    std::string t = fmt("%s %s\nРазработчик: %s\n%s\n\nНативное приложение Win32 (C++17), без зависимостей от .NET, PowerShell и VC++ Runtime.\n\n"
                         "Среда: %s, %s%s\nАдминистратор: %s\nЖурналы и отчёты: %s",
-                        kAppName, kAppVersion, e.osName.c_str(), e.arch.c_str(), e.isWinPE ? " (WinPE)" : "", e.isAdmin ? "да" : "нет", DataDir().c_str());
-    MessageBoxW(g_wnd, W(t).c_str(), L"О программе", MB_OK | MB_ICONINFORMATION);
+                        kAppName, kAppVersion, WR_COMPANY, WR_COPYRIGHT, e.osName.c_str(), e.arch.c_str(), e.isWinPE ? " (WinPE)" : "", e.isAdmin ? "да" : "нет", DataDir().c_str());
+    MessageBoxW(g_wnd, W(t).c_str(), L"О программе — Tynychsoft", MB_OK | MB_ICONINFORMATION);
 }
 
 void CopyLog() {   // whole log to the clipboard (handy for pasting into a ticket or a message)
@@ -884,6 +933,7 @@ void CreateControls() {
     g_chips.push_back({W(std::string("v") + kAppVersion), 0});
     g_langBtn = Mk(L"BUTTON", CurrentLang() == Lang::RU ? L"English" : L"Русский", BS_OWNERDRAW | WS_TABSTOP, IDC_LANG);
     g_exitBtn = Mk(L"BUTTON", L"Выход", BS_OWNERDRAW | WS_TABSTOP, IDC_EXIT);
+    g_helpBtn = Mk(L"BUTTON", L"Справка", BS_OWNERDRAW | WS_TABSTOP, IDC_HELPBTN);
     g_lbl[0] = Mk(L"STATIC", L"Целевая ОС:", SS_LEFT, IDC_L1);
     g_target = Mk(L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, IDC_TARGET);
     g_refreshBtn = Mk(L"BUTTON", L"Обновить", BS_OWNERDRAW | WS_TABSTOP, IDC_REFRESH);
@@ -936,7 +986,7 @@ void CreateControls() {
     SendMessageW(g_hint, WM_SETFONT, (WPARAM)theme::Small(), TRUE);
     EnableWindow(g_cancelBtn, FALSE);
     ShowWindow(g_prog, SW_HIDE);
-    for (HWND hb : {g_langBtn, g_exitBtn, g_refreshBtn, g_cancelBtn, GetDlgItem(g_wnd, IDC_OPENREP), GetDlgItem(g_wnd, IDC_OPENLOG), GetDlgItem(g_wnd, IDC_SAVELOG), GetDlgItem(g_wnd, IDC_COPYLOG), GetDlgItem(g_wnd, IDC_CLEAR)}) theme::AttachHover(hb);
+    for (HWND hb : {g_langBtn, g_exitBtn, g_helpBtn, g_refreshBtn, g_cancelBtn, GetDlgItem(g_wnd, IDC_OPENREP), GetDlgItem(g_wnd, IDC_OPENLOG), GetDlgItem(g_wnd, IDC_SAVELOG), GetDlgItem(g_wnd, IDC_COPYLOG), GetDlgItem(g_wnd, IDC_CLEAR)}) theme::AttachHover(hb);
     for (int i = 0; i < kActionCount; ++i) theme::AttachHover(g_btn[i]);
     FillTargets();
     ShowTabButtons();
@@ -1072,7 +1122,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             GetClientRect(h, &rc);
             RECT hr = rc;
             hr.bottom = S(72);
-            theme::PaintHeader(dc, hr, g_icon, W(kAppName), g_hdrSub, g_chips);
+            theme::PaintHeader(dc, hr, g_icon, W(kAppName), g_hdrSub, g_chips, S(8) + S(104) + S(8) + S(96) + S(8) + S(110) + S(14));
             theme::PaintLegend(dc, S(10), hr.bottom + S(7), rc.right - S(20));
             theme::PaintTargetPanel(dc, g_targetFrame);
             EndPaint(h, &ps);
@@ -1095,7 +1145,8 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             theme::Cat c = theme::Cat::Info;
             if (id >= IDC_ACTION0 && id < IDC_ACTION0 + kActionCount) c = CatOfAction(kActions[id - IDC_ACTION0].name);
             else if (id == IDC_EXIT) c = theme::Cat::Exit;
-            else if (id == IDC_LANG) c = theme::Cat::Header;
+            else if (id == IDC_LANG) c = theme::Cat::Lang;
+            else if (id == IDC_HELPBTN) c = theme::Cat::Help;
             else if (id == IDC_CANCEL) c = theme::Cat::Repair;
             else if (id == IDC_REFRESH) c = theme::Cat::Diag;
             theme::DrawButton(di, c, theme::IsHover(di->hwndItem));
@@ -1136,6 +1187,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             else if (id == IDC_REFRESH) { FillTargets(); Logger::I().log(Lvl::Info, fmt("Найдено целевых ОС: %zu", g_targets.size())); }
             else if (id == IDC_CLEAR) SetWindowTextW(g_log, L"");
             else if (id == IDC_LANG) ChangeLanguage();
+            else if (id == IDC_HELPBTN) ShowHelp("");
             else if (id == IDC_EXIT) SendMessageW(h, WM_CLOSE, 0, 0);
             else if (id == IDC_OPENLOG) OpenPath(Logger::I().path());
             else if (id == IDC_OPENREP) OpenPath(g_lastOut.empty() ? DataDir() + "Reports" : g_lastOut);
@@ -1341,6 +1393,7 @@ int WINAPI wWinMain(HINSTANCE hi, HINSTANCE, PWSTR, int show) {
 
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
+        if (msg.message == WM_KEYDOWN && msg.wParam == VK_F1) { ShowHelp(HelpTopicForWindow(msg.hwnd)); continue; }   // F1 — справка (в окне инструмента — его раздел)
         if (g_cat && IsDialogMessageW(g_cat, &msg)) continue;
         if (!IsDialogMessageW(w, &msg)) { TranslateMessage(&msg); DispatchMessageW(&msg); }
     }
