@@ -85,6 +85,7 @@ public:
     bool init(const std::string& dir);
     void attachUi(HWND h, UINT logMsg, UINT statusMsg);
     void log(Lvl l, const std::string& msg);
+    void logFile(Lvl l, const std::string& msg);   // только в лог-файл (подробности, которые не нужны на экране)
     void progress(const std::string& s);
     std::string path() const { return path_; }
 

@@ -162,6 +162,11 @@ struct FormField {
     std::vector<std::wstring> options;
     std::wstring value;
     bool readonly = false;
+    // Кнопка «Обзор…» справа от поля (kind 0 или 3): выбор файла в стандартном окне проводника.
+    // Набор пути вручную по-прежнему работает. Фильтр: "Описание|маска|Описание|маска|", например
+    // L"Образ ISO (*.iso)|*.iso|Все файлы (*.*)|*.*|"; пусто — все файлы.
+    bool browseFile = false;
+    std::wstring browseFilter;
 };
 bool FormDialog(HWND owner, const std::wstring& title, std::vector<FormField>& fields);
 

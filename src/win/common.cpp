@@ -276,6 +276,17 @@ void Logger::log(Lvl l, const std::string& msg) {
     if (hwnd_) PostMessageW(hwnd_, logMsg_, (WPARAM)l, (LPARAM) new std::string(line));
 }
 
+void Logger::logFile(Lvl l, const std::string& msg) {
+    static const char* tag[] = {"INFO ", "WARN ", "ERROR", "OUT  ", "OK   "};
+    std::string line = NiceNow() + " [" + tag[(int)l] + "] " + Tr(msg);
+    for (size_t i = 0; i < line.size();) { if (line[i] == '\r') line.erase(i, 1); else ++i; }
+    std::lock_guard<std::mutex> g(m_);
+    if (file_ == INVALID_HANDLE_VALUE) return;
+    std::string f = line + "\r\n";
+    DWORD w;
+    WriteFile(file_, f.data(), (DWORD)f.size(), &w, nullptr);
+}
+
 void Logger::progress(const std::string& s) {
     std::lock_guard<std::mutex> g(m_);
     if (hwnd_) PostMessageW(hwnd_, statusMsg_, 0, (LPARAM) new std::string(s));

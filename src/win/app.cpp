@@ -3,13 +3,17 @@
 namespace wr {
 
 ProcResult Ctx::run(const std::string& title, const std::string& cmd, int timeoutSec, const std::string& input) const {
-    info("▶ " + title);
-    Logger::I().log(Lvl::Info, "  команда: " + cmd);
+    bool q = quiet;
+    if (q) { Logger::I().logFile(Lvl::Info, "▶ " + title); Logger::I().progress(title + " ..."); }
+    else info("▶ " + title);
+    if (q) Logger::I().logFile(Lvl::Info, "  команда: " + cmd);
+    else Logger::I().log(Lvl::Info, "  команда: " + cmd);
     ULONGLONG t0 = GetTickCount64();
     ProcResult r = RunProcess(
         cmd, "",
-        [](const std::string& line, bool progress) {
+        [q](const std::string& line, bool progress) {
             if (progress) Logger::I().progress(line);
+            else if (q) Logger::I().logFile(Lvl::Out, "  | " + line);
             else Logger::I().log(Lvl::Out, "  | " + line);
         },
         cancel, timeoutSec, input);
@@ -17,6 +21,7 @@ ProcResult Ctx::run(const std::string& title, const std::string& cmd, int timeou
     if (!r.started) error("Не удалось запустить: " + r.error);
     else if (r.cancelled) warn(fmt("Отменено пользователем (%.1f с)", sec));
     else if (r.timedOut) warn(fmt("Таймаут %d с — процесс завершён", timeoutSec));
+    else if (q) Logger::I().logFile(Lvl::Info, fmt("  код возврата: %lu (0x%08lX), %.1f с", (unsigned long)r.exitCode, (unsigned long)r.exitCode, sec));
     else info(fmt("  код возврата: %lu (0x%08lX), %.1f с", (unsigned long)r.exitCode, (unsigned long)r.exitCode, sec));
     Logger::I().progress("");
     return r;

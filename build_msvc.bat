@@ -3,6 +3,9 @@ rem Run from "x64 Native Tools Command Prompt for VS" (or x86 for a 32-bit build
 rem Result: build\WinRepair.exe - static CRT (/MT), no runtime redistributables.
 rem "build_msvc.bat edit" - author build: help can be edited from Help\help.ru.txt next to the exe (do not publish it).
 setlocal
+set WRDEF=
+if /i "%~1"=="edit" set WRDEF=/DWR_HELP_EDIT
+if /i "%~1"=="edit" echo AUTHOR BUILD: help editing enabled (WR_HELP_EDIT)
 if not exist build mkdir build
 rc /nologo /fo build\app.res res\app.rc || goto :err
 cl /nologo /std:c++17 /O1 /Os /GL /Gy /Gw /Zc:inline /MT /EHsc /utf-8 /W3 /DUNICODE /D_UNICODE /D_CRT_SECURE_NO_WARNINGS /DNDEBUG %WRDEF% ^

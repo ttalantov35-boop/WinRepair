@@ -87,12 +87,14 @@ public:
     std::string outDir;  // module output folder (trailing backslash)
     const std::atomic<bool>* cancel = nullptr;
     Results* res = nullptr;
+    bool quiet = false;   // run(): на экран — только название шага; команда, вывод и код возврата — в лог-файл
 
     bool cancelled() const { return cancel && cancel->load(); }
     void info(const std::string& m) const { Logger::I().log(Lvl::Info, m); }
     void warn(const std::string& m) const { Logger::I().log(Lvl::Warn, m); }
     void error(const std::string& m) const { Logger::I().log(Lvl::Error, m); }
     void ok(const std::string& m) const { Logger::I().log(Lvl::Ok, m); }
+    void detail(const std::string& m) const { Logger::I().logFile(Lvl::Info, m); }   // подробность: только в лог-файл
     ProcResult run(const std::string& title, const std::string& cmd, int timeoutSec = 0, const std::string& input = "") const;
     std::string sub(const std::string& name) const;  // creates outDir\name\ and returns it
     bool needTarget() const;                          // logs an error if no target selected

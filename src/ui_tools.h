@@ -36,6 +36,9 @@ bool UiAsk(const std::wstring& title, const std::wstring& prompt, const std::wst
 void UiOpenWindow(const std::string& name);
 void OpenSaveData();
 void UiJobDone();   // refresh open windows
+// Справка (ui_help.cpp): окно справки, F1 и кнопка «?»; topic — метка раздела ({#метка} в help\help.ru.txt).
+void ShowHelp(const std::string& topic = "");
+std::string HelpTopicForWindow(HWND w);   // раздел справки для окна инструмента (по классу окна) или ""
 void UiShutdown();  // unload hives, unmount temporary volumes
 
 }  // namespace wr

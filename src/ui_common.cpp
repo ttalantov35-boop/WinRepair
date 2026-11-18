@@ -16,11 +16,59 @@ struct FormState {
     bool done = false, ok = false;
 };
 
+// «Обзор…»: стандартное окно выбора файла. Стартует с того, что уже набрано в поле (файл — выделен,
+// папка — открыта); кавычки из «Копировать как путь» снимаются. Выбранный путь вписывается в поле.
+void BrowseForField(HWND owner, const FormField& f, HWND ctl) {
+    std::wstring cur = GetText(ctl);
+    while (!cur.empty() && (cur.front() == L'"' || cur.front() == L' ')) cur.erase(cur.begin());
+    while (!cur.empty() && (cur.back() == L'"' || cur.back() == L' ')) cur.pop_back();
+    wchar_t file[MAX_PATH * 2] = L"";
+    std::wstring dir;
+    DWORD a = cur.empty() ? INVALID_FILE_ATTRIBUTES : GetFileAttributesW(cur.c_str());
+    if (a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_DIRECTORY)) dir = cur;
+    else if (a != INVALID_FILE_ATTRIBUTES && cur.size() < MAX_PATH) lstrcpynW(file, cur.c_str(), (int)(sizeof file / sizeof file[0]));
+    else if (!cur.empty()) {   // набран несуществующий файл — открываем его папку, если она есть
+        size_t k = cur.find_last_of(L'\\');
+        if (k != std::wstring::npos) {
+            std::wstring d = cur.substr(0, k + 1);
+            DWORD da = GetFileAttributesW(d.c_str());
+            if (da != INVALID_FILE_ATTRIBUTES && (da & FILE_ATTRIBUTE_DIRECTORY)) dir = d;
+        }
+    }
+    // Фильтр "Описание|маска|…": описания переводятся, разделители '|' → '\0', в конце двойной '\0'.
+    std::wstring src = f.browseFilter.empty() ? std::wstring(L"Все файлы (*.*)|*.*|") : f.browseFilter, filt, part;
+    int n = 0;
+    for (wchar_t ch : src) {
+        if (ch != L'|') { part += ch; continue; }
+        filt += (n % 2 == 0 ? TrW(part) : part);
+        filt.push_back(L'\0');
+        part.clear();
+        ++n;
+    }
+    filt.push_back(L'\0');
+    OPENFILENAMEW o{};
+    o.lStructSize = sizeof o;
+    o.hwndOwner = owner;
+    o.lpstrFilter = filt.c_str();
+    o.lpstrFile = file;
+    o.nMaxFile = (DWORD)(sizeof file / sizeof file[0]);
+    o.lpstrInitialDir = dir.empty() ? nullptr : dir.c_str();
+    o.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY | OFN_NOCHANGEDIR | OFN_DONTADDTORECENT;
+    if (!GetOpenFileNameW(&o)) return;
+    SetWindowTextW(ctl, file);
+    SetFocus(ctl);
+}
+
 LRESULT CALLBACK FormProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     auto* st = (FormState*)GetWindowLongPtrW(h, GWLP_USERDATA);
     switch (m) {
         case WM_COMMAND:
             if (!st) return 0;
+            if (LOWORD(wp) >= 3200 && LOWORD(wp) < 3200 + st->f->size() && HIWORD(wp) == BN_CLICKED) {
+                size_t i = LOWORD(wp) - 3200;
+                BrowseForField(h, (*st->f)[i], st->ctl[i]);
+                return 0;
+            }
             if (LOWORD(wp) == IDOK) {
                 for (size_t i = 0; i < st->f->size(); ++i) {
                     FormField& f = (*st->f)[i];
@@ -74,7 +122,13 @@ bool FormDialog(HWND owner, const std::wstring& title, std::vector<FormField>& f
             } else SetWindowTextW(c, f.value.c_str());
         }
         int hh = f.kind == 1 ? S(110) : S(24);
-        Place(c, pad, y, cw, (f.kind == 2 || f.kind == 3) ? S(240) : hh);
+        bool browse = f.browseFile && (f.kind == 0 || f.kind == 3);
+        int fw = browse ? cw - S(108) : cw;
+        Place(c, pad, y, fw, (f.kind == 2 || f.kind == 3) ? S(240) : hh);
+        if (browse) {
+            HWND b = Mk(h, L"BUTTON", TrW(L"Обзор…").c_str(), BS_PUSHBUTTON | WS_TABSTOP, 3200 + (int)i);
+            Place(b, pad + cw - S(102), y - S(1), S(102), S(26));
+        }
         st.ctl.push_back(c);
         y += (f.kind == 1 ? S(110) : S(28)) + S(8);
     }
@@ -87,6 +141,7 @@ bool FormDialog(HWND owner, const std::wstring& title, std::vector<FormField>& f
     if (!st.ctl.empty()) SetFocus(st.ctl[0]);
     MSG msg;
     while (!st.done && GetMessageW(&msg, nullptr, 0, 0) > 0) {
+        if (msg.message == WM_KEYDOWN && msg.wParam == VK_F1) { ShowHelp(HelpTopicForWindow(owner)); continue; }
         if (!IsDialogMessageW(h, &msg)) { TranslateMessage(&msg); DispatchMessageW(&msg); }
     }
     if (!st.done) PostQuitMessage(0);
