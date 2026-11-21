@@ -884,13 +884,16 @@ void OpenWinReImpl() {
     V.targets = FillTargetCombo(V.target, false);
     Mk(h, L"STATIC", L"Хранилище BCD:", SS_LEFT, 8901);
     V.store = Mk(h, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, ID_STORE);
-    V.find = Mk(h, L"BUTTON", L"Найти BCD", BS_PUSHBUTTON | WS_TABSTOP, ID_FIND);
+    V.find = MkBtn(h, L"Найти BCD", ID_FIND, Tone::Blue);
     V.status = Mk(h, L"EDIT", L"", ES_MULTILINE | ES_READONLY | WS_VSCROLL, ID_STATUS, WS_EX_CLIENTEDGE);
     SendMessageW(V.status, WM_SETFONT, (WPARAM)g_ui.mono, TRUE);
     const wchar_t* bt[] = {L"Обновить статус", L"Войти в WinRE при следующей загрузке…", L"Войти в WinRE и перезагрузить сейчас…", L"Создать/восстановить запись WinRE в BCD…",
                            L"WinRE + WinRepair: создать…", L"Войти в WinRE + WinRepair (следующая загрузка)…", L"WinRE + WinRepair: удалить…", L"Отменить разовый вход",
                            L"Проверить winre.wim (DISM)", L"Свой WinPE с WinRepair (флешка)…", L"Закрыть"};
-    for (int i = 0; i < 11; ++i) V.btn[i] = Mk(h, L"BUTTON", bt[i], BS_PUSHBUTTON | WS_TABSTOP, ID_B0 + i);
+    // цвет кнопки — по действию: синий — проверка, оранжевый — меняет загрузку, красный — перезагрузка сейчас,
+    // зелёный — отмена, бирюзовый — другой инструмент, серый — закрыть
+    const Tone bc[] = {Tone::Blue, Tone::Orange, Tone::Red, Tone::Orange, Tone::Orange, Tone::Orange, Tone::Orange, Tone::Green, Tone::Blue, Tone::Teal, Tone::Gray};
+    for (int i = 0; i < 11; ++i) V.btn[i] = MkBtn(h, bt[i], ID_B0 + i, bc[i]);
     Layout();
     ShowWindow(h, SW_SHOW);
     if (V.targets.empty()) { SetWindowTextW(V.status, L"Целевые ОС не найдены."); return; }

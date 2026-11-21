@@ -23,6 +23,9 @@ void OpenFixWizard();
 void OpenWinReManager();
 void OpenWinPeBuilder();
 void OpenStorageAccess();
+void OpenBsodReference();   // справочник кодов BSOD (ui_bsod.cpp)
+void OpenPasswordTool();    // снятие пароля и разблокировка учётных записей (ui_password.cpp)
+void OpenPartitionTool();   // разделы диска (diskpart) (ui_partition.cpp)
 void UiRefreshTargets();  // implemented by main.cpp
 void UiSelectTarget(const Target& t);             // select the target in the main window (implemented by main.cpp)
 void UiRunCatalog(int no);                         // confirm + run a catalogue command (main.cpp)

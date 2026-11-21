@@ -259,7 +259,9 @@ void PDumps(Ctx& c) {
     if (!di.ok) { AddF(c, Sev::Warn, fmt("Дампов: %zu, заголовок последнего не распознан", ds.size()), di.error, AMod("dump", "Разобрать дампы")); return; }
     const BsodEntry* ce = bsodByCode(di.bugcheck);
     std::string d = fmt("Дампов: %zu; последний от %s. P1=0x%llX P2=0x%llX.", ds.size(), FileTimeStr(ds[0].ft).c_str(), (unsigned long long)di.param[0], (unsigned long long)di.param[1]);
-    if (ce) d += std::string(" Категория: ") + ce->category + "; с чего начать: " + ce->firstStep + "; " + ce->note;
+    if (ce) { bool en = CurrentLang() == Lang::EN;
+        d += (en ? std::string("\r\nWhat it is: ") + ce->whatEn + ".\r\nFirst step: " + ce->stepsEn + ".\r\nImportant: " + ce->importantEn + ".\r\n"
+                 : std::string("\r\nЧто это: ") + ce->what + ".\r\nПервый шаг: " + ce->steps + ".\r\nВажно: " + ce->important + ".\r\n") + bsodCaveat(en); }
     AddF(c, Sev::Bad, fmt("Последний BugCheck: 0x%X %s", di.bugcheck, ce ? ce->name : "(нет в каталоге)"), d, ce ? ActionForCategory(ce->category) : AMod("dump", "Разобрать дамп (cdb)"));
 }
 

@@ -193,7 +193,7 @@ void OpenTriage() { ui::OpenTriageImpl(); }
 void OpenPlaybooks() { ui::OpenPlaybooksImpl(); }
 void OpenStorageAccess() { ui::OpenStorageAccessImpl(); }
 void OpenSaveData() { ui::OpenSaveDataImpl(); }
-void UiJobDone() { ui::BcdJobDone(); ui::AutorunsJobDone(); ui::WinReJobDone(); ui::StorageJobDone(); ui::TriageJobDone(); ui::PlaybooksJobDone(); ui::AppsJobDone(); }
+void UiJobDone() { ui::BcdJobDone(); ui::AutorunsJobDone(); ui::WinReJobDone(); ui::StorageJobDone(); ui::TriageJobDone(); ui::PlaybooksJobDone(); ui::AppsJobDone(); ui::PasswordJobDone(); ui::PartitionJobDone(); }
 void UiShutdown() {
     Hives().unloadAll();
     UnmountTempBcdVolumes();

@@ -60,12 +60,14 @@ const wchar_t* kTabs[] = {L"Обзор", L"Система", L"Диски", L"Ц�
 Action kActions[] = {
     {L"Мастер «Что случилось?» (диагностика по симптому)…", 0, nullptr, "triage", nullptr},
     {L"Сценарии ремонта (playbooks)…", 0, nullptr, "playbooks", nullptr},
+    {L"Снятие пароля и разблокировка учётных записей…", 0, nullptr, "password", nullptr},
+    {L"Разделы диска (создать, удалить, форматировать)…", 0, nullptr, "partition", nullptr},
     {L"Создать загрузочную флешку WinPE с WinRepair…", 0, nullptr, "winpeusb", nullptr},
     {L"Полная диагностика + HTML-отчёт", 0, ModFull, "full", nullptr},
     {L"Открыть последний HTML-отчёт", 0, nullptr, "open-report", nullptr},
     {L"Каталог команд…", 0, nullptr, "catalog", nullptr},
     {L"Командная строка (администратор)…", 0, nullptr, "cmd", nullptr},
-    {L"О программе · Tynychsoft", 0, nullptr, "about", nullptr},
+    {L"О программе WinRepair", 0, nullptr, "about", nullptr},
     {L"Снимок системы", 1, ModSystem, "system", nullptr},
     {L"Память (SMBIOS, диагностика)", 1, ModMemory, "memory", nullptr},
     {L"Загрузка (BCD / GPT / WinRE)", 1, ModBoot, "boot", nullptr},
@@ -79,6 +81,7 @@ Action kActions[] = {
     {L"Драйверы и устройства с ошибками", 4, ModDrivers, "drivers", nullptr},
     {L"BSOD: события и дампы", 4, ModBsod, "bsod", nullptr},
     {L"Разбор дампов (заголовок + cdb)", 4, ModDump, "dump", nullptr},
+    {L"Справочник кодов BSOD…", 4, nullptr, "bsodref", nullptr},
     {L"Ошибки System / Application", 5, ModEvents, "events", nullptr},
     {L"Сетевая диагностика", 6, ModNetwork, "network", nullptr},
     // Вкладка «Инструменты ремонта»: ряды по назначению (при 5 колонках) —
@@ -144,6 +147,7 @@ const ActionDesc kDescs[] = {
     {"drivers", L"Устройства с ошибками драйверов (код проблемы, ИД оборудования) и список установленных пакетов драйверов. Помогает найти устройство без драйвера. Только чтение."},
     {"bsod", L"События BugCheck за выбранный период и найденные файлы дампов (Minidump, MEMORY.DMP). Код синего экрана — категория, а не диагноз. Только чтение."},
     {"dump", L"Разбор файлов дампов: заголовок и коды остановки; если в папке Tools есть cdb.exe, выполняется подробный анализ. Только чтение."},
+    {"bsodref", L"Справочник типовых кодов синего экрана: что означает код, с чего начать проверку и что важно знать. Поиск по коду (7B, 0x7B) и названию. Только чтение."},
     {"events", L"Ошибки и критические события из журналов System и Application за выбранный период. Только чтение."},
     {"network", L"Сетевая диагностика: адаптеры, настройки IP, шлюз, DNS, проверка связи с указанным хостом и портом. Только чтение."},
     {"registry", L"Офлайн-редактор реестра выбранной Windows: просмотр и правка кустов (SYSTEM, SOFTWARE, профили пользователей). Перед изменением сохраняется копия ветки; правки подтверждаются и пишутся в журнал."},
@@ -152,6 +156,8 @@ const ActionDesc kDescs[] = {
     {"explorer", L"Автономный проводник для файлов выбранной (в том числе неработающей) Windows: дерево дисков, копирование, перемещение, переименование, поиск. Удаление по умолчанию — в карантин WinRepair_Removed (обратимо), есть окончательное удаление и получение прав владельца, если доступ запрещён."},
     {"autoruns", L"Автозагрузка и службы выбранной (в том числе офлайн) Windows: ключи Run, задачи, службы, драйверы. Подозрительные записи можно отключить, режим запуска служб менять (аналог msconfig). Отключение обратимо."},
     {"fixes", L"Обратимые исправления после заражения: Winlogon Shell/Userinit, IFEO, AppInit_DLLs, политики, прокси, файл hosts и др. Каждое исправление описано, подтверждается и записывается в журнал."},
+    {"password", L"Снятие пароля и разблокировка локальных учётных записей выбранной офлайн-Windows (из WinPE/WinRE). Снятие пароля = вход с пустым паролем; можно включить отключённую запись и снять блокировку. Учётные записи Microsoft офлайн не сбрасываются. Перед изменением сохраняется копия куста SAM; новый пароль не задаётся и в журнал не пишется."},
+    {"partition", L"Разделы диска (обёртка над diskpart) для работы из WinPE/WinRE: список дисков и их разделов/томов, создание, удаление, форматирование, назначение буквы, активный раздел (MBR), сжатие/расширение, очистка диска (clean) и конвертация GPT/MBR. ВСЕ операции необратимы — данные не восстановить; для продвинутых пользователей."},
     {"rstrui", L"Запускает мастер восстановления системы (rstrui.exe) для отката к точке восстановления, если она есть. Меняет систему, потребуется подтверждение."},
     {"winpeusb", L"Собирает независимый загрузочный WinPE с автозапуском WinRepair: укажите корень флешки (FAT32) — и с неё можно загрузить любой компьютер. База — Windows ADK (если установлен) или winre.wim этой системы."},
     {"restore-info", L"Показывает, какие точки восстановления есть в системе, их дату и описание. Только чтение."},
@@ -171,8 +177,8 @@ const wchar_t* DescOf(const char* name) {
 
 // Purpose of a command -> colour (see ui_theme.h)
 theme::Cat CatOfAction(const char* n) {
-    static const char* guide[] = {"triage", "playbooks", "catalog", "cmd"};
-    static const char* repair[] = {"repair", "fixes", "registry", "bcd", "autoruns", "winre", "winre-menu", "winpeusb", "storagefix", "rstrui", "apps", "explorer"};
+    static const char* guide[] = {"triage", "playbooks", "catalog", "cmd", "bsodref"};
+    static const char* repair[] = {"repair", "fixes", "password", "partition", "registry", "bcd", "autoruns", "winre", "winre-menu", "winpeusb", "storagefix", "rstrui", "apps", "explorer"};
     static const char* protect[] = {"restorepoint", "savedata", "backups", "undo"};
     for (auto g : guide) if (!strcmp(n, g)) return theme::Cat::Guide;
     for (auto g : repair) if (!strcmp(n, g)) return theme::Cat::Repair;
@@ -584,6 +590,7 @@ void StartAction(int idx) {
         if (!strcmp(a.name, "open-report")) OpenLastReport();
         else if (!strcmp(a.name, "catalog")) OpenCatalog();
         else if (!strcmp(a.name, "cmd")) OpenAdminCmd();
+        else if (!strcmp(a.name, "bsodref")) OpenBsodReference();
         else if (!strcmp(a.name, "triage")) OpenTriage();
         else if (!strcmp(a.name, "playbooks")) OpenPlaybooks();
         else if (!strcmp(a.name, "registry")) OpenRegistryEditor();
@@ -592,6 +599,8 @@ void StartAction(int idx) {
         else if (!strcmp(a.name, "apps")) OpenInstalledApps();
         else if (!strcmp(a.name, "explorer")) OpenOfflineExplorer();
         else if (!strcmp(a.name, "fixes")) OpenFixWizard();
+        else if (!strcmp(a.name, "password")) OpenPasswordTool();
+        else if (!strcmp(a.name, "partition")) OpenPartitionTool();
         else if (!strcmp(a.name, "rstrui")) { Target t = CurrentTarget(); QuickCmd(t.valid && t.online ? 56 : 57); }
         else if (!strcmp(a.name, "restore-info")) QuickCmd(59);
         else if (!strcmp(a.name, "winre")) OpenWinReManager();
@@ -652,7 +661,7 @@ void ShowAbout() {
     std::string t = fmt("%s %s\nРазработчик: %s\n%s\n\nНативное приложение Win32 (C++17), без зависимостей от .NET, PowerShell и VC++ Runtime.\n\n"
                         "Среда: %s, %s%s\nАдминистратор: %s\nЖурналы и отчёты: %s",
                         kAppName, kAppVersion, WR_COMPANY, WR_COPYRIGHT, e.osName.c_str(), e.arch.c_str(), e.isWinPE ? " (WinPE)" : "", e.isAdmin ? "да" : "нет", DataDir().c_str());
-    MessageBoxW(g_wnd, W(t).c_str(), L"О программе — Tynychsoft", MB_OK | MB_ICONINFORMATION);
+    MessageBoxW(g_wnd, W(t).c_str(), L"О программе WinRepair", MB_OK | MB_ICONINFORMATION);
 }
 
 void CopyLog() {   // whole log to the clipboard (handy for pasting into a ticket or a message)
@@ -799,6 +808,64 @@ HWND MkC(HWND parent, const wchar_t* cls, const wchar_t* text, DWORD style, int 
     return h;
 }
 
+// Цвет и метка команды каталога по действию: синий — только чтение, бирюзовый — открывает окно Windows,
+// оранжевый — меняет систему, красный — опасно, серый — только инструкция (ничего не запускается).
+COLORREF CatToneColor(const CmdItem& it, const wchar_t** label) {
+    const wchar_t* l;
+    COLORREF c;
+    if (it.kind == CKind::Manual) { l = L"инструкция"; c = RGB(110, 118, 130); }
+    else if (it.risk == Risk::Danger) { l = L"опасно"; c = RGB(200, 32, 32); }
+    else if (it.risk == Risk::Changing) { l = L"меняет систему"; c = RGB(214, 110, 0); }
+    else if (it.kind == CKind::Launch) { l = L"окно Windows"; c = RGB(0, 137, 123); }
+    else { l = L"только чтение"; c = RGB(26, 103, 210); }
+    if (label) *label = l;
+    return c;
+}
+
+void CatDrawItem(const DRAWITEMSTRUCT* d) {
+    if (d->itemID == (UINT)-1) return;
+    HDC dc = d->hDC;
+    RECT r = d->rcItem;
+    bool sel = (d->itemState & ODS_SELECTED) != 0;
+    const auto& all = Catalog();
+    int idx = (d->itemID < g_catMap.size()) ? g_catMap[d->itemID] : -1;
+    const wchar_t* lbl = L"";
+    COLORREF acc = idx >= 0 ? CatToneColor(all[(size_t)idx], &lbl) : RGB(120, 120, 120);
+    HBRUSH bg = CreateSolidBrush(sel ? theme::Mix(RGB(255, 255, 255), acc, 22) : (d->itemID % 2 ? RGB(250, 251, 253) : RGB(255, 255, 255)));
+    FillRect(dc, &r, bg);
+    DeleteObject(bg);
+    RECT st{r.left, r.top + S(1), r.left + S(6), r.bottom - S(1)};
+    HBRUSH sb = CreateSolidBrush(acc);
+    FillRect(dc, &st, sb);
+    // метка типа справа — цветная «плашка»
+    std::wstring tag = TrW(lbl);
+    HGDIOBJ of = SelectObject(dc, theme::Small());
+    SIZE ts{};
+    GetTextExtentPoint32W(dc, tag.c_str(), (int)tag.size(), &ts);
+    RECT pill{r.right - ts.cx - S(18), r.top + S(4), r.right - S(6), r.bottom - S(4)};
+    HBRUSH pb = CreateSolidBrush(theme::Mix(RGB(255, 255, 255), acc, sel ? 30 : 14));
+    HPEN pp = CreatePen(PS_SOLID, 1, acc);
+    HGDIOBJ ob = SelectObject(dc, pb), op = SelectObject(dc, pp);
+    RoundRect(dc, pill.left, pill.top, pill.right, pill.bottom, S(10), S(10));
+    SelectObject(dc, ob);
+    SelectObject(dc, op);
+    DeleteObject(pb);
+    DeleteObject(pp);
+    DeleteObject(sb);
+    SetBkMode(dc, TRANSPARENT);
+    SetTextColor(dc, acc);
+    DrawTextW(dc, tag.c_str(), -1, &pill, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    // текст команды
+    SelectObject(dc, sel ? theme::Semi() : g_font);
+    SetTextColor(dc, theme::Text());
+    wchar_t buf[600] = L"";
+    SendMessageW(d->hwndItem, LB_GETTEXT, d->itemID, (LPARAM)buf);
+    RECT tr{r.left + S(14), r.top, pill.left - S(8), r.bottom};
+    DrawTextW(dc, buf, -1, &tr, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
+    SelectObject(dc, of);
+    if (d->itemState & ODS_FOCUS) DrawFocusRect(dc, &r);
+}
+
 void CatLayout(HWND h) {
     RECT rc;
     GetClientRect(h, &rc);
@@ -851,6 +918,17 @@ LRESULT CALLBACK CatProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
     switch (m) {
         case WM_CONTEXTMENU: CatContextMenu(h, (HWND)wp, lp); return 0;
         case WM_SIZE: if (g_catClose) CatLayout(h); return 0;
+        case WM_MEASUREITEM: { auto* mi = (MEASUREITEMSTRUCT*)lp; if (mi->CtlID == IDC_CAT_LIST) { mi->itemHeight = S(28); return TRUE; } break; }
+        case WM_DRAWITEM: {
+            auto* d = (DRAWITEMSTRUCT*)lp;
+            if (d->CtlID == IDC_CAT_LIST) { CatDrawItem(d); return TRUE; }
+            if (d->CtlType == ODT_BUTTON) {
+                theme::Cat c = d->CtlID == IDC_CAT_RUN ? theme::Cat::Repair : d->CtlID == IDC_CAT_FIND ? theme::Cat::Diag : theme::Cat::Info;
+                theme::DrawButton(d, c, theme::IsHover(d->hwndItem));
+                return TRUE;
+            }
+            break;
+        }
         case WM_GETMINMAXINFO: { auto* mm = (MINMAXINFO*)lp; mm->ptMinTrackSize.x = S(820); mm->ptMinTrackSize.y = S(560); return 0; }
         case WM_COMMAND: {
             int id = LOWORD(wp), code = HIWORD(wp);
@@ -894,7 +972,7 @@ void OpenCatalog() {
         if (std::find(g_catCats.begin(), g_catCats.end(), std::string(it.cat)) == g_catCats.end()) g_catCats.push_back(it.cat);
     for (const auto& c : g_catCats) SendMessageW(g_catFilter, CB_ADDSTRING, 0, (LPARAM)W(c).c_str());
     SendMessageW(g_catFilter, CB_SETCURSEL, 0, 0);
-    g_catList = MkC(h, L"LISTBOX", L"", LBS_NOTIFY | WS_VSCROLL | WS_HSCROLL | WS_TABSTOP, IDC_CAT_LIST, WS_EX_CLIENTEDGE);
+    g_catList = MkC(h, L"LISTBOX", L"", LBS_NOTIFY | LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP, IDC_CAT_LIST, WS_EX_CLIENTEDGE);
     g_catDesc = MkC(h, L"EDIT", L"", ES_MULTILINE | ES_READONLY | WS_VSCROLL, IDC_CAT_DESC, WS_EX_CLIENTEDGE);
     static const wchar_t* lbl[6] = {L"Том (например C:)", L"Источник (/Source: папка или wim:файл:индекс)", L"Узел / имя (host, IP)", L"Путь Windows (например C:\\Windows)", L"EFI-раздел (буква, например S:)", L"BCD-хранилище (файл; пусто = хранилище текущей среды)"};
     Target t = CurrentTarget();
@@ -904,9 +982,10 @@ void OpenCatalog() {
         if (i == 5) g_catEd[i] = MkC(h, L"COMBOBOX", W(def[i]).c_str(), CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP, IDC_CAT_E0 + i);
         else g_catEd[i] = MkC(h, L"EDIT", W(def[i]).c_str(), ES_AUTOHSCROLL | WS_TABSTOP, IDC_CAT_E0 + i, WS_EX_CLIENTEDGE);
     }
-    g_catFind = MkC(h, L"BUTTON", L"Найти BCD", BS_PUSHBUTTON | WS_TABSTOP, IDC_CAT_FIND);
-    g_catRun = MkC(h, L"BUTTON", L"Выполнить…", BS_DEFPUSHBUTTON | WS_TABSTOP, IDC_CAT_RUN);
-    g_catClose = MkC(h, L"BUTTON", L"Закрыть", BS_PUSHBUTTON | WS_TABSTOP, IDC_CAT_CLOSE);
+    g_catFind = MkC(h, L"BUTTON", L"Найти BCD", BS_OWNERDRAW | WS_TABSTOP, IDC_CAT_FIND);
+    g_catRun = MkC(h, L"BUTTON", L"Выполнить…", BS_OWNERDRAW | WS_TABSTOP, IDC_CAT_RUN);
+    g_catClose = MkC(h, L"BUTTON", L"Закрыть", BS_OWNERDRAW | WS_TABSTOP, IDC_CAT_CLOSE);
+    for (HWND b : {g_catFind, g_catRun, g_catClose}) theme::AttachHover(b);
     SendMessageW(g_catDesc, WM_SETFONT, (WPARAM)g_mono, TRUE);
     CatLayout(h);
     CatFillList();
@@ -1222,6 +1301,8 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             else if (*n == "registry") wr::OpenRegistryEditor();
             else if (*n == "winre") wr::OpenWinReManager();
             else if (*n == "fixes") wr::OpenFixWizard();
+            else if (*n == "password") wr::OpenPasswordTool();
+            else if (*n == "partition") wr::OpenPartitionTool();
             else if (*n == "triage") wr::OpenTriage();
             else if (*n == "playbooks") wr::OpenPlaybooks();
             else if (*n == "catalog") OpenCatalog();

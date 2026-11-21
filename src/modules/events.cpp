@@ -1,6 +1,7 @@
 // Event log access via wevtapi (loaded dynamically: the exe starts even if the DLL is absent), BSOD report.
 #include "../win/app.h"
 #include "../core/bsod_catalog.h"
+#include "../core/event_explain.h"
 
 #include <winevt.h>
 
@@ -149,6 +150,33 @@ bool QueryEvents(const Ctx& c, const std::string& logName, const std::string& xp
 
 // ---------------------------------------------------------------------------------------------
 
+void AddEventGroups(Section& sec, const std::vector<EvtRow>& rows, size_t maxGroups) {
+    struct G { std::string provider, log, last, sample; unsigned id = 0; int count = 0; };
+    std::map<std::string, G> groups;
+    for (const auto& e : rows) {   // rows отсортированы от новых к старым: первое в группе — самое свежее
+        std::string key = e.provider + "#" + std::to_string(e.id);
+        G& g = groups[key];
+        if (g.count == 0) { g.provider = e.provider; g.id = e.id; g.log = e.log; g.last = e.time; g.sample = e.message; }
+        ++g.count;
+    }
+    std::vector<G> v;
+    for (auto& p : groups) v.push_back(p.second);
+    std::sort(v.begin(), v.end(), [](const G& a, const G& b) { return a.count != b.count ? a.count > b.count : a.last > b.last; });
+    for (size_t i = 0; i < v.size() && i < maxGroups; ++i) {
+        const G& g = v[i];
+        const EventExplain* ex = explainEvent(g.provider, g.id);
+        bool en = CurrentLang() == Lang::EN;
+        std::string val = fmt(en ? "%d time(s), last — %s" : "%d раз(а), последний — %s", g.count, g.last.c_str());
+        if (ex) val += (en ? std::string("\nWhat it is: ") + ex->meaningEn + ".\nWhat to check: " + ex->actionEn + "."
+                           : std::string("\nЧто это: ") + ex->meaning + ".\nЧто проверить: " + ex->action + ".");
+        std::string msg = trim(g.sample);
+        for (char& ch : msg) if (ch == '\r' || ch == '\n' || ch == '\t') ch = ' ';
+        if (!msg.empty()) val += (en ? "\nMessage: " : "\nСообщение: ") + truncUtf8(msg, 260);
+        sec.rows.push_back({g.provider + (en ? " — event " : " — событие ") + std::to_string(g.id) + (g.log.empty() ? "" : " (" + g.log + ")"), val});
+    }
+    if (v.size() > maxGroups) sec.notes.push_back(fmt("Показаны %zu самых частых групп из %zu. Полный список — events.csv в папке отчёта.", maxGroups, v.size()));
+}
+
 void ModEvents(Ctx& c) {
     c.info(fmt("=== События Critical/Error за %d дн. ===", c.opt.days));
     if (!c.needTarget()) return;
@@ -188,8 +216,11 @@ void ModEvents(Ctx& c) {
             c.info(fmt("  %s [%s] %s #%u: %s", all[i].time.c_str(), all[i].log.c_str(), all[i].provider.c_str(), all[i].id, truncUtf8(all[i].message, 110).c_str()));
         c.saveText("events.csv", csv);
         c.saveText("by-provider.txt", txt);
-        sec.rows.push_back({"Critical/Error", std::to_string(all.size())});
-        for (size_t i = 0; i < top.size() && i < 5; ++i) sec.rows.push_back({top[i].second, std::to_string(top[i].first)});
+        sec.rows.push_back({"Всего ошибок и критических событий", fmt("%zu за %d дн. (журналы System и Application)", all.size(), c.opt.days)});
+        AddEventGroups(sec, all, 15);
+        sec.notes.push_back("Одно и то же событие часто повторяется много раз — поэтому события сгруппированы по источнику и коду. "
+                            "Важнее всего события дисков (disk, Ntfs, stornvme), Kernel-Power 41, BugCheck 1001 и WHEA-Logger; "
+                            "ошибки DistributedCOM 10016 обычно безвредны.");
     }
     if (c.res) c.res->setSection(sec);
 }
@@ -221,11 +252,15 @@ void ModBsod(Ctx& c) {
         Json o = Json::object();
         o.set("Time", r.time).set("Code", have ? fmt("0x%08X", code) : "").set("CodeName", ce ? ce->name : "");
         if (ce) {
-            o.set("Catalog", Json::object().set("category", ce->category).set("first_step", ce->firstStep).set("note", ce->note));
-            c.info(fmt("   категория: %s; с чего начать: %s; примечание: %s", ce->category, ce->firstStep, ce->note));
+            bool en = CurrentLang() == Lang::EN;
+            const char* w = en ? ce->whatEn : ce->what; const char* st = en ? ce->stepsEn : ce->steps; const char* im = en ? ce->importantEn : ce->important;
+            o.set("Catalog", Json::object().set("category", ce->category).set("what", ce->what).set("first_step", ce->steps).set("important", ce->important));
+            c.info(std::string(en ? "   what it is: " : "   что это: ") + w);
+            c.info(std::string(en ? "   first step: " : "   первый шаг: ") + st + (en ? "; important: " : "; важно: ") + im);
         }
         je.add(o);
-        sec.rows.push_back({r.time, fmt("%s %s", have ? fmt("0x%08X", code).c_str() : "?", ce ? ce->name : "")});
+        sec.rows.push_back({r.time, fmt("%s %s", have ? fmt("0x%08X", code).c_str() : "?", ce ? ce->name : "") +
+                                        (ce ? std::string(" — ") + (CurrentLang() == Lang::EN ? ce->whatEn : ce->what) + (CurrentLang() == Lang::EN ? ". First step: " : ". Первый шаг: ") + (CurrentLang() == Lang::EN ? ce->stepsEn : ce->steps) + (CurrentLang() == Lang::EN ? ". Important: " : ". Важно: ") + (CurrentLang() == Lang::EN ? ce->importantEn : ce->important) : std::string())});
     }
     if (rows.empty() && err.empty()) c.ok("Событий BugCheck за период нет.");
     rep.set("Events", je);

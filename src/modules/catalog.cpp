@@ -115,6 +115,8 @@ std::vector<CmdItem> Build() {
         {56, "Recovery", "rstrui.exe — Восстановление системы из точек", K::Launch, "rstrui.exe", 0, R::Changing, 0, nullptr, nullptr, "GUI мастер отката из точек восстановления работающей Windows.", nullptr},
         {57, "Recovery", "rstrui.exe /offline:<Windows>=active", K::Launch, "rstrui.exe|/offline:{WINRAW}=active", P_WIN, R::Changing, 0, nullptr, nullptr, "Откат офлайн-системы из точек восстановления (работает в WinRE; в WinPE нужен rstrui и компоненты восстановления).", nullptr},
         {58, "Recovery", "vssadmin list shadows /for=<том>", K::Exec, "vssadmin.exe list shadows /for={VOL}", P_VOL, R::Safe, 60, nullptr, nullptr, "Точки восстановления Windows 7+ — это теневые копии: показывает, есть ли что восстанавливать.", nullptr},
+        {84, "Recovery", "vssadmin list shadowstorage /for=<том>", K::Exec, "vssadmin.exe list shadowstorage /for={VOL}", P_VOL, R::Safe, 60, nullptr, nullptr,
+         "Сколько места отведено под теневые копии (точки восстановления) на томе и сколько занято. Если места нет или его 0 — точки восстановления не создаются. Работает для текущей Windows.", nullptr},
         {59, "Recovery", "Точки восстановления: состояние защиты и список", K::Native, nullptr, 0, R::Safe, 0, nullptr, nullptr, "Читает настройки System Restore целевой ОС (в т.ч. офлайн) и список теневых копий.", NatRestorePoints},
         {60, "DISM/SFC", "DISM /Cleanup-Image /AnalyzeComponentStore", K::Exec, "{DISM} /Cleanup-Image /AnalyzeComponentStore", 0, R::Safe, 0, nullptr, nullptr, "Анализ хранилища компонентов, без изменений.", nullptr},
         {61, "DISM/SFC", "DISM /Cleanup-Image /StartComponentCleanup", K::Exec, "{DISM} /Cleanup-Image /StartComponentCleanup", 0, R::Changing, 0, nullptr, nullptr, "ИЗМЕНЯЕТ: очищает устаревшие компоненты WinSxS.", nullptr},
@@ -232,6 +234,11 @@ std::string ScopeWarning(const CmdItem& it, const Target& t) {
     for (int n : envOnly)
         if (it.no == n) return "ВНИМАНИЕ: команда описывает ТЕКУЩУЮ среду (например WinPE), а не выбранную целевую Windows.";
     if (it.no == 17 || it.no == 66) return "";
+    static const int win8plus[] = {10, 11, 12, 14, 60, 61};   // параметры DISM, которых нет в Windows 7
+    for (int n : win8plus)
+        if (it.no == n && TargetIsWin7OrOlder(t))
+            return "ВНИМАНИЕ: целевая система — Windows 7. Этот параметр DISM для неё не поддерживается (ошибка 87 — «неверный параметр»), "
+                   "это не признак повреждения. Используйте sfc /scannow (команда 13) — для офлайн-системы программа сама добавит /offbootdir и /offwindir.";
     return "";
 }
 

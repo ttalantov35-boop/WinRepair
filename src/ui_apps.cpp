@@ -9,10 +9,10 @@ namespace ui {
 
 namespace {
 
-enum { ID_TARGET = 7001, ID_SCAN, ID_QF, ID_QFLBL, ID_HIDEUPD, ID_ONLYAV, ID_LIST, ID_INFO, ID_B0 = 7100, NB = 8 };
+enum { ID_TARGET = 7001, ID_SCAN, ID_QF, ID_QFLBL, ID_HIDEUPD, ID_ONLYAV, ID_LIST, ID_INFO, ID_LEGEND, ID_B0 = 7100, NB = 8 };
 
 struct State {
-    HWND wnd = nullptr, combo, list, qf, hideUpd, onlyAv, info, btn[NB];
+    HWND wnd = nullptr, combo, list, qf, hideUpd, onlyAv, info, legend, btn[NB];
     std::vector<Target> targets;
     std::vector<AppItem> items;
     std::vector<AutoItem> startup;   // all autoruns/services/drivers of the scanned system (to find what belongs to a program)
@@ -44,6 +44,18 @@ std::string CategoryOf(const AppItem& a) {
     if (l.find("driver") != std::string::npos || l.find("драйвер") != std::string::npos || l.find("nvidia") != std::string::npos || l.find("intel(r)") != std::string::npos || l.find("realtek") != std::string::npos || l.find("amd ") != std::string::npos) return "Драйвер / утилита";
     if (l.find("microsoft") != std::string::npos) return "Microsoft";
     return "Программа";
+}
+
+// Цвет строки: красный — антивирус/защита (частая причина незагрузки), оранжевый — папка программы не найдена,
+// синий — Microsoft, бирюзовый — драйвер/утилита оборудования, зелёный — обычная программа, серый — обновления и системное.
+Tone ToneOf(const AppItem& a) {
+    if (IsAv(a)) return Tone::Red;
+    if (a.update || a.system) return Tone::Gray;
+    if (!a.location.empty() && !a.dirExists) return Tone::Orange;
+    std::string c = CategoryOf(a);
+    if (c == "Microsoft") return Tone::Blue;
+    if (c == "Драйвер / утилита") return Tone::Teal;
+    return Tone::Green;
 }
 
 std::string SizeText(const AppItem& a) { return a.sizeKB ? fmt("%.1f МБ", a.sizeKB / 1024.0) : ""; }
@@ -221,9 +233,11 @@ void Layout() {
     Place(A.onlyAv, m + S(75) + std::min(S(380), W_ / 3) + S(380), y + S(3), S(280), S(20));
     y += S(32);
     int bh = S(32), rows = 2;
-    int listH = H - y - m - rows * (bh + S(6)) - S(30);
+    int listH = H - y - m - rows * (bh + S(6)) - S(30) - S(24);
     Place(A.list, m, y, W_ - 2 * m, listH);
     y += listH + S(4);
+    Place(A.legend, m, y, W_ - 2 * m, S(20));
+    y += S(24);
     Place(A.info, m, y, W_ - 2 * m, S(22));
     y += S(26);
     int bw = (W_ - 2 * m - (NB / 2 - 1) * S(6)) / (NB / 2);
@@ -317,19 +331,8 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
                 if (k == VK_F5) Scan();
                 else if (ctrl && k == 'F') SetFocus(A.qf);
                 else if (ctrl && k == 'C') { int si = ListView_GetNextItem(A.list, -1, LVNI_SELECTED); if (si >= 0) ClipText(A.wnd, ListRowText(A.list, si)); }
-            } else if (nh->hwndFrom == A.list && nh->code == NM_CUSTOMDRAW) {   // security software stands out
-                auto* cd = (NMLVCUSTOMDRAW*)lp;
-                if (cd->nmcd.dwDrawStage == CDDS_PREPAINT) return CDRF_NOTIFYITEMDRAW;
-                if (cd->nmcd.dwDrawStage == CDDS_ITEMPREPAINT) {
-                    size_t r = (size_t)cd->nmcd.dwItemSpec;
-                    if (r < A.view.size() && !(ListView_GetItemState(A.list, (int)r, LVIS_SELECTED) & LVIS_SELECTED)) {
-                        const AppItem& a = A.items[(size_t)A.view[r]];
-                        if (IsAv(a)) cd->clrTextBk = RGB(255, 226, 196);
-                        else if (a.update || a.system) cd->clrText = RGB(125, 125, 125);
-                    }
-                    return CDRF_NEWFONT;
-                }
-                return CDRF_DODEFAULT;
+            } else if (nh->hwndFrom == A.list && nh->code == NM_CUSTOMDRAW) {   // цвет строки — по виду программы (легенда под списком)
+                return ListToneDraw(lp, [](int r) { return r >= 0 && r < (int)A.view.size() ? ToneOf(A.items[(size_t)A.view[(size_t)r]]) : Tone::None; }, 0, true);
             }
             return 0;
         }
@@ -353,7 +356,7 @@ void OpenAppsImpl() {
     Mk(h, L"STATIC", L"Целевая ОС:", SS_LEFT, 7900);
     A.combo = Mk(h, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, ID_TARGET);
     A.targets = FillTargetCombo(A.combo, false);
-    Mk(h, L"BUTTON", L"Сканировать", BS_PUSHBUTTON | WS_TABSTOP, ID_SCAN);
+    MkBtn(h, L"Сканировать", ID_SCAN, Tone::Blue);
     Mk(h, L"STATIC", L"Фильтр:", SS_LEFT, ID_QFLBL);
     A.qf = Mk(h, L"EDIT", L"", ES_AUTOHSCROLL | WS_TABSTOP, ID_QF, WS_EX_CLIENTEDGE);
     SendMessageW(A.qf, EM_SETCUEBANNER, TRUE, (LPARAM)TrW(L"Название, издатель, папка… (Ctrl+F)").c_str());
@@ -366,7 +369,10 @@ void OpenAppsImpl() {
     for (int i = 0; i < kN; ++i) { LVCOLUMNW c{}; c.mask = LVCF_TEXT | LVCF_WIDTH; c.pszText = (LPWSTR)kCols[i]; c.cx = cw[i]; ListView_InsertColumn(A.list, i, &c); }
     A.info = Mk(h, L"STATIC", L"Выберите целевую ОС и нажмите «Сканировать».", SS_LEFT, ID_INFO);
     const wchar_t* bt[] = {L"Что связано…", L"Принудительное удаление…", L"Отключить только запуск…", L"Удалить только запись…", L"Папка в проводнике…", L"Службы и автозагрузка…", L"Экспорт CSV…", L"Закрыть"};
-    for (int i = 0; i < NB; ++i) A.btn[i] = Mk(h, L"BUTTON", bt[i], BS_PUSHBUTTON | WS_TABSTOP, ID_B0 + i);
+    const Tone bc[] = {Tone::Blue, Tone::Orange, Tone::Orange, Tone::Orange, Tone::Teal, Tone::Teal, Tone::Green, Tone::Gray};
+    for (int i = 0; i < NB; ++i) A.btn[i] = MkBtn(h, bt[i], ID_B0 + i, bc[i]);
+    A.legend = MkLegend(h, ID_LEGEND, {{Tone::Red, L"антивирус / защита"}, {Tone::Green, L"программа"}, {Tone::Teal, L"драйвер / утилита"}, {Tone::Blue, L"Microsoft"},
+                                       {Tone::Orange, L"папка не найдена"}, {Tone::Gray, L"обновление / системное"}});
     Layout();
     ShowWindow(h, SW_SHOW);
     UpdateWindow(h);

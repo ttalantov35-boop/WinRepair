@@ -42,7 +42,8 @@ struct DiskInfo {
 
 struct Section {
     std::string title;
-    std::vector<std::pair<std::string, std::string>> rows;
+    std::vector<std::pair<std::string, std::string>> rows;   // значение может быть многострочным ("\n" → новая строка в отчёте)
+    std::vector<std::string> notes;                           // пояснения под таблицей раздела в HTML-отчёте
 };
 
 struct Results {
@@ -137,6 +138,11 @@ bool QueryEvents(const Ctx& c, const std::string& logName, const std::string& xp
                  bool wantMsg, bool wantXml, std::vector<EvtRow>& out, std::string& err);
 std::string XpathRecent(int days, const std::string& extraCond);  // events.cpp
 
+// Целевая Windows 7 или старше (по версии ядра ntoskrnl.exe: 6.1 и ниже). DISM /CheckHealth, /ScanHealth,
+// /RestoreHealth и /AnalyzeComponentStore для неё не работают (ошибка 87) — только SFC.   (os.cpp)
+bool TargetIsWin7OrOlder(const Target& t, std::string* kernelVersion = nullptr);
+// Группы событий «источник + код» с пояснением (core/event_explain.h): строки раздела отчёта, самые частые сверху.
+void AddEventGroups(Section& sec, const std::vector<EvtRow>& rows, size_t maxGroups);   // events.cpp
 std::string FindCdb();                                             // dump.cpp
 std::string DumpDirOf(const Target& t);
 

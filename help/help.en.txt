@@ -45,11 +45,11 @@ On screen the log shows only the main lines. The full output of every command go
 # Tabs and features {#tabs}
 Tabs 1–7 mostly only read data. The system is changed by "REPAIR integrity", "Create restore point" and the tools on the "Repair tools" tab. Every change is confirmed.
 
-- Overview — "What happened?" wizard, repair playbooks, bootable WinPE USB stick, full diagnostics + HTML report, command catalog, command prompt (administrator), "About · Tynychsoft".
+- Overview — "What happened?" wizard, repair playbooks, bootable WinPE USB stick, full diagnostics + HTML report, command catalog, command prompt (administrator), "About WinRepair".
 - System — system snapshot, memory (SMBIOS), boot (BCD / GPT / WinRE).
 - Disks — disks, SMART, file system errors.
-- Integrity — check without changes; "REPAIR integrity (DISM + SFC)"; create a restore point.
-- Drivers and BSOD — devices with errors, blue screen events, crash dump analysis. For full analysis (!analyze -v) put cdb.exe into the Tools folder next to the program.
+- Integrity — check without changes; "REPAIR integrity (DISM + SFC)"; create a restore point. If the target disk has Windows 7, only SFC is run: DISM /CheckHealth, /ScanHealth and /RestoreHealth do not work on Windows 7 (error 87 is not damage).
+- Drivers and BSOD — devices with errors (with the problem code explained), blue screen events, crash dump analysis, BSOD code reference. For full analysis (!analyze -v) put cdb.exe into the Tools folder next to the program.
 - Events — System and Application log errors for the selected period. Offline, *.evtx files are read.
 - Network — network check up to the given host and port.
 - Repair tools — windows for repairing the selected Windows (sections below).
@@ -58,7 +58,15 @@ Tabs 1–7 mostly only read data. The system is changed by "REPAIR integrity", "
 Pick a symptom: does not boot, blue screen, disk not visible, suspected malware, no network, slow or reboots, updates fail. The program runs read-only checks and lists findings by severity with a recommended action. The result is saved as triage.txt and triage.json.
 
 ## Command catalog {#catalog}
-Overview → "Command catalog": ready-made Windows commands with parameter fields and a category filter — diagnostics, DISM/SFC, boot/BCD, disks, network, recovery, WinPE. Every run is confirmed; bcdboot, bootrec /fixmbr, /fixboot, /rebuildbcd and chkdsk /f /r are confirmed twice. For an offline system DISM and SFC switch to /Image: and /offwindir automatically. Dangerous procedures (Driver Verifier, removing updates, reinstalling) are given as instructions only — the program does not run them.
+Overview → "Command catalog": ready-made Windows commands with parameter fields and a category filter — diagnostics, DISM/SFC, boot/BCD, disks, network, recovery, WinPE.
+
+The colour bar on the left and the tag on the right show what a command does:
+- blue — read-only;
+- teal — opens a Windows window;
+- orange — changes the system;
+- red — dangerous (make a backup first);
+- grey — instructions only, nothing is run.
+ Every run is confirmed; bcdboot, bootrec /fixmbr, /fixboot, /rebuildbcd and chkdsk /f /r are confirmed twice. For an offline system DISM and SFC switch to /Image: and /offwindir automatically. Dangerous procedures (Driver Verifier, removing updates, reinstalling) are given as instructions only — the program does not run them.
 
 # Repair tools {#repair}
 All windows work with the selected target Windows, not with WinPE itself.
@@ -73,7 +81,7 @@ Finds BCD stores on all partitions (including hidden ones and the ESP), shows an
 Run and RunOnce, Startup folders, Winlogon, IFEO, AppInit_DLLs, BootExecute, services, drivers, scheduled tasks. "File missing" and "suspicious" marks, quick filter, reversible disable, delete, edit command, clean boot mode with rollback, CSV export.
 
 ## Installed applications {#apps}
-Programs of the selected system. Forced removal of a program that stops Windows from starting (for example an antivirus): startup items are disabled, the folder goes to quarantine, the uninstall entry is deleted with a .reg backup.
+Programs of the selected system. Row colour: red — antivirus or security software (a common cause of boot problems), green — ordinary program, teal — driver or hardware utility, blue — Microsoft, orange — program folder not found, grey — updates and system components. Forced removal of a program that stops Windows from starting (for example an antivirus): startup items are disabled, the folder goes to quarantine, the uninstall entry is deleted with a .reg backup.
 
 ## Offline file explorer {#explorer}
 Files of the selected Windows: copy, quarantine, delete, take ownership and permissions, search.
@@ -89,6 +97,40 @@ Enter the recovery environment on next boot, repair the WinRE BCD entry, "WinRE 
 
 ## System Restore {#rstrui}
 rstrui (also for an offline Windows from WinPE) and the state of restore points.
+
+## Password removal and account unlock {#password}
+The "Reset password and unlock accounts…" item on the "Overview" tab. For an offline Windows (from WinPE/WinRE): lists local accounts from SAM (name, RID, type, state, whether a password is set, Microsoft-account flag).
+Actions: reset the password (log in with an empty password), reset and enable login (one button for a forgotten password), enable a disabled account, clear a lockout.
+Safety: the SAM hive is backed up first (undo via "Undo session changes"); the new password is never set or written to the log. Microsoft accounts cannot be reset offline. After a reset, that account's EFS-encrypted files and saved passwords become unreadable.
+
+## Disk partitions (diskpart) {#partition}
+The "Disk partitions…" item on the "Overview" tab. A diskpart wrapper for WinPE/WinRE working on physical disks. Lists disks and their partitions/volumes (number, offset, size, type, letter, FS, label, free) with a visual size bar; click the bar or right-click the list to select and open the operations menu.
+Operations: create a partition, delete, format (NTFS/FAT32/exFAT), assign/remove a drive letter, active partition (MBR), shrink/split, extend, convert GPT↔MBR.
+All operations are irreversible — data cannot be recovered. Every operation is confirmed; the disk header shows model, size and serial number — check it so you do not pick the wrong disk. For advanced users.
+
+## Colours in tool windows
+The colours mean the same in every window. Buttons: blue — check (read-only), teal — opens another tool, orange — changes the system, red — dangerous action (for example, restart now), green — protection or undo, grey — service. List rows: in the "Infection fix wizard" and "Playbooks" — by risk (green — safe, orange — changes, red — dangerous), in "What happened?" — by severity (red — problem, orange — attention, green — fine).
+
+# BSOD code reference {#bsod}
+The "BSOD code reference…" button on the "Drivers and BSOD" tab. For every common blue screen code: what it means, the first check and what is important.
+
+- Search by code (7B, 0x7B, 0x0000007B) or by name (for example IRQL).
+- "Common codes only" — the codes seen most often.
+- Row colour — group of causes: blue — driver or software, orange — memory, teal — disk or boot, green — Windows integrity or registry, red — hardware.
+- The "BSOD: events and dumps" and "Dump analysis" buttons start the checks right away.
+
+A BSOD code is a category, not a diagnosis. The cause is shown by the dump (module on the stack), the event log and checks of disks, memory and drivers. One code is never a reason to replace hardware or reinstall Windows.
+
+Dumps are in %SystemRoot%\Minidump (small) and %SystemRoot%\MEMORY.DMP (full, if enabled).
+
+# Full diagnostics and HTML report {#report}
+"Full diagnostics + HTML report" on the Overview tab checks 9 areas and saves report.html.
+
+- At the top — the health score and what lowered it.
+- Every section starts with a note on what was checked.
+- Rows on a red background are problems, on green — the check passed.
+- Device codes (for example 22, 28, 43), event log entries (for example Kernel-Power 41, disk 7), blue screens and DISM/SFC codes come with what they mean and what to do.
+- Identical events are grouped: how many times, when last, and a sample message.
 
 # Bootable WinPE USB stick {#winpe}
 The "Create a bootable WinPE USB stick with WinRepair…" button (Overview tab and the WinRE window) builds a stick that starts WinRepair by itself. The stick boots both in UEFI (Secure Boot can stay on) and in BIOS (Legacy).

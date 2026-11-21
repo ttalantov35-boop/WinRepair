@@ -59,9 +59,11 @@ void ModDump(Ctx& c) {
             const BsodEntry* ce = bsodByCode(di.bugcheck);
             c.info(fmt("%s: %s, BugCheck 0x%X %s | P1=0x%llX P2=0x%llX P3=0x%llX P4=0x%llX", name.c_str(), di.kind.c_str(), di.bugcheck,
                        ce ? ce->name : "", (unsigned long long)di.param[0], (unsigned long long)di.param[1], (unsigned long long)di.param[2], (unsigned long long)di.param[3]));
-            if (ce) c.info(fmt("   категория: %s; с чего начать: %s; %s", ce->category, ce->firstStep, ce->note));
+            if (ce) { bool en = CurrentLang() == Lang::EN;
+                c.info(std::string(en ? "   what it is: " : "   что это: ") + (en ? ce->whatEn : ce->what));
+                c.info(std::string(en ? "   first step: " : "   первый шаг: ") + (en ? ce->stepsEn : ce->steps) + (en ? "; important: " : "; важно: ") + (en ? ce->importantEn : ce->important)); }
             o.set("HeaderOk", true).set("Kind", di.kind).set("BugCheckCode", fmt("0x%X", di.bugcheck)).set("BugCheckName", ce ? ce->name : "");
-            sec.rows.push_back({name, fmt("0x%X %s", di.bugcheck, ce ? ce->name : "")});
+            sec.rows.push_back({name, fmt("0x%X %s", di.bugcheck, ce ? ce->name : "") + (ce ? std::string(" — ") + (CurrentLang() == Lang::EN ? ce->whatEn : ce->what) + (CurrentLang() == Lang::EN ? ". First step: " : ". Первый шаг: ") + (CurrentLang() == Lang::EN ? ce->stepsEn : ce->steps) : std::string())});
         } else {
             c.warn(name + ": заголовок не распознан — " + di.error);
             o.set("HeaderOk", false).set("Error", di.error);

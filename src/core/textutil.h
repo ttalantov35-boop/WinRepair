@@ -170,9 +170,11 @@ inline bool containsAny(const std::string& hayLower, const std::vector<const cha
     return false;
 }
 
-// Sizes
-inline std::string fmtBytes(uint64_t b) {
-    const char* u[] = {"Б", "КБ", "МБ", "ГБ", "ТБ"};
+// Sizes. en=true — английские единицы (B/KB/MB/GB/TB), иначе русские (Б/КБ/МБ/ГБ/ТБ).
+inline std::string fmtBytes(uint64_t b, bool en = false) {
+    static const char* ru[] = {"Б", "КБ", "МБ", "ГБ", "ТБ"};
+    static const char* eu[] = {"B", "KB", "MB", "GB", "TB"};
+    const char** u = en ? eu : ru;
     double v = (double)b;
     int i = 0;
     while (v >= 1024.0 && i < 4) { v /= 1024.0; ++i; }

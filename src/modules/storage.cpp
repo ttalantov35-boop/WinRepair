@@ -305,7 +305,8 @@ void ModDisk(Ctx& c) {
         }
         c.saveText("fs-events.csv", csv);
         rep.set("FsEvents", je);
-        sec.rows.push_back({fmt("События дисков/ФС (%d дн.)", c.opt.days), std::to_string(rows.size())});
+        sec.rows.push_back({fmt("События дисков и файловой системы (%d дн.)", c.opt.days), rows.empty() ? std::string("нет — хороший признак") : std::to_string(rows.size())});
+        AddEventGroups(sec, rows, 8);
         if (rows.size() > 50) c.warn("Много событий дисков/ФС — проверьте кабель/накопитель/питание.");
     } else if (!err.empty()) c.warn("Журнал событий: " + err);
 

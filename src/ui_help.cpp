@@ -341,7 +341,7 @@ std::string HelpTopicForWindowImpl(HWND w) {
         {L"WRWinPeBuild", "winpe"}, {L"WRWinRE", "winre"}, {L"WRRegistry", "registry"}, {L"WRRegFind", "registry"},
         {L"WRBcd", "bcd"}, {L"WRAutoruns", "autoruns"}, {L"WRApps", "apps"}, {L"WRExplorer", "explorer"},
         {L"WRFixes", "fixes"}, {L"WRStorage", "bitlocker"}, {L"WRTriage", "triage"}, {L"WRPlaybooks", "playbooks"},
-        {L"WinRepairCatalog", "catalog"},
+        {L"WinRepairCatalog", "catalog"}, {L"WRBsod", "bsod"}, {L"WRPwd", "password"}, {L"WRPart", "partition"},
     };
     for (auto& e : map) if (!_wcsicmp(cn, e.cls)) return e.topic;
     return "";

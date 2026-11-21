@@ -124,7 +124,9 @@ COLORREF Accent(Cat c) {
 void AttachHover(HWND b) { SetWindowSubclass(b, HoverProc, 1, 0); }
 bool IsHover(HWND b) { return GetPropW(b, Prop()) != nullptr; }
 
-void DrawButton(const DRAWITEMSTRUCT* d, Cat c, bool hover) {
+COLORREF Mix(COLORREF a, COLORREF b, int pct) { return Blend(a, b, pct); }
+
+void DrawButton(const DRAWITEMSTRUCT* d, Cat c, bool hover, HBRUSH underBrush) {
     HDC dc = d->hDC;
     RECT r = d->rcItem;
     bool dis = (d->itemState & ODS_DISABLED) != 0, down = (d->itemState & ODS_SELECTED) != 0;
@@ -135,7 +137,7 @@ void DrawButton(const DRAWITEMSTRUCT* d, Cat c, bool hover) {
     // Кнопки заголовка (язык, справка, выход) — залитые цветом; остальные — светлая заливка цвета раздела,
     // толстая цветная рамка и цветная полоса слева: раздел виден сразу, кнопку легко найти глазами.
     bool filled = (c == Cat::Header || c == Cat::Exit || c == Cat::Lang || c == Cat::Help);
-    HBRUSH under = filled ? nullptr : BgBrush();
+    HBRUSH under = filled ? nullptr : (underBrush ? underBrush : BgBrush());
     if (under) FillRect(dc, &r, under);
 
     COLORREF fill, border, txt;

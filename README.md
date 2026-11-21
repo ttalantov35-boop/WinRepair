@@ -10,7 +10,7 @@ It works with several installed systems at once (C:, D:…) and needs **no** .NE
 
 ![WinRepair Toolkit main window](docs/screenshots/overview.png)
 
-**What it does:** offline registry editor (regedit-style), BCD and boot options, startup items and services (Autoruns-style), removal of programs that block Windows from starting (e.g. an antivirus), offline file explorer, "What happened?" wizard, BitLocker and storage drivers, WinRE, **its own bootable WinPE USB stick** with WinRepair autostart, **one-click undo of all session changes**, repair playbooks, reports. The interface is in English and Russian (button at the top right).
+**What it does:** offline registry editor (regedit-style), BCD and boot options, startup items and services (Autoruns-style), removal of programs that block Windows from starting (e.g. an antivirus), offline file explorer, "What happened?" wizard, **Windows password removal / account unlock**, a **disk partition manager** (diskpart), BitLocker and storage drivers, WinRE, **its own bootable WinPE USB stick** with WinRepair autostart, **one-click undo of all session changes**, repair playbooks, reports. The interface is in English and Russian (button at the top right).
 
 ![Repair tools tab](docs/screenshots/repair-tools.png)
 
@@ -40,6 +40,8 @@ All windows work with the **selected offline Windows** (not with WinPE itself).
 * **Installed applications (offline)** — the programs of the selected offline system; forced removal of an app that stops Windows from starting (startup items disabled, folder quarantined, uninstall entry deleted with a `.reg` backup).
 * **Offline file explorer** — browse the selected system's files, copy, move to quarantine, delete, take ownership/permissions, search.
 * **Infection fix wizard** — Winlogon Shell/Userinit, IFEO, AppInit, policies, proxy, hosts, key services, file associations, SafeBoot, Windows Update reset, network/WMI reset, pending operations, hive replacement from RegBack.
+* **Windows password removal / account unlock** 🆕 — for the selected offline Windows (from WinPE/WinRE): lists local accounts from SAM (name, RID, type, state, whether a password is set, Microsoft-account flag); clears the password (log in with an empty password), enables a disabled account, clears a lockout. The SAM hive is backed up first; the new password is never set or written to the log; Microsoft accounts cannot be reset offline (the tool flags them).
+* **Disk partitions (diskpart)** 🆕 — a `diskpart`-based partition manager for WinPE/WinRE: lists disks and partitions/volumes with a **visual size bar**; create, delete, format (NTFS/FAT32/exFAT), assign/remove a drive letter, set active (MBR), shrink/split, extend, convert GPT↔MBR. Disk listing uses the Windows API (independent of the diskpart language). **All operations are irreversible** — a prominent warning and a per-operation confirmation; for advanced users.
 * **System Restore** (`rstrui`, restore points, shadow copies of the target OS).
 * **WinRE** — enter WinRE on next boot, create/repair the WinRE BCD entry, WinRE + WinRepair (a copy of `winre.wim` that starts WinRepair first; firmware-aware — picks `winload.efi`/`winload.exe` for UEFI/BIOS, avoids BitLocker-encrypted volumes), Secure Boot 2023 certificate check.
 * **Bootable WinPE USB stick — an independent repair tool** 🆕 — one button ("Create a bootable WinPE USB stick with WinRepair…", also on the Overview tab) builds your own bootable WinPE where **WinRepair starts first automatically** — no third-party WinPE packs needed. Base image: **ADK WinPE** (recommended — clean, guaranteed autostart; System Restore `rstrui` is injected from the running Windows so restore points work offline) or this system's `winre.wim`. Boot files come from ADK Media or the live system; point it at the root of a FAT32 stick and it boots on any UEFI PC with **Secure Boot left on** (files are Microsoft-signed). Playbooks and languages are packed in automatically. The built image is for your own use — the Microsoft licence does not allow redistributing it, which is why every user builds their own with one click.
@@ -53,8 +55,11 @@ Pick a symptom (does not boot, blue screen, disk not visible, suspected malware,
 ### Playbooks
 `*.wrp` files in `Playbooks\` next to the exe add **new repair procedures and symptoms without recompiling** (messages, questions, confirmations, commands, fixes, modules, custom checks). Every risky step is confirmed separately and logged. Format: `docs/PLAYBOOKS.md`. Copy the `Playbooks` folder next to `WinRepair.exe` (to the USB stick or WinPE image as well).
 
-### Command catalog (79 commands)
+### Command catalog (84 commands)
 Tab "Overview" → *Command catalog*. Filter by category, parameter fields, exact command line. **Every run needs separate confirmation**; dangerous operations (`bcdboot`, `bootrec /fixmbr|/fixboot|/rebuildbcd`, `chkdsk /f /r`) ask twice. Output goes to the log and to `Data\Reports\<time>_cmdNN\`; a separate audit log is kept in `Data\Logs\commands_<date>.log`. Many commands are native (no PowerShell needed); DISM/SFC switch to `/Image:` and `/offwindir` automatically for an offline target.
+
+### Command prompt (administrator)
+Tab "Overview" → *Command prompt (administrator)…* — opens an elevated `cmd` console (in WinPE/WinRE immediately, in a running Windows via a UAC prompt), in the root of the selected target OS, with a hint about drive letters. Handy for manual commands next to the tools.
 
 ### Safety
 Confirmation before every change · backup before every change (hives, BCD, .reg of the branch) · quarantine instead of deletion · full change log. See `SECURITY.md` and `PRIVACY.md` (the program sends no data anywhere).

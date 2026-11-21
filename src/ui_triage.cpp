@@ -142,6 +142,12 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             if (nh->hwndFrom == X.list) {
                 if (nh->code == LVN_ITEMCHANGED) ShowDetail();
                 else if (nh->code == NM_DBLCLK) RunAction();
+                else if (nh->code == NM_CUSTOMDRAW)   // красный — проблема, оранжевый — внимание, зелёный — в порядке
+                    return ListToneDraw(lp, [](int i) {
+                        if (i < 0 || i >= (int)X.shown.size()) return Tone::None;
+                        Sev s = X.shown[(size_t)i].sev;
+                        return s == Sev::Bad ? Tone::Red : s == Sev::Warn ? Tone::Orange : Tone::Green;
+                    }, 0, true);
             }
             return 0;
         }
@@ -166,7 +172,7 @@ void OpenTriageImpl() {
     Mk(h, L"STATIC", L"Целевая ОС:", SS_LEFT, 10901);
     X.target = Mk(h, L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP, ID_TARGET);
     X.targets = FillTargetCombo(X.target, false);
-    X.bRun = Mk(h, L"BUTTON", L"Диагностировать", BS_DEFPUSHBUTTON | WS_TABSTOP, ID_RUN);
+    X.bRun = MkBtn(h, L"Диагностировать", ID_RUN, Tone::Blue);
     X.hint = Mk(h, L"STATIC", L"", SS_LEFT, 10902);
     X.list = Mk(h, WC_LISTVIEWW, L"", LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_TABSTOP, ID_LIST, WS_EX_CLIENTEDGE);
     ListView_SetExtendedListViewStyle(X.list, LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
@@ -174,9 +180,9 @@ void OpenTriageImpl() {
     int cw[] = {S(100), S(560), S(340)};
     for (int i = 0; i < 3; ++i) { LVCOLUMNW c{}; c.mask = LVCF_TEXT | LVCF_WIDTH; c.pszText = (LPWSTR)cols[i]; c.cx = cw[i]; ListView_InsertColumn(X.list, i, &c); }
     X.detail = Mk(h, L"EDIT", L"", ES_MULTILINE | ES_READONLY | WS_VSCROLL, ID_DETAIL, WS_EX_CLIENTEDGE);
-    X.bAct = Mk(h, L"BUTTON", L"Выполнить рекомендованное действие…", BS_PUSHBUTTON | WS_TABSTOP, ID_ACT);
-    X.bFull = Mk(h, L"BUTTON", L"Полная диагностика + отчёт", BS_PUSHBUTTON | WS_TABSTOP, ID_FULL);
-    X.bClose = Mk(h, L"BUTTON", L"Закрыть", BS_PUSHBUTTON | WS_TABSTOP, ID_CLOSE);
+    X.bAct = MkBtn(h, L"Выполнить рекомендованное действие…", ID_ACT, Tone::Orange);
+    X.bFull = MkBtn(h, L"Полная диагностика + отчёт", ID_FULL, Tone::Blue);
+    X.bClose = MkBtn(h, L"Закрыть", ID_CLOSE, Tone::Gray);
     EnableWindow(X.bAct, FALSE);
     Layout();
     Fill();

@@ -2,10 +2,10 @@
 #pragma once
 #define WR_VER_MAJOR 1
 #define WR_VER_MINOR 0
-#define WR_VER_PATCH 0
-#define WR_VERSION_STR "1.0.0-rc1"
-#define WR_VERSION_RC  1,0,0,0
-#define WR_VERSION_RCSTR "1.0.0.0"
+#define WR_VER_PATCH 7
+#define WR_VERSION_STR "1.0.7"
+#define WR_VERSION_RC  1,0,7,0
+#define WR_VERSION_RCSTR "1.0.7.0"
 
 // Product identity: change here only (window title, About, exe properties).
 #define WR_PRODUCT   "WinRepair Toolkit"

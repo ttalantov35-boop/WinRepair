@@ -6,6 +6,7 @@
 #include <cwchar>
 #include <map>
 #include <algorithm>
+#include <functional>
 
 namespace wr {
 
@@ -125,6 +126,140 @@ inline void ShowCommandsMenu(HWND wnd, HWND clicked, LPARAM lp) {
     }
 }
 
+// ---- цвета по действиям: одинаковые во всех окнах -----------------------------------------------------
+// Синий — только чтение/диагностика, бирюзовый — открывает инструмент или окно, оранжевый — меняет систему,
+// красный — опасно (нужна копия), зелёный — защита/хорошо, серый — инструкция/служебное/системное.
+enum class Tone { None, Blue, Teal, Orange, Red, Green, Gray };
+inline COLORREF ToneColor(Tone t) {
+    switch (t) {
+        case Tone::Blue: return RGB(26, 103, 210);
+        case Tone::Teal: return RGB(0, 137, 123);
+        case Tone::Orange: return RGB(214, 110, 0);
+        case Tone::Red: return RGB(200, 32, 32);
+        case Tone::Green: return RGB(30, 140, 70);
+        case Tone::Gray: return RGB(110, 118, 130);
+        default: return CLR_NONE;
+    }
+}
+inline COLORREF ToneBk(Tone t) { return t == Tone::None ? CLR_NONE : theme::Mix(RGB(255, 255, 255), ToneColor(t), t == Tone::Gray ? 8 : 11); }
+inline theme::Cat ToneCat(Tone t) {
+    switch (t) {
+        case Tone::Blue: return theme::Cat::Diag;
+        case Tone::Teal: return theme::Cat::Guide;
+        case Tone::Orange: return theme::Cat::Repair;
+        case Tone::Red: return theme::Cat::Exit;
+        case Tone::Green: return theme::Cat::Protect;
+        default: return theme::Cat::Info;
+    }
+}
+
+// Цветная кнопка в окне инструмента (рисует ToolProc / окно-владелец через DrawToolButton).
+inline HWND MkBtn(HWND parent, const wchar_t* text, int id, Tone tone) {
+    HWND b = Mk(parent, L"BUTTON", text, BS_OWNERDRAW | WS_TABSTOP, id);
+    SetPropW(b, L"WRTone", (HANDLE)(INT_PTR)((int)tone + 1));
+    theme::AttachHover(b);
+    return b;
+}
+inline bool DrawToolButton(LPARAM lp, HBRUSH under = nullptr) {
+    auto* d = (DRAWITEMSTRUCT*)lp;
+    if (!d || d->CtlType != ODT_BUTTON) return false;
+    INT_PTR v = (INT_PTR)GetPropW(d->hwndItem, L"WRTone");
+    if (!v) return false;
+    Tone t = (Tone)(v - 1);
+    theme::DrawButton(d, ToneCat(t), theme::IsHover(d->hwndItem), under ? under : GetSysColorBrush(COLOR_BTNFACE));
+    return true;
+}
+
+// Раскраска строк ListView: светлый фон строки по цвету, цветная полоса слева, выделенная цветом колонка.
+// toneOf(i) — цвет строки i; accentCol — колонка, текст которой пишется цветом и жирно (-1 — нет);
+// stripe — рисовать полосу слева (не для списков с галочками).
+inline LRESULT ListToneDraw(LPARAM lp, const std::function<Tone(int)>& toneOf, int accentCol, bool stripe) {
+    auto* cd = (NMLVCUSTOMDRAW*)lp;
+    static HFONT bold = nullptr;
+    if (!bold) {
+        LOGFONTW lf{};
+        GetObjectW(g_ui.font, sizeof lf, &lf);
+        lf.lfWeight = FW_BOLD;
+        bold = CreateFontIndirectW(&lf);
+    }
+    HWND lv = cd->nmcd.hdr.hwndFrom;
+    int item = (int)cd->nmcd.dwItemSpec;
+    switch (cd->nmcd.dwDrawStage) {
+        case CDDS_PREPAINT: return CDRF_NOTIFYITEMDRAW;
+        case CDDS_ITEMPREPAINT: {
+            Tone t = toneOf(item);
+            bool sel = (ListView_GetItemState(lv, item, LVIS_SELECTED) & LVIS_SELECTED) != 0;
+            if (t != Tone::None && !sel) cd->clrTextBk = ToneBk(t);
+            return CDRF_NOTIFYSUBITEMDRAW | CDRF_NOTIFYPOSTPAINT;
+        }
+        case CDDS_ITEMPREPAINT | CDDS_SUBITEM: {
+            Tone t = toneOf(item);
+            bool sel = (ListView_GetItemState(lv, item, LVIS_SELECTED) & LVIS_SELECTED) != 0;
+            if (t != Tone::None && !sel) cd->clrTextBk = ToneBk(t);
+            if (cd->iSubItem == accentCol && t != Tone::None) {
+                if (!sel) cd->clrText = ToneColor(t);
+                SelectObject(cd->nmcd.hdc, bold);
+            } else {
+                cd->clrText = sel ? GetSysColor(COLOR_HIGHLIGHTTEXT) : GetSysColor(COLOR_WINDOWTEXT);
+                SelectObject(cd->nmcd.hdc, g_ui.font);
+            }
+            return CDRF_NEWFONT;
+        }
+        case CDDS_ITEMPOSTPAINT: {
+            Tone t = toneOf(item);
+            if (stripe && t != Tone::None) {
+                RECT r{};
+                ListView_GetItemRect(lv, item, &r, LVIR_BOUNDS);
+                r.right = r.left + S(5);
+                HBRUSH b = CreateSolidBrush(ToneColor(t));
+                FillRect(cd->nmcd.hdc, &r, b);
+                DeleteObject(b);
+            }
+            return CDRF_DODEFAULT;
+        }
+    }
+    return CDRF_DODEFAULT;
+}
+
+// Строка-легенда под списком: «■ синий — … ■ оранжевый — …». Рисуется сама (WM_PAINT статика не нужна).
+struct LegendItem { Tone tone; const wchar_t* text; };
+inline LRESULT CALLBACK LegendProc(HWND h, UINT m, WPARAM wp, LPARAM lp, UINT_PTR, DWORD_PTR ref) {
+    if (m == WM_PAINT) {
+        PAINTSTRUCT ps;
+        HDC dc = BeginPaint(h, &ps);
+        RECT rc;
+        GetClientRect(h, &rc);
+        FillRect(dc, &rc, GetSysColorBrush(COLOR_BTNFACE));
+        auto* items = (std::vector<LegendItem>*)ref;
+        HGDIOBJ of = SelectObject(dc, g_ui.font);
+        SetBkMode(dc, TRANSPARENT);
+        int x = 0, sq = S(11), cy = (rc.bottom - rc.top);
+        for (auto& it : *items) {
+            RECT b{x, (cy - sq) / 2, x + sq, (cy - sq) / 2 + sq};
+            HBRUSH br = CreateSolidBrush(ToneColor(it.tone));
+            FillRect(dc, &b, br);
+            DeleteObject(br);
+            x += sq + S(5);
+            std::wstring t = TrW(it.text);
+            SIZE sz{};
+            GetTextExtentPoint32W(dc, t.c_str(), (int)t.size(), &sz);
+            SetTextColor(dc, RGB(50, 58, 70));
+            TextOutW(dc, x, (cy - sz.cy) / 2, t.c_str(), (int)t.size());
+            x += sz.cx + S(16);
+        }
+        SelectObject(dc, of);
+        EndPaint(h, &ps);
+        return 0;
+    }
+    if (m == WM_NCDESTROY) { delete (std::vector<LegendItem>*)ref; RemoveWindowSubclass(h, LegendProc, 1); }
+    return DefSubclassProc(h, m, wp, lp);
+}
+inline HWND MkLegend(HWND parent, int id, std::initializer_list<LegendItem> items) {
+    HWND h = Mk(parent, L"STATIC", L"", SS_LEFT, id);
+    SetWindowSubclass(h, LegendProc, 1, (DWORD_PTR) new std::vector<LegendItem>(items));
+    return h;
+}
+
 namespace detail {
 inline std::map<std::wstring, WNDPROC>& ToolProcs() { static std::map<std::wstring, WNDPROC> m; return m; }
 // The window's own procedure may handle WM_CONTEXTMENU (return 1); otherwise a table gets the shared copy menu.
@@ -137,6 +272,7 @@ inline LRESULT CALLBACK ToolProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         if (orig(h, m, wp, lp) != 1) ShowCommandsMenu(h, (HWND)wp, lp);
         return 0;
     }
+    if (m == WM_DRAWITEM && DrawToolButton(lp)) return TRUE;   // цветные кнопки MkBtn во всех окнах инструментов
     return orig(h, m, wp, lp);
 }
 }  // namespace detail
@@ -190,6 +326,10 @@ void TriageJobDone();
 void OpenWinReImpl();
 void OpenWinPeBuilderImpl();   // диалог «Свой WinPE с WinRepair» (владелец — окно WinRE или главное окно)
 void OpenSaveDataImpl();
+void OpenPasswordToolImpl();   // снятие пароля / разблокировка (ui_password.cpp)
+void PasswordJobDone();
+void OpenPartitionToolImpl();  // разделы диска / diskpart (ui_partition.cpp)
+void PartitionJobDone();
 void WinReJobDone();
 void StorageJobDone();
 void BcdJobDone();

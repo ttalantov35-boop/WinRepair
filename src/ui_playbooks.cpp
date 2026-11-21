@@ -109,6 +109,12 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         case WM_NOTIFY: {
             auto* nh = (NMHDR*)lp;
             if (nh->hwndFrom == Z.list && nh->code == LVN_ITEMCHANGED) ShowDesc();
+            if (nh->hwndFrom == Z.list && nh->code == NM_CUSTOMDRAW)   // цвет — по риску сценария
+                return ListToneDraw(lp, [](int i) {
+                    if (i < 0 || i >= (int)Z.shown.size()) return Tone::None;
+                    const std::string& r = Z.shown[(size_t)i]->risk;
+                    return r == "danger" ? Tone::Red : r == "safe" ? Tone::Green : Tone::Orange;
+                }, 1, true);
             return 0;
         }
         case WM_DESTROY: Z.wnd = nullptr; return 0;
@@ -134,10 +140,10 @@ void OpenPlaybooksImpl() {
     for (int i = 0; i < 3; ++i) { LVCOLUMNW c{}; c.mask = LVCF_TEXT | LVCF_WIDTH; c.pszText = (LPWSTR)cols[i]; c.cx = cw[i]; ListView_InsertColumn(Z.list, i, &c); }
     Z.desc = Mk(h, L"EDIT", L"", ES_MULTILINE | ES_READONLY | WS_VSCROLL, ID_DESC, WS_EX_CLIENTEDGE);
     SendMessageW(Z.desc, WM_SETFONT, (WPARAM)g_ui.mono, TRUE);
-    Z.bRun = Mk(h, L"BUTTON", L"Выполнить сценарий…", BS_DEFPUSHBUTTON | WS_TABSTOP, ID_RUN);
-    Z.bReload = Mk(h, L"BUTTON", L"Перезагрузить список", BS_PUSHBUTTON | WS_TABSTOP, ID_RELOAD);
-    Z.bFolder = Mk(h, L"BUTTON", L"Папка своих сценариев", BS_PUSHBUTTON | WS_TABSTOP, ID_FOLDER);
-    Z.bClose = Mk(h, L"BUTTON", L"Закрыть", BS_PUSHBUTTON | WS_TABSTOP, ID_CLOSE);
+    Z.bRun = MkBtn(h, L"Выполнить сценарий…", ID_RUN, Tone::Orange);
+    Z.bReload = MkBtn(h, L"Перезагрузить список", ID_RELOAD, Tone::Blue);
+    Z.bFolder = MkBtn(h, L"Папка своих сценариев", ID_FOLDER, Tone::Teal);
+    Z.bClose = MkBtn(h, L"Закрыть", ID_CLOSE, Tone::Gray);
     Layout();
     Fill();
     ShowWindow(h, SW_SHOW);

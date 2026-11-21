@@ -37,7 +37,9 @@ COLORREF LogText();
 COLORREF LogBg();
 COLORREF Accent(Cat c);
 
-void DrawButton(const DRAWITEMSTRUCT* d, Cat c, bool hover);
+// under — кисть фона под скруглёнными углами (nullptr — фон главного окна; в окнах инструментов — COLOR_BTNFACE).
+void DrawButton(const DRAWITEMSTRUCT* d, Cat c, bool hover, HBRUSH under = nullptr);
+COLORREF Mix(COLORREF a, COLORREF b, int pct);   // pct % цвета b поверх a
 void AttachHover(HWND button);        // subclass: repaint on mouse enter/leave
 bool IsHover(HWND button);
 struct Chip { std::wstring text; int kind; };   // kind: 0 neutral, 1 good (green), 2 bad (red)

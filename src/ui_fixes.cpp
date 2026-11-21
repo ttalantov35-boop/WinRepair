@@ -75,6 +75,12 @@ LRESULT CALLBACK Proc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         case WM_NOTIFY: {
             auto* nh = (NMHDR*)lp;
             if (nh->hwndFrom == F.list && (nh->code == LVN_ITEMCHANGED)) ShowDesc();
+            if (nh->hwndFrom == F.list && nh->code == NM_CUSTOMDRAW)   // цвет строки — по риску: зелёный безопасно, оранжевый меняет, красный опасно
+                return ListToneDraw(lp, [](int i) {
+                    const auto& all = FixList();
+                    if (i < 0 || i >= (int)all.size()) return Tone::None;
+                    return all[(size_t)i].risk == Risk::Safe ? Tone::Green : all[(size_t)i].risk == Risk::Changing ? Tone::Orange : Tone::Red;
+                }, 1, false);
             return 0;
         }
         case WM_DESTROY: F.wnd = nullptr; return 0;
@@ -111,10 +117,10 @@ void OpenFixWizardImpl() {
         ListView_SetItemText(F.list, (int)i, 2, (LPWSTR)(all[i].online && all[i].offline ? L"онлайн и офлайн" : all[i].offline ? L"офлайн (WinPE)" : L"работающая Windows"));
     }
     F.desc = Mk(h, L"EDIT", L"", ES_MULTILINE | ES_READONLY | WS_VSCROLL, ID_DESC, WS_EX_CLIENTEDGE);
-    F.bSafe = Mk(h, L"BUTTON", L"Отметить безопасные", BS_PUSHBUTTON | WS_TABSTOP, ID_SAFE);
-    F.bNone = Mk(h, L"BUTTON", L"Снять все", BS_PUSHBUTTON | WS_TABSTOP, ID_NONE);
-    F.bRun = Mk(h, L"BUTTON", L"Выполнить отмеченное…", BS_DEFPUSHBUTTON | WS_TABSTOP, ID_RUN);
-    F.bClose = Mk(h, L"BUTTON", L"Закрыть", BS_PUSHBUTTON | WS_TABSTOP, ID_CLOSE);
+    F.bSafe = MkBtn(h, L"Отметить безопасные", ID_SAFE, Tone::Green);
+    F.bNone = MkBtn(h, L"Снять все", ID_NONE, Tone::Gray);
+    F.bRun = MkBtn(h, L"Выполнить отмеченное…", ID_RUN, Tone::Orange);
+    F.bClose = MkBtn(h, L"Закрыть", ID_CLOSE, Tone::Gray);
     Layout();
     ShowDesc();
     ShowWindow(h, SW_SHOW);

@@ -1,4 +1,4 @@
-// Command catalogue (55 items): console tools, GUI tools, native PowerShell replacements, manual procedures.
+// Command catalogue (84 items): console tools, GUI tools, native PowerShell replacements, manual procedures.
 #pragma once
 #include "../win/app.h"
 
