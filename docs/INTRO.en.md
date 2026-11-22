@@ -19,6 +19,12 @@ Usually, that's when the quest begins: find a second computer, download somebody
 
 **🔧 A workshop for a sick system.** A regedit-grade offline registry editor. A BCD and boot-mode editor. Autoruns-style startup and services. An offline file explorer. Forced removal of the program that keeps Windows from starting. All of it aimed at *another* Windows that sits on a disk and can't switch on.
 
+**🔑 Forgotten Windows password?** Reset or unlock a local account's password offline — straight in the SAM hive of the target Windows, so you sign in without reinstalling. (A Microsoft-account password can't be reset this way.) The SAM is backed up automatically before any change.
+
+**💽 Disk partitions.** A built-in partition manager: create, delete, format, shrink, split, extend and assign a drive letter — with a visual bar, offline in WinRE/WinPE too. For advanced users — partition operations are irreversible, so each one is confirmed.
+
+**⌨️ Administrator command line.** A built-in console with administrator rights: run `diskpart`, `sfc`, `dism` and other commands straight from the program.
+
 **🧭 The "What happened?" wizard.** Not sure where to begin? Pick a symptom and the program checks BitLocker, disks, partitions, the bootloader, registry hives, updates, crash dumps, services and the network, then lists findings by severity with a recommended action. Nothing happens without your "yes".
 
 **💾 Your own bootable WinPE stick.** One button gives you a USB stick that boots on its own and opens WinRepair first. No third-party builds. Even System Restore (`rstrui`) works right from it: roll Windows back to a restore point without ever booting it. Works with Secure Boot left on.
