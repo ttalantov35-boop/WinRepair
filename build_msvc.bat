@@ -9,6 +9,8 @@ rem and the exe crashed with 0xC000001D on CPUs without AVX (e.g. Core 2). ARM64
 set WRARCH=
 if /i "%VSCMD_ARG_TGT_ARCH%"=="x64" set WRARCH=/arch:SSE2
 if /i "%VSCMD_ARG_TGT_ARCH%"=="x86" set WRARCH=/arch:SSE2
+if /i "%Platform%"=="x64" set WRARCH=/arch:SSE2
+if /i "%Platform%"=="x86" set WRARCH=/arch:SSE2
 if /i "%~1"=="edit" set WRDEF=/DWR_HELP_EDIT
 if /i "%~1"=="edit" echo AUTHOR BUILD: help editing enabled (WR_HELP_EDIT)
 if not exist build mkdir build
