@@ -27,6 +27,8 @@ HFONT Semi();      // buttons, headings
 HFONT Title();     // product name in the header
 HFONT Small();     // captions
 HFONT Big();       // target selector
+HFONT TabFont();   // tab captions (bold, larger)
+HFONT TabFontSel();   // selected tab caption (bolder, larger)
 HBRUSH BgBrush();
 HBRUSH LogBrush();
 HBRUSH TintBrush();   // light-blue fill of the highlighted "target OS" panel

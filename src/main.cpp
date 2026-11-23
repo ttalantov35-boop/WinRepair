@@ -33,7 +33,7 @@ enum {
     WM_APP_LOG = WM_APP + 1, WM_APP_STATUS, WM_APP_DONE, WM_APP_ASK = WM_APP + 10, WM_APP_CONFIRM, WM_APP_OPENWIN,
     IDC_BANNER = 100, IDC_TARGET, IDC_REFRESH, IDC_DAYS, IDC_EXT, IDC_FORCE, IDC_HOST, IDC_PORT, IDC_SOURCE,
     IDC_TAB, IDC_LOG, IDC_CANCEL, IDC_OPENREP, IDC_OPENLOG, IDC_SAVELOG, IDC_CLEAR, IDC_COPYLOG, IDC_PROG, IDC_STATUS,
-    IDC_L1, IDC_L2, IDC_L3, IDC_L4, IDC_L5, IDC_L6, IDC_DESC, IDC_ACTION0 = 1000,
+    IDC_L1, IDC_L2, IDC_L3, IDC_L4, IDC_L5, IDC_L6, IDC_DESC, IDC_UNDO, IDC_ABOUT, IDC_ACTION0 = 1000,
     IDC_CAT_LIST = 2001, IDC_CAT_FILTER, IDC_CAT_RUN, IDC_CAT_CLOSE, IDC_CAT_DESC, IDC_CAT_E0 = 2010, IDC_CAT_L0 = 2020, IDC_CAT_FIND = 2030, IDC_LANG = 2040, IDC_EXIT = 2050, IDC_HELPBTN = 2060
 };
 
@@ -55,57 +55,74 @@ LRESULT CALLBACK LogSubProc(HWND, UINT, WPARAM, LPARAM, UINT_PTR, DWORD_PTR);
 void QuickCmd(int no);
 Target CurrentTarget();
 
-const wchar_t* kTabs[] = {L"Обзор", L"Система", L"Диски", L"Целостность", L"Драйверы и BSOD", L"События", L"Сеть", L"Инструменты ремонта"};
+const wchar_t* kTabs[] = {L"1 Старт", L"2 Система", L"3 Диски", L"4 Загрузка", L"5 Сбои", L"6 Целостность", L"7 Доступ", L"8 Защита", L"9 Сервис"};
+
+const wchar_t* kStageNote[] = {
+    L"Начните здесь: мастер и сценарии ведут по шагам, полная диагностика ничего не меняет.",
+    L"Только чтение: сведения о системе, памяти и сети. Ничего не изменяется.",
+    L"Только чтение: состояние дисков и файловой системы. Разделы и BitLocker — отдельные окна, читайте подсказки.",
+    L"Проверка загрузки только читает; остальные окна могут менять загрузчик и WinRE — читайте подсказки.",
+    L"Только чтение: драйверы, синие экраны, дампы и ошибки журналов. Ничего не изменяется.",
+    L"Сначала проверка (без изменений), потом ремонт: он меняет систему и просит подтверждение.",
+    L"Доступ и запуск: пароль и реестр могут менять систему — сначала точка восстановления.",
+    L"Защита: точки восстановления, резервные копии и откат. Делайте перед ремонтом.",
+    L"Сервис: каталог команд и командная строка. «О программе» и «Отменить изменения сеанса» — справа, на любой вкладке.",
+};
 
 Action kActions[] = {
+    // ---- 1 Старт ----
     {L"Мастер «Что случилось?» (диагностика по симптому)…", 0, nullptr, "triage", nullptr},
     {L"Сценарии ремонта (playbooks)…", 0, nullptr, "playbooks", nullptr},
-    {L"Снятие пароля и разблокировка учётных записей…", 0, nullptr, "password", nullptr},
-    {L"Разделы диска (создать, удалить, форматировать)…", 0, nullptr, "partition", nullptr},
-    {L"Создать загрузочную флешку WinPE с WinRepair…", 0, nullptr, "winpeusb", nullptr},
     {L"Полная диагностика + HTML-отчёт", 0, ModFull, "full", nullptr},
     {L"Открыть последний HTML-отчёт", 0, nullptr, "open-report", nullptr},
-    {L"Каталог команд…", 0, nullptr, "catalog", nullptr},
-    {L"Командная строка (администратор)…", 0, nullptr, "cmd", nullptr},
-    {L"О программе WinRepair", 0, nullptr, "about", nullptr},
+    // ---- 2 Система ----
     {L"Снимок системы", 1, ModSystem, "system", nullptr},
     {L"Память (SMBIOS, диагностика)", 1, ModMemory, "memory", nullptr},
-    {L"Загрузка (BCD / GPT / WinRE)", 1, ModBoot, "boot", nullptr},
+    {L"Сетевая диагностика", 1, ModNetwork, "network", nullptr},
+    // ---- 3 Диски ----
     {L"Диски, SMART, ошибки ФС", 2, ModDisk, "disk", nullptr},
-    {L"Проверка целостности (без изменений)", 3, ModIntegrity, "integrity", nullptr},
-    {L"ИСПРАВИТЬ целостность (DISM + SFC)", 3, ModRepair, "repair",
-     L"Будет выполнено ИЗМЕНЯЮЩЕЕ действие:\nDISM /RestoreHealth, затем sfc /scannow на выбранной ОС.\n\n"
-     L"Операция может занять десятки минут. Перед ремонтом рекомендуется точка восстановления и резервная копия данных.\n\nПродолжить?"},
-    {L"Создать точку восстановления", 3, ModRestorePoint, "restorepoint",
-     L"Будет создана точка восстановления Windows (изменяющее действие).\n\nПродолжить?"},
+    {L"Разделы диска (создать, удалить, форматировать)…", 2, nullptr, "partition", nullptr},
+    {L"BitLocker и драйверы хранилища (диск не виден)…", 2, nullptr, "storagefix", nullptr},
+    // ---- 4 Загрузка ----
+    {L"Загрузка (BCD / GPT / WinRE)", 3, ModBoot, "boot", nullptr},
+    {L"BCD / Загрузка: хранилище, записи, режимы…", 3, nullptr, "bcd", nullptr},
+    {L"WinRE: вход в среду восстановления, WinRE + WinRepair…", 3, nullptr, "winre", nullptr},
+    {L"Выйти в штатное меню WinRE (RecEnv)…", 3, nullptr, "winre-menu", nullptr},
+    {L"Создать загрузочную флешку WinPE с WinRepair…", 3, nullptr, "winpeusb", nullptr},
+    {L"Secure Boot: сертификаты 2023", 3, nullptr, "secureboot", nullptr},
+    // ---- 5 Сбои ----
     {L"Драйверы и устройства с ошибками", 4, ModDrivers, "drivers", nullptr},
     {L"BSOD: события и дампы", 4, ModBsod, "bsod", nullptr},
     {L"Разбор дампов (заголовок + cdb)", 4, ModDump, "dump", nullptr},
     {L"Справочник кодов BSOD…", 4, nullptr, "bsodref", nullptr},
-    {L"Ошибки System / Application", 5, ModEvents, "events", nullptr},
-    {L"Сетевая диагностика", 6, ModNetwork, "network", nullptr},
-    // Вкладка «Инструменты ремонта»: ряды по назначению (при 5 колонках) —
-    // 2 ряда «ремонт» (оранжевые), затем диагностика (синие) и защита (зелёные).
-    {L"Реестр офлайн-Windows (просмотр и правка)…", 7, nullptr, "registry", nullptr},
-    {L"BCD / Загрузка: хранилище, записи, режимы…", 7, nullptr, "bcd", nullptr},
-    {L"Автозагрузка и службы: текущая и офлайн-Windows (Autoruns + msconfig)…", 7, nullptr, "autoruns", nullptr},
-    {L"Установленные приложения: текущая и офлайн-Windows (удалить программу)…", 7, nullptr, "apps", nullptr},
-    {L"Офлайн-проводник: файлы выбранной Windows…", 7, nullptr, "explorer", nullptr},
-    {L"Мастер исправлений после заражений…", 7, nullptr, "fixes", nullptr},
-    {L"BitLocker и драйверы хранилища (диск не виден)…", 7, nullptr, "storagefix", nullptr},
-    {L"WinRE: вход в среду восстановления, WinRE + WinRepair…", 7, nullptr, "winre", nullptr},
-    {L"Выйти в штатное меню WinRE (RecEnv)…", 7, nullptr, "winre-menu", nullptr},
-    {L"Восстановление системы: rstrui…", 7, nullptr, "rstrui", nullptr},
+    {L"Ошибки System / Application", 4, ModEvents, "events", nullptr},
+    // ---- 6 Целостность ----
+    {L"Проверка целостности (без изменений)", 5, ModIntegrity, "integrity", nullptr},
+    {L"ИСПРАВИТЬ целостность (DISM + SFC)", 5, ModRepair, "repair",
+     L"Будет выполнено ИЗМЕНЯЮЩЕЕ действие:\nDISM /RestoreHealth, затем sfc /scannow на выбранной ОС.\n\n"
+     L"Операция может занять десятки минут. Перед ремонтом рекомендуется точка восстановления и резервная копия данных.\n\nПродолжить?"},
+    {L"Мастер исправлений после заражений…", 5, nullptr, "fixes", nullptr},
+    // ---- 7 Доступ ----
+    {L"Снятие пароля и разблокировка учётных записей…", 6, nullptr, "password", nullptr},
+    {L"Реестр офлайн-Windows (просмотр и правка)…", 6, nullptr, "registry", nullptr},
+    {L"Автозагрузка и службы: текущая и офлайн-Windows (Autoruns + msconfig)…", 6, nullptr, "autoruns", nullptr},
+    {L"Установленные приложения: текущая и офлайн-Windows (удалить программу)…", 6, nullptr, "apps", nullptr},
+    {L"Офлайн-проводник: файлы выбранной Windows…", 6, nullptr, "explorer", nullptr},
+    // ---- 8 Защита ----
+    {L"Создать точку восстановления", 7, ModRestorePoint, "restorepoint",
+     L"Будет создана точка восстановления Windows (изменяющее действие).\n\nПродолжить?"},
     {L"Точки восстановления: состояние", 7, nullptr, "restore-info", nullptr},
-    {L"Secure Boot: сертификаты 2023", 7, nullptr, "secureboot", nullptr},
-    {L"Сохранить журналы и отчёты на диск…", 7, nullptr, "savedata", nullptr},
+    {L"Восстановление системы: rstrui…", 7, nullptr, "rstrui", nullptr},
     {L"Резервные копии: просмотр и очистка…", 7, nullptr, "backups", nullptr},
-    {L"Отменить изменения сеанса…", 7, nullptr, "undo", nullptr},
+    {L"Сохранить журналы и отчёты на диск…", 7, nullptr, "savedata", nullptr},
+    // ---- 9 Сервис ----
+    {L"Каталог команд…", 8, nullptr, "catalog", nullptr},
+    {L"Командная строка (администратор)…", 8, nullptr, "cmd", nullptr},
 };
 const int kActionCount = (int)(sizeof kActions / sizeof kActions[0]);
 
 HWND g_wnd, g_tab, g_log, g_target, g_days, g_ext, g_force, g_host, g_port, g_source, g_prog, g_status, g_banner;
-HWND g_btn[40], g_cancelBtn, g_refreshBtn, g_lbl[6], g_hint;
+HWND g_btn[40], g_cancelBtn, g_refreshBtn, g_lbl[6], g_hint, g_stage, g_undoBtn, g_aboutBtn;
 HWND g_langBtn = nullptr, g_exitBtn = nullptr, g_helpBtn = nullptr;
 HICON g_icon = nullptr;
 bool g_logRich = false;
@@ -249,14 +266,15 @@ void Layout();
 void ShowTabButtons() {
     int sel = TabCtrl_GetCurSel(g_tab);
     for (int i = 0; i < kActionCount; ++i) ShowWindow(g_btn[i], kActions[i].tab == sel ? SW_SHOW : SW_HIDE);
+    if (g_stage && sel >= 0 && sel < (int)(sizeof kStageNote / sizeof kStageNote[0])) SetWindowTextW(g_stage, TrW(kStageNote[sel]).c_str());
     Layout();   // options (period, DISM source, host...) follow the selected tab
 }
 
-// Options live inside the tab they belong to, right under that tab's buttons (tab: 2 Диски, 3 Целостность, 5 События, 6 Сеть).
+// Options live inside the tab they belong to, right under that tab's buttons (tab index = name: 1 = 2 Система, 2 = 3 Диски, 4 = 5 Сбои, 5 = 6 Целостность).
 int OptionsStripH(int tab) {
     switch (tab) {
-        case 2: case 5: case 6: return S(70);
-        case 3: return S(104);
+        case 2: case 4: case 1: return S(70);
+        case 5: return S(104);
         default: return 0;
     }
 }
@@ -279,7 +297,7 @@ void PlaceOptions(const RECT& tr, const int* cnt, int cols, int bh, int gap) {
         SetWindowTextW(g_ext, L"Расширенный режим: chkdsk /scan (дольше)");
         put(g_ext, ox + S(176), oy, ow - S(176));
         hint = L"Период — за сколько последних дней искать ошибки дисков и файловой системы в журнале событий. Расширенный режим добавляет проверку chkdsk /scan (занимает больше времени).";
-    } else if (sel == 3) {
+    } else if (sel == 5) {
         SetWindowTextW(g_ext, L"Расширенный режим: DISM /ScanHealth (дольше)");
         put(g_ext, ox, oy, S(360));
         put(g_force, ox + S(370), oy, ow - S(370));
@@ -287,11 +305,11 @@ void PlaceOptions(const RECT& tr, const int* cnt, int cols, int bh, int gap) {
         put(g_source, ox + S(176), oy + step, ow - S(176));
         rows = 2;
         hint = L"Источник DISM (/Source) нужен, если Windows Update недоступен: укажите папку с файлами, например D:\\sources\\sxs, или WIM:D:\\sources\\install.wim:1. Пусто — обычный источник. Точка восстановления обычно создаётся не чаще раза в 24 часа; галка отключает это ограничение.";
-    } else if (sel == 5) {
+    } else if (sel == 4) {
         label(g_lbl[1], ox, oy, S(100));
         put(g_days, ox + S(104), oy, S(52));
         hint = L"Период — за сколько последних дней показывать ошибки и предупреждения из журналов System и Application.";
-    } else if (sel == 6) {
+    } else if (sel == 1) {
         label(g_lbl[2], ox, oy, S(140));
         put(g_host, ox + S(144), oy, S(220));
         label(g_lbl[3], ox + S(380), oy, S(50));
@@ -332,14 +350,15 @@ void Layout() {
         need = std::max(need, rowsT * (bh + gap) + OptionsStripH(t));
     }
     (void)maxRows;
-    int tabHdr = S(42);
+    need += S(36);   // the stage caption line (+ the always-visible undo button on its right) at the bottom of the panel
+    int tabHdr = S(50);
     int tabH = tabHdr + need + S(8);
     MoveWindow(g_tab, m, y, W_ - 2 * m, tabH, TRUE);
     {   // the tab strip spans the whole width: every tab gets an equal share up to the right edge
         RECT tc;
         GetClientRect(g_tab, &tc);
         int n = (int)(sizeof kTabs / sizeof kTabs[0]);
-        TabCtrl_SetItemSize(g_tab, std::max(S(60), (int)(tc.right - tc.left - S(6)) / n), S(36));   // a few pixels spare: no scroll arrows, every tab visible
+        TabCtrl_SetItemSize(g_tab, std::max(S(60), (int)(tc.right - tc.left - S(6)) / n), S(44));   // a few pixels spare: no scroll arrows, every tab visible
     }
     RECT tr = {m, y, W_ - m, y + tabH};
     TabCtrl_AdjustRect(g_tab, FALSE, &tr);
@@ -350,6 +369,15 @@ void Layout() {
         MoveWindow(g_btn[i], tr.left + S(6) + (k % cols) * (bw + gap), tr.top + S(6) + (k / cols) * (bh + gap), bw, bh, TRUE);
     }
     PlaceOptions(tr, cnt, cols, bh, gap);
+    {   // bottom row of the panel: caption on the left, "undo session changes" always visible at the right end
+        int ubw = S(270), abw = S(210), ubh = S(30), ry = tr.bottom - S(34);
+        MoveWindow(g_undoBtn, tr.right - S(10) - ubw, ry, ubw, ubh, TRUE);
+        ShowWindow(g_undoBtn, SW_SHOW);
+        MoveWindow(g_aboutBtn, tr.right - S(10) - ubw - S(8) - abw, ry, abw, ubh, TRUE);
+        ShowWindow(g_aboutBtn, SW_SHOW);
+        MoveWindow(g_stage, tr.left + S(10), ry + S(4), std::max(S(100), (int)(tr.right - tr.left) - S(40) - ubw - abw), S(24), TRUE);
+        ShowWindow(g_stage, SW_SHOW);
+    }
     y += tabH + S(6);
     y += m;
     int barH = S(34);
@@ -369,6 +397,8 @@ void SetRunning(bool run) {
     for (int i = 0; i < kActionCount; ++i) EnableWindow(g_btn[i], !run);
     EnableWindow(g_refreshBtn, !run);
     EnableWindow(g_cancelBtn, run);
+    if (g_undoBtn) EnableWindow(g_undoBtn, !run);
+    if (g_aboutBtn) EnableWindow(g_aboutBtn, !run);
     if (g_cat) EnableWindow(g_catRun, !run);
     SendMessageW(g_prog, PBM_SETMARQUEE, run, 30);
     ShowWindow(g_prog, run ? SW_SHOW : SW_HIDE);
@@ -420,11 +450,14 @@ void RunJob(JobData* d, const std::string& title) {
     else { delete d; SetRunning(false); }
 }
 
+// Tab colour = how risky the tab is (by the new order): blue = read-only, orange = may change the system, green = protection
 theme::Cat TabCat(int tab) {
     switch (tab) {
-        case 0: return theme::Cat::Guide;
-        case 3: case 7: return theme::Cat::Repair;
-        default: return theme::Cat::Diag;
+        case 0: return theme::Cat::Guide;     // 1 Старт
+        case 3: case 5: case 6: return theme::Cat::Repair;   // 4 Загрузка, 6 Целостность, 7 Доступ
+        case 7: return theme::Cat::Protect;   // 8 Защита
+        case 8: return theme::Cat::Info;      // 9 Сервис
+        default: return theme::Cat::Diag;     // 2 Система, 3 Диски, 5 Сбои
     }
 }
 
@@ -459,7 +492,7 @@ void CreateTooltips() {
         ti.lpszText = LPSTR_TEXTCALLBACKW;
         SendMessageW(g_tip, TTM_ADDTOOLW, 0, (LPARAM)&ti);
     }
-    for (HWND hb : {g_helpBtn}) {   // кнопка заголовка: текст — в TooltipNeedText
+    for (HWND hb : {g_helpBtn, g_undoBtn, g_aboutBtn}) {   // кнопка заголовка / нижней строки панели: текст — в TooltipNeedText
         TOOLINFOW ti{};
         ti.cbSize = sizeof ti;
         ti.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
@@ -478,6 +511,15 @@ void TooltipNeedText(NMTTDISPINFOW* di) {
         title = TrW(L"Справка");
         g_tipText = TrW(L"Справка по программе (F1). В окнах инструментов F1 открывает раздел про это окно.");
         SendMessageW(g_tip, TTM_SETTITLEW, TTI_INFO, (LPARAM)title.c_str());
+        di->lpszText = const_cast<wchar_t*>(g_tipText.c_str());
+        return;
+    }
+    if (id == IDC_UNDO || id == IDC_ABOUT) {   // buttons of the bottom row: text from the same descriptions as the old tab buttons
+        const char* nm = id == IDC_UNDO ? "undo" : "about";
+        static std::wstring ttl;
+        ttl = TrW(id == IDC_UNDO ? L"Отменить изменения сеанса" : L"О программе WinRepair");
+        g_tipText = W(U(std::wstring(DescOf(nm))));
+        SendMessageW(g_tip, TTM_SETTITLEW, TTI_INFO, (LPARAM)ttl.c_str());
         di->lpszText = const_cast<wchar_t*>(g_tipText.c_str());
         return;
     }
@@ -1018,6 +1060,9 @@ void CreateControls() {
     g_refreshBtn = Mk(L"BUTTON", L"Обновить", BS_OWNERDRAW | WS_TABSTOP, IDC_REFRESH);
     g_lbl[1] = Mk(L"STATIC", L"Период, дней:", SS_LEFT, IDC_L2);
     g_hint = Mk(L"STATIC", L"", SS_LEFT, IDC_L6);
+    g_stage = Mk(L"STATIC", L"", SS_LEFT | SS_ENDELLIPSIS | SS_NOPREFIX, IDC_DESC);
+    g_undoBtn = Mk(L"BUTTON", L"Отменить изменения сеанса…", BS_OWNERDRAW | WS_TABSTOP, IDC_UNDO);
+    g_aboutBtn = Mk(L"BUTTON", L"О программе WinRepair", BS_OWNERDRAW | WS_TABSTOP, IDC_ABOUT);
     g_days = Mk(L"EDIT", L"3", ES_NUMBER | WS_TABSTOP, IDC_DAYS, WS_EX_CLIENTEDGE);
     g_ext = Mk(L"BUTTON", L"Расширенный режим (ScanHealth, chkdsk /scan)", BS_AUTOCHECKBOX | WS_TABSTOP, IDC_EXT);
     g_force = Mk(L"BUTTON", L"Точка восстановления: игнорировать лимит 24 ч", BS_AUTOCHECKBOX | WS_TABSTOP, IDC_FORCE);
@@ -1063,9 +1108,10 @@ void CreateControls() {
     SendMessageW(g_target, CB_SETITEMHEIGHT, (WPARAM)-1, S(22));
     SendMessageW(g_lbl[0], WM_SETFONT, (WPARAM)theme::Big(), TRUE);
     SendMessageW(g_hint, WM_SETFONT, (WPARAM)theme::Small(), TRUE);
+    SendMessageW(g_stage, WM_SETFONT, (WPARAM)theme::Semi(), TRUE);
     EnableWindow(g_cancelBtn, FALSE);
     ShowWindow(g_prog, SW_HIDE);
-    for (HWND hb : {g_langBtn, g_exitBtn, g_helpBtn, g_refreshBtn, g_cancelBtn, GetDlgItem(g_wnd, IDC_OPENREP), GetDlgItem(g_wnd, IDC_OPENLOG), GetDlgItem(g_wnd, IDC_SAVELOG), GetDlgItem(g_wnd, IDC_COPYLOG), GetDlgItem(g_wnd, IDC_CLEAR)}) theme::AttachHover(hb);
+    for (HWND hb : {g_langBtn, g_exitBtn, g_helpBtn, g_refreshBtn, g_cancelBtn, GetDlgItem(g_wnd, IDC_OPENREP), GetDlgItem(g_wnd, IDC_OPENLOG), GetDlgItem(g_wnd, IDC_SAVELOG), GetDlgItem(g_wnd, IDC_COPYLOG), GetDlgItem(g_wnd, IDC_CLEAR), g_undoBtn, g_aboutBtn}) theme::AttachHover(hb);
     for (int i = 0; i < kActionCount; ++i) theme::AttachHover(g_btn[i]);
     FillTargets();
     ShowTabButtons();
@@ -1228,6 +1274,8 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
             else if (id == IDC_HELPBTN) c = theme::Cat::Help;
             else if (id == IDC_CANCEL) c = theme::Cat::Repair;
             else if (id == IDC_REFRESH) c = theme::Cat::Diag;
+            else if (id == IDC_UNDO) c = CatOfAction("undo");
+            else if (id == IDC_ABOUT) c = CatOfAction("about");
             theme::DrawButton(di, c, theme::IsHover(di->hwndItem));
             return TRUE;
         }
@@ -1244,6 +1292,11 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
                 return (LRESULT)theme::TintBrush();
             }
             SetBkMode(dc, TRANSPARENT);
+            if ((HWND)lp == g_stage || (HWND)lp == g_hint) {   // they sit on the grey tab page, not on the white window background
+                SetBkColor(dc, GetSysColor(COLOR_BTNFACE));
+                SetTextColor(dc, (HWND)lp == g_stage ? theme::Mix(theme::Accent(TabCat(TabCtrl_GetCurSel(g_tab))), RGB(0, 0, 0), 30) : RGB(88, 100, 122));
+                return (LRESULT)GetSysColorBrush(COLOR_BTNFACE);
+            }
             SetTextColor(dc, (HWND)lp == g_hint ? RGB(88, 100, 122) : theme::Text());
             return (LRESULT)theme::BgBrush();
         }
@@ -1262,6 +1315,8 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
         case WM_COMMAND: {
             int id = LOWORD(wp);
             if (id >= IDC_ACTION0 && id < IDC_ACTION0 + kActionCount) { if (!g_running) StartAction(id - IDC_ACTION0); }
+            else if (id == IDC_UNDO) { if (!g_running) OpenUndoSession(); }
+            else if (id == IDC_ABOUT) { if (!g_running) ShowAbout(); }
             else if (id == IDC_CANCEL) { g_cancel = true; Logger::I().log(Lvl::Warn, "Запрошена отмена…"); }
             else if (id == IDC_REFRESH) { FillTargets(); Logger::I().log(Lvl::Info, fmt("Найдено целевых ОС: %zu", g_targets.size())); }
             else if (id == IDC_CLEAR) SetWindowTextW(g_log, L"");

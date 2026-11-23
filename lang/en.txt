@@ -2304,3 +2304,25 @@ Microsoft — сброс недоступен ==> Microsoft — reset not availa
 Сжать / Разделить ==> Shrink / Split
 Сжать / разделить раздел ==> Shrink / split partition
 Стиль разделов (диск должен быть ПУСТ — сначала удалите все разделы) ==> Partition style (disk must be EMPTY — delete all partitions first)
+Сервис ==> Service
+Доступ ==> Access
+Сбои ==> Crashes
+1 Старт ==> 1 Start
+2 Система ==> 2 System
+3 Диски ==> 3 Disks
+4 Загрузка ==> 4 Boot
+5 Сбои ==> 5 Crashes
+6 Целостность ==> 6 Integrity
+7 Доступ ==> 7 Access
+8 Защита ==> 8 Protection
+9 Сервис ==> 9 Service
+Начните здесь: мастер и сценарии ведут по шагам, полная диагностика ничего не меняет. ==> Start here: the wizard and playbooks guide you step by step; full diagnostics changes nothing.
+Только чтение: сведения о системе, памяти и сети. Ничего не изменяется. ==> Read-only: system, memory and network information. Nothing is changed.
+Только чтение: состояние дисков и файловой системы. Разделы и BitLocker — отдельные окна, читайте подсказки. ==> Read-only: disk and file system state. Partitions and BitLocker open separate windows - read the hints.
+Проверка загрузки только читает; остальные окна могут менять загрузчик и WinRE — читайте подсказки. ==> The boot check only reads; the other windows may change the boot loader and WinRE - read the hints.
+Только чтение: драйверы, синие экраны, дампы и ошибки журналов. Ничего не изменяется. ==> Read-only: drivers, blue screens, dumps and event log errors. Nothing is changed.
+Сначала проверка (без изменений), потом ремонт: он меняет систему и просит подтверждение. ==> Check first (no changes), then repair: it changes the system and asks for confirmation.
+Доступ и запуск: пароль и реестр могут менять систему — сначала точка восстановления. ==> Access and startup: password and registry tools may change the system - make a restore point first.
+Защита: точки восстановления, резервные копии и откат. Делайте перед ремонтом. ==> Protection: restore points, backups and undo. Do this before repairing.
+Сервис: каталог команд, командная строка и сведения о программе. ==> Service: command catalog, command line and program information.
+Сервис: каталог команд и командная строка. «О программе» и «Отменить изменения сеанса» — справа, на любой вкладке. ==> Service: command catalog and command line. About and Undo session changes are on the right, on every tab.

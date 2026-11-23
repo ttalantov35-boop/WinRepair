@@ -12,7 +12,7 @@ namespace theme {
 
 namespace {
 int g_dpi = 96;
-HFONT g_body, g_semi, g_title, g_small, g_big;
+HFONT g_body, g_semi, g_title, g_small, g_big, g_tabf, g_tabfsel;
 HBRUSH g_bg, g_log, g_tint;
 
 int S(int v) { return MulDiv(v, g_dpi, 96); }
@@ -78,6 +78,8 @@ void Init(int dpi) {
     g_title = MakeFont(face, 170, FW_SEMIBOLD);
     g_small = MakeFont(face, 90, FW_NORMAL);
     g_big = MakeFont(face, 105, FW_BOLD);
+    g_tabf = MakeFont(face, 110, FW_BOLD);
+    g_tabfsel = MakeFont(face, 120, FW_BOLD);
     g_tint = CreateSolidBrush(TintColor());
     g_bg = CreateSolidBrush(kBg);
     g_log = CreateSolidBrush(LogBg());
@@ -88,6 +90,8 @@ HFONT Semi() { return g_semi ? g_semi : Body(); }
 HFONT Title() { return g_title ? g_title : Body(); }
 HFONT Small() { return g_small ? g_small : Body(); }
 HFONT Big() { return g_big ? g_big : Semi(); }
+HFONT TabFont() { return g_tabf ? g_tabf : Semi(); }
+HFONT TabFontSel() { return g_tabfsel ? g_tabfsel : Big(); }
 HBRUSH TintBrush() { return g_tint ? g_tint : BgBrush(); }
 COLORREF TintColor() { return RGB(228, 239, 253); }
 COLORREF LevelColor(int level, bool* bold) {
@@ -346,27 +350,45 @@ void DrawTab(const DRAWITEMSTRUCT* d, const wchar_t* text, Cat c, bool selected)
         DeleteObject(ub);
     }
     SetBkMode(dc, TRANSPARENT);
-    SetTextColor(dc, selected ? RGB(255, 255, 255) : RGB(40, 52, 74));
-    HGDIOBJ of = SelectObject(dc, selected ? Big() : Semi());
+    // caption "N Name": N goes into a round colour badge, the name is drawn big and bold next to it
+    bool badge = text[0] >= L'1' && text[0] <= L'9' && text[1] == L' ';
+    const wchar_t* label = badge ? text + 2 : text;
     RECT tr = t;
     InflateRect(&tr, -S(4), 0);
     tr.bottom -= S(4);
-    RECT cal = tr;
-    DrawTextW(dc, text, -1, &cal, DT_CALCRECT | DT_SINGLELINE | DT_NOPREFIX);
-    if (cal.right - cal.left > tr.right - tr.left) {   // too wide: first try the smaller font, wrap only as a last resort
-        SelectObject(dc, Small());
-        cal = tr;
-        DrawTextW(dc, text, -1, &cal, DT_CALCRECT | DT_SINGLELINE | DT_NOPREFIX);
+    int bd = badge ? S(24) : 0, gp = badge ? S(7) : 0;
+    HFONT fonts[3] = {selected ? TabFontSel() : TabFont(), Semi(), Small()};
+    HGDIOBJ of = SelectObject(dc, fonts[0]);
+    int lw = 0, fi = 0;
+    for (; fi < 3; ++fi) {   // biggest font that fits, down to the small one
+        SelectObject(dc, fonts[fi]);
+        RECT cal = tr;
+        DrawTextW(dc, label, -1, &cal, DT_CALCRECT | DT_SINGLELINE | DT_NOPREFIX);
+        lw = cal.right - cal.left;
+        if (bd + gp + lw <= tr.right - tr.left) break;
     }
-    if (cal.right - cal.left <= tr.right - tr.left)
-        DrawTextW(dc, text, -1, &tr, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
-    else {   // a long caption wraps to two lines instead of being cut off
-        RECT w = tr;
-        DrawTextW(dc, text, -1, &w, DT_CALCRECT | DT_WORDBREAK | DT_CENTER | DT_NOPREFIX);
-        int hgt = w.bottom - w.top;
-        tr.top += std::max(0, (int)((tr.bottom - tr.top - hgt) / 2));
-        DrawTextW(dc, text, -1, &tr, DT_CENTER | DT_WORDBREAK | DT_NOPREFIX | DT_END_ELLIPSIS);
+    if (fi == 3) { fi = 2; lw = std::max(0, (int)(tr.right - tr.left) - bd - gp); }
+    int total = bd + gp + lw;
+    int x0 = tr.left + std::max(0, (int)((tr.right - tr.left - total) / 2));
+    int cy = (tr.top + tr.bottom) / 2;
+    if (badge) {
+        COLORREF bf = selected ? RGB(255, 255, 255) : acc;
+        HBRUSH bb = CreateSolidBrush(bf);
+        HPEN bp = CreatePen(PS_SOLID, 1, bf);
+        HGDIOBJ ob2 = SelectObject(dc, bb), op2 = SelectObject(dc, bp);
+        Ellipse(dc, x0, cy - bd / 2, x0 + bd, cy + bd / 2);
+        SelectObject(dc, ob2); SelectObject(dc, op2);
+        DeleteObject(bb); DeleteObject(bp);
+        SelectObject(dc, TabFont());
+        SetTextColor(dc, selected ? acc : RGB(255, 255, 255));
+        RECT br = {x0, cy - bd / 2, x0 + bd, cy + bd / 2};
+        wchar_t dg[2] = {text[0], 0};
+        DrawTextW(dc, dg, 1, &br, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
     }
+    SelectObject(dc, fonts[fi]);
+    SetTextColor(dc, selected ? RGB(255, 255, 255) : RGB(24, 34, 54));
+    RECT lr = {x0 + bd + gp, tr.top, tr.right, tr.bottom};
+    DrawTextW(dc, label, -1, &lr, DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX | DT_END_ELLIPSIS);
     SelectObject(dc, of);
     RestoreDC(dc, saved);
 }
