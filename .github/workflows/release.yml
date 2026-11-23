@@ -34,6 +34,19 @@ jobs:
       - name: Package x64
         shell: cmd
         run: make_package.bat x64
+      - name: Check x64 exe has no AVX in program code
+        # Safe check: only READS the exe, changes nothing. A release built with the broken MSVC 14.52 had ~26
+        # AVX "zeroing" instructions in program code (crash 0xC000001D on CPUs without AVX, e.g. Core 2);
+        # good builds have 7-8 (CRT code behind a CPU check). Fails the release if the count is above 15.
+        shell: pwsh
+        run: |
+          $exe = "dist\WinRepair\WinRepair_x64.exe"
+          $n = (& dumpbin /disasm:nobytes $exe | Select-String -Pattern '\bvpxor\s+(xmm\d+),\1,\1\b').Count
+          Write-Host "AVX zeroing instructions found: $n (normal: 7-8, broken build: ~26, limit: 15)"
+          if ($n -gt 15) {
+            Write-Host "::error::x64 exe contains AVX instructions in program code - it will crash on old CPUs. Check the compiler version above."
+            exit 1
+          }
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x86
