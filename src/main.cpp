@@ -273,8 +273,8 @@ void ShowTabButtons() {
 // Options live inside the tab they belong to, right under that tab's buttons (tab index = name: 1 = 2 Система, 2 = 3 Диски, 4 = 5 Сбои, 5 = 6 Целостность).
 int OptionsStripH(int tab) {
     switch (tab) {
-        case 2: case 4: case 1: return S(70);
-        case 5: return S(104);
+        case 2: case 4: case 1: case 7: return S(88);   // one row of options + a two-line hint
+        case 5: return S(126);                          // two rows + hint
         default: return 0;
     }
 }
@@ -286,38 +286,40 @@ void PlaceOptions(const RECT& tr, const int* cnt, int cols, int bh, int gap) {
     if (sel < 0 || sel > 15 || !OptionsStripH(sel)) return;
     int rowsB = (cnt[sel] + cols - 1) / cols;
     int ox = tr.left + S(10), oy = tr.top + S(6) + rowsB * (bh + gap) + S(6), ow = (int)(tr.right - tr.left) - S(20);
-    int rowH = S(26), step = S(32);
+    int rowH = S(30), step = S(38);
     auto put = [&](HWND o, int x, int yy, int w) { MoveWindow(o, x, yy, w, rowH, TRUE); ShowWindow(o, SW_SHOW); };
-    auto label = [&](HWND o, int x, int yy, int w) { MoveWindow(o, x, yy + S(4), w, rowH - S(4), TRUE); ShowWindow(o, SW_SHOW); };
+    auto label = [&](HWND o, int x, int yy, int w) { MoveWindow(o, x, yy + S(5), w, rowH - S(5), TRUE); ShowWindow(o, SW_SHOW); };
     const wchar_t* hint = L"";
     int rows = 1;
     if (sel == 2) {
-        label(g_lbl[1], ox, oy, S(100));
-        put(g_days, ox + S(104), oy, S(52));
+        label(g_lbl[1], ox, oy, S(130));
+        put(g_days, ox + S(134), oy, S(64));
         SetWindowTextW(g_ext, L"Расширенный режим: chkdsk /scan (дольше)");
-        put(g_ext, ox + S(176), oy, ow - S(176));
+        put(g_ext, ox + S(230), oy, ow - S(230));
         hint = L"Период — за сколько последних дней искать ошибки дисков и файловой системы в журнале событий. Расширенный режим добавляет проверку chkdsk /scan (занимает больше времени).";
     } else if (sel == 5) {
         SetWindowTextW(g_ext, L"Расширенный режим: DISM /ScanHealth (дольше)");
-        put(g_ext, ox, oy, S(360));
-        put(g_force, ox + S(370), oy, ow - S(370));
-        label(g_lbl[4], ox, oy + step, S(170));
-        put(g_source, ox + S(176), oy + step, ow - S(176));
+        put(g_ext, ox, oy, ow);
+        label(g_lbl[4], ox, oy + step, S(210));
+        put(g_source, ox + S(214), oy + step, ow - S(214));
         rows = 2;
-        hint = L"Источник DISM (/Source) нужен, если Windows Update недоступен: укажите папку с файлами, например D:\\sources\\sxs, или WIM:D:\\sources\\install.wim:1. Пусто — обычный источник. Точка восстановления обычно создаётся не чаще раза в 24 часа; галка отключает это ограничение.";
+        hint = L"Источник DISM (/Source) нужен, если Windows Update недоступен: укажите папку с файлами, например D:\\sources\\sxs, или WIM:D:\\sources\\install.wim:1. Пусто — обычный источник.";
     } else if (sel == 4) {
-        label(g_lbl[1], ox, oy, S(100));
-        put(g_days, ox + S(104), oy, S(52));
+        label(g_lbl[1], ox, oy, S(130));
+        put(g_days, ox + S(134), oy, S(64));
         hint = L"Период — за сколько последних дней показывать ошибки и предупреждения из журналов System и Application.";
     } else if (sel == 1) {
-        label(g_lbl[2], ox, oy, S(140));
-        put(g_host, ox + S(144), oy, S(220));
-        label(g_lbl[3], ox + S(380), oy, S(50));
-        put(g_port, ox + S(432), oy, S(70));
+        label(g_lbl[2], ox, oy, S(170));
+        put(g_host, ox + S(174), oy, S(260));
+        label(g_lbl[3], ox + S(450), oy, S(60));
+        put(g_port, ox + S(514), oy, S(90));
         hint = L"Хост и порт для проверки связи: пинг, разрешение имени (DNS) и подключение к TCP-порту (443 — HTTPS, 80 — HTTP). Подойдёт любой доступный сайт или адрес.";
+    } else if (sel == 7) {
+        put(g_force, ox, oy, ow);
+        hint = L"Точка восстановления Windows обычно создаётся не чаще раза в 24 часа; галка отключает это ограничение (для «Создать точку восстановления» и точки перед ремонтом).";
     }
     SetWindowTextW(g_hint, hint);
-    MoveWindow(g_hint, ox, oy + rows * step, ow, S(36), TRUE);
+    MoveWindow(g_hint, ox, oy + rows * step + S(2), ow, S(40), TRUE);
     ShowWindow(g_hint, SW_SHOW);
 }
 
@@ -1107,7 +1109,9 @@ void CreateControls() {
     SendMessageW(g_target, WM_SETFONT, (WPARAM)theme::Big(), TRUE);
     SendMessageW(g_target, CB_SETITEMHEIGHT, (WPARAM)-1, S(22));
     SendMessageW(g_lbl[0], WM_SETFONT, (WPARAM)theme::Big(), TRUE);
-    SendMessageW(g_hint, WM_SETFONT, (WPARAM)theme::Small(), TRUE);
+    SendMessageW(g_hint, WM_SETFONT, (WPARAM)theme::Body(), TRUE);
+    for (HWND o : {g_lbl[1], g_lbl[2], g_lbl[3], g_lbl[4], g_ext, g_force}) SendMessageW(o, WM_SETFONT, (WPARAM)theme::Big(), TRUE);   // option captions: big and bold
+    for (HWND o : {g_days, g_host, g_port, g_source}) SendMessageW(o, WM_SETFONT, (WPARAM)theme::Semi(), TRUE);
     SendMessageW(g_stage, WM_SETFONT, (WPARAM)theme::Semi(), TRUE);
     EnableWindow(g_cancelBtn, FALSE);
     ShowWindow(g_prog, SW_HIDE);
@@ -1292,9 +1296,9 @@ LRESULT CALLBACK WndProc(HWND h, UINT m, WPARAM wp, LPARAM lp) {
                 return (LRESULT)theme::TintBrush();
             }
             SetBkMode(dc, TRANSPARENT);
-            if ((HWND)lp == g_stage || (HWND)lp == g_hint) {   // they sit on the grey tab page, not on the white window background
+            if ((HWND)lp == g_stage || (HWND)lp == g_hint || (HWND)lp == g_lbl[1] || (HWND)lp == g_lbl[2] || (HWND)lp == g_lbl[3] || (HWND)lp == g_lbl[4] || (HWND)lp == g_ext || (HWND)lp == g_force) {   // they sit on the grey tab page, not on the white window background
                 SetBkColor(dc, GetSysColor(COLOR_BTNFACE));
-                SetTextColor(dc, (HWND)lp == g_stage ? theme::Mix(theme::Accent(TabCat(TabCtrl_GetCurSel(g_tab))), RGB(0, 0, 0), 30) : RGB(88, 100, 122));
+                SetTextColor(dc, (HWND)lp == g_stage ? theme::Mix(theme::Accent(TabCat(TabCtrl_GetCurSel(g_tab))), RGB(0, 0, 0), 30) : ((HWND)lp == g_hint ? RGB(52, 64, 88) : RGB(20, 30, 50)));
                 return (LRESULT)GetSysColorBrush(COLOR_BTNFACE);
             }
             SetTextColor(dc, (HWND)lp == g_hint ? RGB(88, 100, 122) : theme::Text());

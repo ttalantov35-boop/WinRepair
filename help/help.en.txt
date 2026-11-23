@@ -35,7 +35,7 @@ Button colour means purpose: blue — diagnostics (read-only), teal — wizards,
 - Target OS + "Refresh" — which Windows to check and repair.
 - Period, days — how many days of events and blue screens to look at (3 by default).
 - Extended mode — adds the long ScanHealth and chkdsk /scan checks.
-- Restore point: ignore the 24 h limit — allows creating a restore point more than once a day.
+- Restore point: ignore the 24 h limit ("8 Protection" tab) — allows creating a restore point more than once a day.
 - Host and port — for network diagnostics (www.microsoft.com:443 by default).
 - DISM source (/Source) — path to install.wim/esd to repair files without the internet.
 - The log at the bottom shows what the program does. Next to it: "Cancel", "Open reports folder", "Open log file", "Save log…", "Copy log", "Clear".
