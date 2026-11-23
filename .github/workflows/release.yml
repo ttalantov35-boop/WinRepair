@@ -27,6 +27,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
+          vsversion: 2022
       - name: Show compiler version
         shell: cmd
         run: cl 2>&1 | findstr /i "Version"
@@ -36,12 +37,14 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x86
+          vsversion: 2022
       - name: Package x86
         shell: cmd
         run: make_package.bat x86
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: amd64_arm64
+          vsversion: 2022
       - name: Package ARM64 (cross)
         shell: cmd
         run: make_package.bat arm64
